@@ -1,0 +1,21 @@
+schema = 1
+
+# Public base pack. The source path still points at gc/ while the pack
+# directory and pack.toml name are being reconciled from "gc" to "core".
+[[pack]]
+name = "core"
+description = "Gas City base planning and implementation workflow pack."
+source = "https://github.com/gastownhall/gascity-packs.git//gc#codex/beatrice-registry-core"
+source_kind = "git"
+
+[[pack]]
+name = "gastown"
+description = "Default Gas Town coding workflow pack."
+source = "https://github.com/gastownhall/gascity-packs.git//gastown#codex/beatrice-registry-core"
+source_kind = "git"
+
+[[pack]]
+name = "maintenance"
+description = "Reusable multi-agent maintenance and housekeeping infrastructure pack."
+source = "https://github.com/gastownhall/gascity-packs.git//maintenance#codex/beatrice-registry-core"
+source_kind = "git"
