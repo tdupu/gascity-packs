@@ -12,6 +12,9 @@ from urllib.parse import urlparse
 
 
 PACK_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*(/[a-z0-9][a-z0-9-]*)?$")
+RELEASE_VERSION_RE = re.compile(r"^[0-9]+\.[0-9]+(\.[0-9]+)?$")
+COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+HASH_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 REQUIRED_WAVE_1 = {"discord", "gascity", "gastown", "github-intake", "slack"}
 FORBIDDEN_WAVE_1 = {"bd", "core", "dolt", "maintenance"}
 
@@ -44,10 +47,33 @@ def validate(path: Path) -> list[str]:
         if pack.get("source_kind") != "git":
             errors.append(f"{label}: source_kind must be git")
 
+        releases = pack.get("release", [])
+        if not isinstance(releases, list) or len(releases) == 0:
+            errors.append(f"{label}: at least one [[pack.release]] is required")
+        seen_releases: set[str] = set()
+        for release in releases if isinstance(releases, list) else []:
+            version = release.get("version", "")
+            if not RELEASE_VERSION_RE.fullmatch(version):
+                errors.append(f"{label}: release version {version!r} must be semver major.minor[.patch]")
+            if version in seen_releases:
+                errors.append(f"{label}: duplicate release {version!r}")
+            seen_releases.add(version)
+            if not release.get("ref"):
+                errors.append(f"{label}: release {version!r} ref is required")
+            if not COMMIT_RE.fullmatch(release.get("commit", "")):
+                errors.append(f"{label}: release {version!r} commit must be a full lowercase SHA")
+            if not HASH_RE.fullmatch(release.get("hash", "")):
+                errors.append(f"{label}: release {version!r} hash must be sha256:<64 lowercase hex>")
+            if not release.get("description"):
+                errors.append(f"{label}: release {version!r} description is required")
+
         source = pack.get("source", "")
         parsed = urlparse(source)
         if parsed.scheme != "https" or not parsed.netloc:
             errors.append(f"{label}: source must be an HTTPS git locator")
+            continue
+        if parsed.fragment:
+            errors.append(f"{label}: source must not embed a ref fragment; use [[pack.release]].ref")
             continue
 
         match = re.search(r"\.git//([^#]+)", source)
