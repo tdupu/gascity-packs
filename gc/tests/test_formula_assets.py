@@ -126,6 +126,15 @@ class FormulaAssetTests(unittest.TestCase):
                 self.assertIn("not filesystem-root absolute", text)
                 self.assertIn("gc.github.snapshot_path=<absolute source.json path>", text)
 
+    def test_github_issue_triage_formula_requires_human_readable_analysis(self) -> None:
+        root = pathlib.Path(__file__).resolve().parents[1]
+        text = (root / "formulas" / "github-issue-triage.formula.toml").read_text(encoding="utf-8")
+        self.assertIn("human-readable analysis body", text)
+        self.assertIn("## Summary", text)
+        self.assertIn("## Evidence", text)
+        self.assertIn("## Recommendation", text)
+        self.assertIn("render-triage-comment", text)
+
     def test_all_declared_formula_vars_are_rendered_into_graph_text(self) -> None:
         root = pathlib.Path(__file__).resolve().parents[1]
         for path in sorted((root / "formulas").glob("*.formula.toml")):

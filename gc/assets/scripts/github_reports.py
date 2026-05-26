@@ -54,6 +54,7 @@ class TriageReport:
     recommended_next_action: str
     reproduction_artifact_path: str
     reproduction_diff_path: str
+    analysis_body: str
 
 
 def validate_triage_report_text(
@@ -102,6 +103,9 @@ def validate_triage_report_text(
         raise ValidationError(f"issue_number must be {expected_issue_number}, got {issue_number}")
     if expected_body_hash and body_hash != expected_body_hash:
         raise ValidationError(f"body_hash must be {expected_body_hash!r}, got {body_hash!r}")
+    analysis_body = text[match.end() :].strip()
+    if not analysis_body:
+        raise ValidationError("triage report analysis body must not be empty")
     return TriageReport(
         schema=schema,
         repo=repo,
@@ -112,6 +116,7 @@ def validate_triage_report_text(
         recommended_next_action=recommended_next_action,
         reproduction_artifact_path=reproduction_artifact_path,
         reproduction_diff_path=reproduction_diff_path,
+        analysis_body=analysis_body,
     )
 
 
@@ -171,6 +176,8 @@ def render_triage_comment(
         lines.append(f"- artifact: {artifact_ref}")
     if report.verdict == "security_sensitive" and not human_approved:
         lines.append("- note: security-sensitive details require human approval before public posting")
+    elif report.analysis_body:
+        lines.extend(["", "## Analysis", "", demote_markdown_headings(report.analysis_body)])
     return "\n".join(lines) + "\n"
 
 
@@ -221,6 +228,16 @@ def required_int(data: dict[str, Any], key: str) -> int:
     if isinstance(value, int):
         return value
     raise ValidationError(f"{key} must be an integer")
+
+
+def demote_markdown_headings(text: str) -> str:
+    lines: list[str] = []
+    for line in text.strip().splitlines():
+        if re.match(r"^#{1,5}\s", line):
+            lines.append("#" + line)
+        else:
+            lines.append(line)
+    return "\n".join(lines).strip()
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:

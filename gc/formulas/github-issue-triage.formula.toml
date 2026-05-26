@@ -110,6 +110,13 @@ Investigate the issue and optional repro evidence. Write `triage-report.md`
 with schema `gc.github-issue-triage-report.v1`, then validate it with
 `{{pack_root}}/assets/scripts/github_reports.py validate-triage --repo <owner>/<repo> --issue-number <number> --body-hash <body-hash>`.
 
+The YAML front matter is only the machine contract. Below it, write a useful
+human-readable analysis body with at least:
+- `## Summary`: what you found and why the verdict follows.
+- `## Evidence`: concrete source/test/runtime evidence, including commands,
+  files, or artifacts checked.
+- `## Recommendation`: the next action and any residual risk.
+
 Allowed verdicts are `reproduced`, `not_reproduced`, `needs_info`, `not_a_bug`,
 `duplicate`, and `security_sensitive`. Allowed next actions are bound to the
 verdict by the validator. Reproduction work may write logs, repro scripts, and
@@ -122,10 +129,12 @@ title = "Render triage comment"
 needs = ["write-triage-report"]
 description = """
 Render one body-hash-keyed public comment. The comment must include a durable
-workflow marker for the repo, issue number, and body hash. For
-`security_sensitive` or `priority: p0`, render only safe public summary text
-until the human gate approves the final comment body. The source issue URL is
-{{github_issue_url}}.
+workflow marker for the repo, issue number, and body hash. Use
+`{{pack_root}}/assets/scripts/github_reports.py render-triage-comment` so the
+structured front-matter fields are followed by the triage report analysis body
+for human and future-agent readers. For `security_sensitive` or `priority: p0`,
+render only safe public summary text until the human gate approves the final
+comment body. The source issue URL is {{github_issue_url}}.
 """
 
 [[steps]]

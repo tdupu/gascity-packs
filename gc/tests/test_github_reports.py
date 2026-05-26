@@ -54,6 +54,21 @@ recommended_next_action: fix
         with self.assertRaisesRegex(github_reports.ValidationError, "repo"):
             github_reports.validate_triage_report_text(report.replace("fix", "ask_reporter"), expected_repo="other/repo")
 
+    def test_validate_triage_report_requires_analysis_body(self) -> None:
+        report = """---
+schema: gc.github-issue-triage-report.v1
+repo: owner/repo
+issue_number: 123
+body_hash: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+verdict: needs_info
+priority: p2
+recommended_next_action: ask_reporter
+---
+"""
+
+        with self.assertRaisesRegex(github_reports.ValidationError, "analysis body"):
+            github_reports.validate_triage_report_text(report)
+
     def test_review_outcome_maps_generic_verdicts_to_comment_outcomes(self) -> None:
         self.assertEqual(github_reports.review_outcome("pass", "none"), "approve")
         self.assertEqual(github_reports.review_outcome("fail", "minor"), "comment")
@@ -99,7 +114,15 @@ recommended_next_action: fix
                 "verdict: needs_info\n"
                 "priority: p2\n"
                 "recommended_next_action: ask_reporter\n"
-                "---\n",
+                "---\n"
+                "\n"
+                "## Summary\n"
+                "\n"
+                "The issue needs a missing reproduction detail.\n"
+                "\n"
+                "## Evidence\n"
+                "\n"
+                "- The report did not include the failing command.\n",
                 encoding="utf-8",
             )
             triage_comment = github_reports.render_triage_comment(
@@ -121,9 +144,40 @@ recommended_next_action: fix
         self.assertIn("<!-- gc:github-issue-triage", triage_comment)
         self.assertIn("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", triage_comment)
         self.assertIn("needs_info", triage_comment)
+        self.assertIn("## Analysis", triage_comment)
+        self.assertIn("### Summary", triage_comment)
+        self.assertIn("The issue needs a missing reproduction detail.", triage_comment)
         self.assertIn("<!-- gc:github-issue-fix-status", status_comment)
         self.assertIn("implementation_started", status_comment)
         self.assertIn("https://github.com/owner/repo/pull/9", status_comment)
+
+    def test_unapproved_security_triage_comment_redacts_analysis(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            triage_path = pathlib.Path(tmp) / "triage.md"
+            triage_path.write_text(
+                "---\n"
+                "schema: gc.github-issue-triage-report.v1\n"
+                "repo: owner/repo\n"
+                "issue_number: 123\n"
+                "body_hash: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+                "verdict: security_sensitive\n"
+                "priority: p1\n"
+                "recommended_next_action: security_process\n"
+                "---\n"
+                "\n"
+                "## Summary\n"
+                "\n"
+                "Sensitive exploit detail.\n",
+                encoding="utf-8",
+            )
+
+            triage_comment = github_reports.render_triage_comment(
+                triage_path,
+                human_approved=False,
+            )
+
+        self.assertIn("security-sensitive details require human approval", triage_comment)
+        self.assertNotIn("Sensitive exploit detail", triage_comment)
 
 
 if __name__ == "__main__":
