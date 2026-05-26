@@ -85,7 +85,7 @@ class FormulaAssetTests(unittest.TestCase):
                 self.assertEqual(set(data["vars"]) - {url_var}, optional_vars)
                 text = (root / "formulas" / f"{name}.formula.toml").read_text(encoding="utf-8")
                 self.assertIn("{{pack_root}}/assets/scripts/github_api.py", text)
-                self.assertNotIn("{{pack_root}}/scripts/", text)
+                self.assertNotIn("{{pack_root}}" + "/scripts/", text)
 
     def test_check_scripts_are_executable_and_portable(self) -> None:
         root = pathlib.Path(__file__).resolve().parents[1]
