@@ -9,7 +9,8 @@ events.
 
 Launch inputs:
 - github_pr_url: {{github_pr_url}}
-- artifact_root: {{artifact_root}} (empty means use the rig artifact root)
+- artifact_root: {{artifact_root}} (optional override; empty resolves to the
+  rig artifact root with the pack artifact helper)
 - context_path: {{context_path}} (empty means no extra context bundle)
 - post_mode: {{post_mode}}
 """
@@ -24,7 +25,7 @@ description = "Full GitHub PR URL: https://github.com/<owner>/<repo>/pull/<numbe
 required = true
 
 [vars.artifact_root]
-description = "Optional artifact root. Defaults to the rig artifact root."
+description = "Optional artifact root override. Empty resolves to the rig artifact root through assets/scripts/artifacts.py."
 default = ""
 
 [vars.context_path]
@@ -40,10 +41,20 @@ id = "snapshot"
 title = "Snapshot GitHub PR"
 description = """
 Resolved GitHub PR URL: {{github_pr_url}}
-Resolved artifact root override: {{artifact_root}} (empty means use the rig
-artifact root)
+Resolved artifact root override: {{artifact_root}} (empty means use the rig artifact root)
 Resolved context path: {{context_path}} (empty means no extra context bundle)
 Resolved post mode: {{post_mode}}
+
+Artifact root semantics:
+- Resolve the durable artifact root with
+  `{{pack_root}}/assets/scripts/artifacts.py root --override "{{artifact_root}}"`.
+- Paths shown with a leading slash, such as
+  `/github/pulls/<owner>/<repo>/<number>/source.json`, are
+  artifact-root-relative, not filesystem-root absolute.
+- Resolve concrete files with
+  `{{pack_root}}/assets/scripts/artifacts.py path --override "{{artifact_root}}" --relative "/github/pulls/<owner>/<repo>/<number>/source.json" --mkdir-parents`.
+- Store absolute resolved artifact paths in bead metadata. Do not infer source
+  identity, workflow identity, readiness, or routing from artifact paths.
 
 Validate the PR URL with
 `{{pack_root}}/assets/scripts/github_api.py parse-url "{{github_pr_url}}" --kind pull`,
@@ -51,9 +62,8 @@ reject shorthand inputs, then fetch the current PR source snapshot with
 `{{pack_root}}/assets/scripts/github_api.py pr-snapshot "{{github_pr_url}}"`.
 
 Write the returned snapshot JSON to
-`{{artifact_root}}/github/pulls/<owner>/<repo>/<number>/source.json`; if
-`{{artifact_root}}` is empty, resolve the rig artifact root first. Then create
-or refresh the canonical GitHub source bead using this v0 contract:
+artifact-root-relative path `/github/pulls/<owner>/<repo>/<number>/source.json`.
+Then create or refresh the canonical GitHub source bead using this v0 contract:
 
 - Source beads are non-runnable index/cache beads. Do not route the source bead,
   assign it, depend on it, or use it as a readiness gate.
@@ -84,8 +94,10 @@ title = "Reuse current head-SHA review when present"
 needs = ["snapshot"]
 description = """
 Look for the current head-SHA review artifact directory:
-`{{artifact_root}}/github/pulls/<owner>/<repo>/<number>/reviews/<head-sha>/`.
-If `{{artifact_root}}` is empty, resolve the rig artifact root first.
+`/github/pulls/<owner>/<repo>/<number>/reviews/<head-sha>/`, resolved under
+the artifact root with `{{pack_root}}/assets/scripts/artifacts.py path
+--override "{{artifact_root}}" --relative
+"/github/pulls/<owner>/<repo>/<number>/reviews/<head-sha>/" --directory`.
 
 If a validated review report/comment or waiting human gate already exists for
 the same repo, PR number, and head SHA, resume that attempt. If the stored

@@ -115,6 +115,17 @@ class FormulaAssetTests(unittest.TestCase):
                 self.assertIn(f"gc.github.kind={github_kind}", text)
                 self.assertIn(idempotency_key, text)
 
+    def test_github_adapter_formulas_define_artifact_root_semantics(self) -> None:
+        root = pathlib.Path(__file__).resolve().parents[1]
+        for name in ("github-issue-triage", "github-issue-fix", "github-pr-review"):
+            with self.subTest(name=name):
+                text = (root / "formulas" / f"{name}.formula.toml").read_text(encoding="utf-8")
+                self.assertIn("{{pack_root}}/assets/scripts/artifacts.py root", text)
+                self.assertIn("{{pack_root}}/assets/scripts/artifacts.py path", text)
+                self.assertIn("artifact-root-relative", text)
+                self.assertIn("not filesystem-root absolute", text)
+                self.assertIn("gc.github.snapshot_path=<absolute source.json path>", text)
+
     def test_all_declared_formula_vars_are_rendered_into_graph_text(self) -> None:
         root = pathlib.Path(__file__).resolve().parents[1]
         for path in sorted((root / "formulas").glob("*.formula.toml")):

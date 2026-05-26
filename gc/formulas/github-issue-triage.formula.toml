@@ -9,7 +9,8 @@ implementation convoys, mutate branches, or publish PRs.
 
 Launch inputs:
 - github_issue_url: {{github_issue_url}}
-- artifact_root: {{artifact_root}} (empty means use the rig artifact root)
+- artifact_root: {{artifact_root}} (optional override; empty resolves to the
+  rig artifact root with the pack artifact helper)
 - post_mode: {{post_mode}}
 """
 formula = "github-issue-triage"
@@ -23,7 +24,7 @@ description = "Full GitHub issue URL: https://github.com/<owner>/<repo>/issues/<
 required = true
 
 [vars.artifact_root]
-description = "Optional artifact root. Defaults to the rig artifact root."
+description = "Optional artifact root override. Empty resolves to the rig artifact root through assets/scripts/artifacts.py."
 default = ""
 
 [vars.post_mode]
@@ -35,9 +36,19 @@ id = "snapshot"
 title = "Snapshot GitHub issue"
 description = """
 Resolved GitHub issue URL: {{github_issue_url}}
-Resolved artifact root override: {{artifact_root}} (empty means use the rig
-artifact root)
+Resolved artifact root override: {{artifact_root}} (empty means use the rig artifact root)
 Resolved post mode: {{post_mode}}
+
+Artifact root semantics:
+- Resolve the durable artifact root with
+  `{{pack_root}}/assets/scripts/artifacts.py root --override "{{artifact_root}}"`.
+- Paths shown with a leading slash, such as
+  `/github/issues/<owner>/<repo>/<number>/source.json`, are
+  artifact-root-relative, not filesystem-root absolute.
+- Resolve concrete files with
+  `{{pack_root}}/assets/scripts/artifacts.py path --override "{{artifact_root}}" --relative "/github/issues/<owner>/<repo>/<number>/source.json" --mkdir-parents`.
+- Store absolute resolved artifact paths in bead metadata. Do not infer source
+  identity, workflow identity, readiness, or routing from artifact paths.
 
 Validate the issue URL with
 `{{pack_root}}/assets/scripts/github_api.py parse-url "{{github_issue_url}}" --kind issue`,
@@ -45,9 +56,8 @@ reject shorthand inputs, then fetch the current source snapshot with
 `{{pack_root}}/assets/scripts/github_api.py issue-snapshot "{{github_issue_url}}"`.
 
 Write the returned snapshot JSON to
-`{{artifact_root}}/github/issues/<owner>/<repo>/<number>/source.json`; if
-`{{artifact_root}}` is empty, resolve the rig artifact root first. Then create
-or refresh the canonical GitHub source bead using this v0 contract:
+artifact-root-relative path `/github/issues/<owner>/<repo>/<number>/source.json`.
+Then create or refresh the canonical GitHub source bead using this v0 contract:
 
 - Source beads are non-runnable index/cache beads. Do not route the source bead,
   assign it, depend on it, or use it as a readiness gate.
@@ -77,8 +87,10 @@ title = "Reuse current body-hash triage when present"
 needs = ["snapshot"]
 description = """
 Look for the current body-hash artifact directory:
-`{{artifact_root}}/github/issues/<owner>/<repo>/<number>/triage/<body-hash>/`.
-If `{{artifact_root}}` is empty, resolve the rig artifact root first.
+`/github/issues/<owner>/<repo>/<number>/triage/<body-hash>/`, resolved under
+the artifact root with `{{pack_root}}/assets/scripts/artifacts.py path
+--override "{{artifact_root}}" --relative
+"/github/issues/<owner>/<repo>/<number>/triage/<body-hash>/" --directory`.
 
 If a validated `triage-report.md` and current comment metadata already exist
 for the same repo, issue number, and body hash, return that run after refreshing
