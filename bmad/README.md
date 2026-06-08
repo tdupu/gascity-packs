@@ -17,14 +17,13 @@ epics/stories, implementation, review, finalize, and publish.
 
 ## Import It
 
-Import this pack alongside the Gas City pack that provides `build-base`:
+Import this pack at city scope. It imports the Gas City pack internally as
+`gc`, so `build-base` is available transitively:
 
 ```toml
-[imports.gc]
-source = "../gascity-packs/gascity"
-
 [imports.bmad]
 source = "../gascity-packs/bmad"
 ```
 
-Then launch `bmad-build` from the target rig context.
+Then launch `bmad-build` from the target rig context. Rig role agents still use
+the Gas City `gc.*` override surface.

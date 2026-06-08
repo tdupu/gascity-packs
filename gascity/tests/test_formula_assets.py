@@ -70,6 +70,8 @@ BUILD_BASE_STEPS = [
 THIRD_PARTY_BUILD_PACKS = {
     "compound-engineering": {
         "formula": "compound-build",
+        "base_import_binding": "gc",
+        "base_import_source": "../gascity",
         "vendor": "compound-engineering-plugin",
         "upstream": "https://github.com/EveryInc/compound-engineering-plugin",
         "commit": "b6250490bec4c0488d68ad66d72bd99f6edb95fd",
@@ -83,6 +85,8 @@ THIRD_PARTY_BUILD_PACKS = {
     },
     "superpowers": {
         "formula": "superpowers-build",
+        "base_import_binding": "gc",
+        "base_import_source": "../gascity",
         "vendor": "superpowers",
         "upstream": "https://github.com/obra/superpowers",
         "commit": "6fd4507659784c351abbd2bc264c7162cfd386dc",
@@ -96,6 +100,8 @@ THIRD_PARTY_BUILD_PACKS = {
     },
     "bmad": {
         "formula": "bmad-build",
+        "base_import_binding": "gc",
+        "base_import_source": "../gascity",
         "vendor": "bmad-method",
         "upstream": "https://github.com/bmad-code-org/BMAD-METHOD",
         "commit": "072d0a74587ef1ea744d51f2dd4436ee2895758d",
@@ -410,6 +416,8 @@ class FormulaAssetTests(unittest.TestCase):
 
                 pack_data = tomllib.loads((pack_root / "pack.toml").read_text(encoding="utf-8"))
                 self.assertEqual(pack_data["pack"]["name"], pack_name)
+                base_import = pack_data["imports"][expected["base_import_binding"]]
+                self.assertEqual(base_import["source"], expected["base_import_source"])
 
                 vendor_root = pack_root / "vendor" / expected["vendor"]
                 self.assertTrue((vendor_root / "LICENSE").is_file())

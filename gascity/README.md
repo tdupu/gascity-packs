@@ -98,6 +98,9 @@ create-beads, build-run, review, and publish helpers.
 Third-party methodology packs can extend `build-base` and override only the
 stages they need. The repository currently ships concrete vendored
 implementations for Compound Engineering, Superpowers, and BMAD Method.
+Those packs import this pack as `gc` internally, so users can import one
+methodology pack at city scope while keeping the existing `gc.*` role override
+surface for rig agents.
 
 ## Stable Workflow Override Interface
 

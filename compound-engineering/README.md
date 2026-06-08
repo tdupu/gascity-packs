@@ -16,14 +16,13 @@ add a separate compound stage.
 
 ## Import It
 
-Import this pack alongside the Gas City pack that provides `build-base`:
+Import this pack at city scope. It imports the Gas City pack internally as
+`gc`, so `build-base` is available transitively:
 
 ```toml
-[imports.gc]
-source = "../gascity-packs/gascity"
-
 [imports.compound-engineering]
 source = "../gascity-packs/compound-engineering"
 ```
 
-Then launch `compound-build` from the target rig context.
+Then launch `compound-build` from the target rig context. Rig role agents still
+use the Gas City `gc.*` override surface.
