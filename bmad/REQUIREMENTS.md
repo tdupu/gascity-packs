@@ -5,6 +5,11 @@ contract while layering vendored BMAD Method skills on top. Each claim names
 the files that prove it; the Evidence Commands section gives the exact
 commands that reproduce the proof.
 
+This ledger is the pack-local evidence for `GC-METH-012` (external
+implementation compatibility) in `gascity/REQUIREMENTS.md`;
+`gascity/tests/test_derived_pack_compatibility.py` enforces the claims below
+for every derived pack.
+
 ## Compatibility Claims
 
 - Import contract: `bmad/pack.toml` imports the Gas City pack as `gc` from

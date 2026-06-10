@@ -832,19 +832,27 @@ Proof expectation: validation requires `workflow.formula`, `producer.formula`,
 | GC-METH-009 | Drain and convoy-step compatibility | Derived packs may declare supported drain policies or replace drains with a convoy-step implementation while preserving convoy evidence. | this ledger; derived pack formula metadata |
 | GC-METH-010 | Build-basic path-shadow overrides | `build-basic` exposes stable major prompt override paths and one override file per review lane. | this ledger; future override-registry tests |
 | GC-METH-011 | Methodology metadata | Top-level build formulas declare `[metadata.gc.methodology]`; GitHub adapters validate selected formula compatibility. | this ledger; `formulas/build-base.formula.toml`; `README.md`; `tests/test_formula_assets.py::FormulaAssetTests::test_entrypoint_adapters_expose_methodology_formula_vars` |
-| GC-METH-012 | External implementation compatibility | Compound Engineering, Superpowers, BMAD, and gstack import this pack as `gc`, extend `build-base`, replace raw subagent dispatch with Gas City formulas/fanouts, and preserve base artifact/mode contracts. | `docs/design/build-methodology-framework-audit.md`; derived pack requirements to be added |
+| GC-METH-012 | External implementation compatibility | Compound Engineering, Superpowers, BMAD, and gstack import this pack as `gc`, extend `build-base`, replace raw subagent dispatch with Gas City formulas/fanouts, and preserve base artifact/mode contracts. | `compound-engineering/REQUIREMENTS.md`; `superpowers/REQUIREMENTS.md`; `bmad/REQUIREMENTS.md`; `gstack/REQUIREMENTS.md`; `tests/test_derived_pack_compatibility.py::DerivedPackCompatibilityTests`; `docs/design/build-methodology-framework-audit.md` |
 | GC-METH-013 | Shared artifact validation | Formula-specific check steps invoke one shared validator after producer stages and route failed validation back for bounded repair. | this ledger; future schema/gate tests |
 | GC-METH-014 | Coverage matrix consistency | YAML coverage is authoritative, markdown coverage mirrors IDs/statuses, and all non-covered statuses include rationale. | this ledger; future schema/gate tests |
 | GC-METH-015 | Neutral artifact metadata | Artifacts record workflow, methodology, and producer metadata without owner or role fields. | this ledger; future schema/gate tests |
 | GC-METH-016 | Nested continuation suffixes | `build-from-requirements-base -> build-from-plan-base -> build-from-decompose-base -> build-from-convoy-base -> build-from-review-base` form a nested suffix chain. Each suffix validates its prerequisite, performs its owned work, and hands off to the next suffix. Cataloged `build-from-*` wrappers expose the default Gas City behavior. | `formulas/build-from-*-base.formula.toml`; `formulas/build-from-*.formula.toml`; `tests/test_formula_assets.py::FormulaAssetTests::test_build_continuation_bases_form_nested_suffix_chain`; `tests/test_formula_assets.py::FormulaAssetTests::test_default_continuation_entrypoints_extend_suffix_bases` |
 
+## Deferred Follow-Up Requirements
+
+| ID | Status | Follow-up condition |
+| --- | --- | --- |
+| GC-METH-012 | covered | Concrete implementation ledgers exist for `compound-engineering`, `superpowers`, `bmad`, and `gstack`, and `tests/test_derived_pack_compatibility.py` proves import-as-`gc`, anchored `build-base` extension with base anchors in order, methodology metadata vocabulary, selector defaults, drain or convoy-step strategy, providerless route targets, the shared claim protocol, the absence of provider-native subagent dispatch, and the pack-local ledgers for all four packs. |
+
 ## Evidence Index
 
 - `python3 -m pytest gascity/tests/test_formula_assets.py -q`
+- `python3 -m pytest gascity/tests/test_derived_pack_compatibility.py -q`
 - `python3 -m pytest -q`
 - `gascity/tests/test_formula_assets.py::FormulaAssetTests::test_base_formula_requirements_cover_formula_set`
 - `gascity/tests/test_formula_assets.py::FormulaAssetTests::test_build_base_is_full_lifecycle_virtual_contract`
 - `gascity/tests/test_formula_assets.py::FormulaAssetTests::test_third_party_build_packs_extend_base_and_vendor_sources`
+- `gascity/tests/test_derived_pack_compatibility.py::DerivedPackCompatibilityTests`
 
 ## Maintenance Rules
 
@@ -856,5 +864,6 @@ Proof expectation: validation requires `workflow.formula`, `producer.formula`,
   requirements edit.
 - Requirements changes require implementation or an explicit out-of-scope or
   follow-up record.
-- The next pilot phase should add corresponding implementation ledgers in
-  `compound-engineering`, `superpowers`, `bmad`, and `gstack`.
+- Derived-pack implementation ledgers live in `compound-engineering`,
+  `superpowers`, `bmad`, and `gstack`; keep them in sync with
+  `tests/test_derived_pack_compatibility.py`.
