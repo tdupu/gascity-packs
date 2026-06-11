@@ -11,5 +11,14 @@ internal = true
 [[steps]]
 id = "decompose"
 title = "gstack task decomposition"
-metadata = { "gc.run_target" = "gstack.decomposer" }
+metadata = { "gc.run_target" = "gstack.decomposer", "gc.build.artifact_schema" = "gc.build.decomposition.v1", "gc.build.artifact_path_keys" = "gc.build.decomposition_path,gc.var.decomposition_path" }
 description_file = "../assets/workflows/gstack-decomposition/decompose.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
+

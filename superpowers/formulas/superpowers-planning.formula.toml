@@ -17,17 +17,33 @@ default = "autonomous"
 id = "requirements"
 title = "Superpowers brainstorm requirements"
 needs = ["prepare-planning"]
-metadata = { "gc.run_target" = "superpowers.brainstorming" }
+metadata = { "gc.run_target" = "superpowers.brainstorming", "gc.build.artifact_schema" = "gc.build.requirements.v1", "gc.build.artifact_path_keys" = "gc.build.requirements_path,gc.var.requirements_path" }
 expand = "superpowers-brainstorming"
 expand_vars = { brainstorming_approval_mode = "{{brainstorming_approval_mode}}" }
 description_file = "../assets/workflows/superpowers-planning/requirements.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
 
 [[steps]]
 id = "plan"
 title = "Superpowers write plan"
 needs = ["requirements"]
-metadata = { "gc.run_target" = "superpowers.writing-plans" }
+metadata = { "gc.run_target" = "superpowers.writing-plans", "gc.build.artifact_schema" = "gc.build.plan.v1", "gc.build.artifact_path_keys" = "gc.build.plan_path,gc.var.plan_path" }
 description_file = "../assets/workflows/superpowers-planning/plan.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
 
 [[steps]]
 id = "plan-review"

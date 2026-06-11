@@ -12,15 +12,31 @@ internal = true
 id = "requirements"
 title = "Compound brainstorm requirements"
 needs = ["prepare-planning"]
-metadata = { "gc.run_target" = "compound-engineering.ce-brainstorm" }
+metadata = { "gc.run_target" = "compound-engineering.ce-brainstorm", "gc.build.artifact_schema" = "gc.build.requirements.v1", "gc.build.artifact_path_keys" = "gc.build.requirements_path,gc.var.requirements_path" }
 description_file = "../assets/workflows/compound-planning/requirements.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
 
 [[steps]]
 id = "plan"
 title = "Compound plan"
 needs = ["requirements"]
-metadata = { "gc.run_target" = "compound-engineering.ce-plan" }
+metadata = { "gc.run_target" = "compound-engineering.ce-plan", "gc.build.artifact_schema" = "gc.build.plan.v1", "gc.build.artifact_path_keys" = "gc.build.plan_path,gc.var.plan_path" }
 description_file = "../assets/workflows/compound-planning/plan.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
 
 [[steps]]
 id = "plan-review"

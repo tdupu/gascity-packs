@@ -12,15 +12,31 @@ internal = true
 id = "requirements"
 title = "BMAD PRD requirements"
 needs = ["prepare-planning"]
-metadata = { "gc.run_target" = "bmad.prd-writer" }
+metadata = { "gc.run_target" = "bmad.prd-writer", "gc.build.artifact_schema" = "gc.build.requirements.v1", "gc.build.artifact_path_keys" = "gc.build.requirements_path,gc.var.requirements_path" }
 description_file = "../assets/workflows/bmad-planning/requirements.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
 
 [[steps]]
 id = "plan"
 title = "BMAD architecture plan"
 needs = ["requirements"]
-metadata = { "gc.run_target" = "bmad.architect" }
+metadata = { "gc.run_target" = "bmad.architect", "gc.build.artifact_schema" = "gc.build.plan.v1", "gc.build.artifact_path_keys" = "gc.build.plan_path,gc.var.plan_path" }
 description_file = "../assets/workflows/bmad-planning/plan.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
 
 [[steps]]
 id = "plan-review"

@@ -57,17 +57,33 @@ default = "autonomous"
 id = "requirements"
 title = "Superpowers brainstorm requirements"
 needs = ["prepare"]
-metadata = { "gc.run_target" = "superpowers.brainstorming" }
+metadata = { "gc.run_target" = "superpowers.brainstorming", "gc.build.artifact_schema" = "gc.build.requirements.v1", "gc.build.artifact_path_keys" = "gc.build.requirements_path,gc.var.requirements_path" }
 expand = "superpowers-brainstorming"
 expand_vars = { brainstorming_approval_mode = "{{brainstorming_approval_mode}}" }
 description_file = "../assets/workflows/superpowers-build/requirements.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
 
 [[steps]]
 id = "plan"
 title = "Superpowers write plan"
 needs = ["requirements"]
-metadata = { "gc.run_target" = "superpowers.writing-plans" }
+metadata = { "gc.run_target" = "superpowers.writing-plans", "gc.build.artifact_schema" = "gc.build.plan.v1", "gc.build.artifact_path_keys" = "gc.build.plan_path,gc.var.plan_path" }
 description_file = "../assets/workflows/superpowers-build/plan.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
 
 [[steps]]
 id = "plan-review"
@@ -81,8 +97,16 @@ description_file = "../assets/workflows/superpowers-build/plan-review.md"
 id = "decompose"
 title = "Create Superpowers implementation convoy"
 needs = ["plan-review"]
-metadata = { "gc.run_target" = "gc.task-decomposer" }
+metadata = { "gc.run_target" = "gc.task-decomposer", "gc.build.artifact_schema" = "gc.build.decomposition.v1", "gc.build.artifact_path_keys" = "gc.build.decomposition_path,gc.var.decomposition_path" }
 description_file = "../assets/workflows/superpowers-build/decompose.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
 
 [[steps]]
 id = "implement"
@@ -118,14 +142,31 @@ single_lane = true
 id = "review"
 title = "Superpowers request code review"
 needs = ["implement", "implement-same-session"]
-metadata = { "gc.run_target" = "superpowers.code-reviewer" }
+metadata = { "gc.run_target" = "superpowers.code-reviewer", "gc.build.artifact_schema" = "gc.build.review.v1", "gc.build.artifact_path_keys" = "gc.build.review_report_path" }
 expand = "superpowers-code-review"
 expand_vars = { implementation_target = "{{implementation_target}}" }
 description_file = "../assets/workflows/superpowers-build/review.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
 
 [[steps]]
 id = "finalize"
 title = "Superpowers finish branch"
 needs = ["review"]
-metadata = { "gc.run_target" = "superpowers.finisher" }
+metadata = { "gc.run_target" = "superpowers.finisher", "gc.build.artifact_schema" = "gc.build.final-report.v1", "gc.build.artifact_path_keys" = "gc.build.final_report_path" }
 description_file = "../assets/workflows/superpowers-build/finalize.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
+

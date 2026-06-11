@@ -11,8 +11,16 @@ internal = true
 [[steps]]
 id = "decompose"
 title = "BMAD epics and stories"
-metadata = { "gc.run_target" = "bmad.epic-story-decomposer" }
+metadata = { "gc.run_target" = "bmad.epic-story-decomposer", "gc.build.artifact_schema" = "gc.build.decomposition.v1", "gc.build.artifact_path_keys" = "gc.build.decomposition_path,gc.var.decomposition_path" }
 description_file = "../assets/workflows/bmad-decomposition/decompose.md"
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/build-artifact-valid.sh"
+timeout = "5m"
 
 [[steps]]
 id = "implementation-readiness"
