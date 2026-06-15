@@ -4,6 +4,12 @@ Summarize requirements, implementation-plan, design-review, create-beads,
 implementation, and review artifacts. Record the final outcome, artifact paths,
 and remaining follow-up beads on the workflow root bead.
 
+The build-basic implementation result may live in a source anchor/worktree. A
+launcher rig root that still contains the original fixture is not a partial build
+when the canonical implementation summary and review artifact show the source
+anchor/worktree passed. Use `status: approved` for the final report in that
+case, and record publish/no-op details separately.
+
 Write the final report, normally `factory-run.md`, at the path recorded on the
 workflow root bead as `gc.build.final_report_path`. The artifact must be Markdown with YAML front
 matter, not JSON. Its front matter must declare

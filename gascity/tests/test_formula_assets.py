@@ -1439,6 +1439,10 @@ class FormulaAssetTests(unittest.TestCase):
             "starter factory",
             "three review lanes",
             "code_review.verdict=done|iterate",
+            "source anchor/worktree",
+            "launcher rig root may remain unchanged",
+            "not to the launcher rig root",
+            "normalized `gc.build.review.v1` artifact with `status: approved`",
             "Do not invoke provider-native subagents",
         ):
             with self.subTest(fragment=fragment):
@@ -1485,6 +1489,7 @@ class FormulaAssetTests(unittest.TestCase):
                     self.assertIn(fragment, text)
 
         finalize_text = (root / "assets/workflows/build-basic/finalize.md").read_text(encoding="utf-8")
+        publish_text = (root / "assets/workflows/build-basic/publish.md").read_text(encoding="utf-8")
         summary_text = (root / "assets/workflows/build-base/summarize-implementation.md").read_text(encoding="utf-8")
         for fragment in (
             "factory-run.md",
@@ -1495,9 +1500,19 @@ class FormulaAssetTests(unittest.TestCase):
             "`gc.build.implementation_summary_path`",
             "`implementation-summary.md`",
             "`gc.build.implementation-summary.v1`",
+            "source anchor/worktree",
+            "not a partial build",
+            "Use `status: approved`",
         ):
             with self.subTest(asset="finalize", fragment=fragment):
                 self.assertIn(fragment, finalize_text)
+        for fragment in (
+            "approved source anchor/worktree",
+            "Do not mark publish failed or downgrade the workflow",
+            "preserving the approved build outcome",
+        ):
+            with self.subTest(asset="publish", fragment=fragment):
+                self.assertIn(fragment, publish_text)
         for fragment in (
             "canonical build implementation summary",
             "`gc.build.implementation_summary_path`",
