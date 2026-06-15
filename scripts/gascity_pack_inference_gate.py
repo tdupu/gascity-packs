@@ -450,6 +450,7 @@ BUILD_BASIC_ARTIFACT_CONTRACTS = (
 DEFAULT_GATE = "all"
 DEFAULT_TIMEOUT = "75m"
 DEFAULT_POLL_INTERVAL = "5s"
+BD_LIST_LIMIT = "1000"
 INHERITED_ENV_KEYS = (
     "PATH",
     "TMPDIR",
@@ -1419,7 +1420,7 @@ def list_beads(gc_bin: str, workspace: GateWorkspace, *, env: Mapping[str, str])
                 "list",
                 "--json",
                 "--limit",
-                "0",
+                BD_LIST_LIMIT,
             ],
             env=env,
             timeout=parse_duration("30s"),
@@ -1467,16 +1468,25 @@ def list_beads_from_event_log(workspace: GateWorkspace) -> list[dict[str, Any]]:
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        payload = event.get("payload")
-        if not isinstance(payload, dict):
-            continue
-        bead = payload.get("bead")
+        bead = event_payload_bead(event)
         if not isinstance(bead, dict):
             continue
         bead_id = bead.get("id")
         if isinstance(bead_id, str) and bead_id:
             beads[bead_id] = bead
     return list(beads.values())
+
+
+def event_payload_bead(event: Mapping[str, Any]) -> dict[str, Any] | None:
+    payload = event.get("payload")
+    if not isinstance(payload, dict):
+        return None
+    bead = payload.get("bead")
+    if isinstance(bead, dict):
+        return bead
+    if isinstance(payload.get("id"), str) and isinstance(payload.get("title"), str):
+        return payload
+    return None
 
 
 def append_event_route_history(beads: Sequence[dict[str, Any]], workspace: GateWorkspace) -> list[dict[str, Any]]:
@@ -1507,10 +1517,7 @@ def event_route_history_targets(workspace: GateWorkspace) -> list[str]:
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        payload = event.get("payload")
-        if not isinstance(payload, dict):
-            continue
-        bead = payload.get("bead")
+        bead = event_payload_bead(event)
         if isinstance(bead, dict):
             routes.extend(bead_route_targets(bead))
     return dedupe_strings(routes)
@@ -1639,7 +1646,7 @@ def show_bead(gc_bin: str, workspace: GateWorkspace, bead_id: str, *, env: Mappi
     for bead in list_beads(gc_bin, workspace, env=env):
         if bead.get("id") == bead_id:
             return bead
-    raise GateError(f"bead {bead_id} not found in gc bd show --json or gc bd list --json --limit 0 output")
+    raise GateError(f"bead {bead_id} not found in gc bd show --json or gc bd list --json output")
 
 
 def metadata_value(bead: Mapping[str, Any], key: str) -> str:
@@ -1702,7 +1709,7 @@ def collect_diagnostics(gc_bin: str, workspace: GateWorkspace, *, env: Mapping[s
                 "list",
                 "--json",
                 "--limit",
-                "0",
+                BD_LIST_LIMIT,
             ],
         ),
     ]

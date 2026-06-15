@@ -421,7 +421,7 @@ printf '[{{"id":"fi-1","title":"root","status":"open"}}]\\n'
     beads = gascity_pack_inference_gate.list_beads(str(fake_gc), workspace, env={})
 
     assert beads == [{"id": "fi-1", "title": "root", "status": "open"}]
-    assert args_path.read_text(encoding="utf-8").splitlines()[-3:] == ["--json", "--limit", "0"]
+    assert args_path.read_text(encoding="utf-8").splitlines()[-3:] == ["--json", "--limit", "1000"]
 
 
 def test_list_beads_falls_back_to_city_event_log_when_live_list_is_empty(tmp_path) -> None:
@@ -464,6 +464,47 @@ def test_list_beads_falls_back_to_city_event_log_when_live_list_is_empty(tmp_pat
         beads,
         ["gc.implementation-reviewer"],
         context="replayed review gate",
+    )
+
+
+def test_list_beads_falls_back_to_current_city_event_log_shape(tmp_path) -> None:
+    workspace = gascity_pack_inference_gate.GateWorkspace(
+        root=tmp_path,
+        city_dir=tmp_path / "city",
+        rig_dir=tmp_path / "fixture",
+        gc_home=tmp_path / "gc-home",
+        runtime_dir=tmp_path / "runtime",
+        claude_config_dir=tmp_path / "gc-home" / ".claude",
+        city_name="inference-city",
+        rig_name="fixture",
+    )
+    (workspace.city_dir / ".gc").mkdir(parents=True)
+    workspace.rig_dir.mkdir()
+    fake_gc = tmp_path / "gc"
+    fake_gc.write_text("#!/bin/sh\nprintf '[]\\n'\n", encoding="utf-8")
+    fake_gc.chmod(0o755)
+
+    event = {
+        "type": "bead.closed",
+        "payload": {
+            "id": "fi-dk42",
+            "title": "Write review report",
+            "status": "closed",
+            "metadata": {
+                "gc.run_target": "gc.implementation-reviewer",
+                "gc.routed_to": "fixture/gc.implementation-reviewer",
+            },
+        },
+    }
+    (workspace.city_dir / ".gc" / "events.jsonl").write_text(json.dumps(event) + "\n", encoding="utf-8")
+
+    beads = gascity_pack_inference_gate.list_beads(str(fake_gc), workspace, env={})
+
+    assert beads == [event["payload"]]
+    gascity_pack_inference_gate.validate_required_routes(
+        beads,
+        ["gc.implementation-reviewer"],
+        context="replayed current event gate",
     )
 
 
@@ -539,7 +580,7 @@ case "$*" in
   *"bd show fi-root --json"*)
     printf '[{{"id":"fi-root","title":"root","status":"closed","metadata":{{"gc.outcome":"pass"}}}}]\\n'
     ;;
-  *"bd list --json --limit 0"*)
+  *"bd list --json --limit 1000"*)
     printf '[{{"id":"fi-other","title":"other","status":"open"}}]\\n'
     ;;
   *)
