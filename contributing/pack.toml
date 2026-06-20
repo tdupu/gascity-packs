@@ -24,15 +24,34 @@
 # discipline without gas-city's particular standards; this pack bakes those
 # standards in.
 #
+# TWO MODES, ONE SET OF STANDARDS:
+#   - skills/   — agent-read: your coding agent applies the standards by
+#                 READING the skill text. The default for a contributor with a
+#                 coding agent. (write-issue, find-work, plan-pr, blast-radius,
+#                 check, ship)
+#   - formulas/ — gc-orchestrated: thin `mol-contributing-*` wrappers that drive
+#                 the same lifecycle as gc formulas, for a city that wants to
+#                 dispatch the steps to a polecat session. Each wrapper DELEGATES
+#                 all standards to its sibling skill — the skill stays the single
+#                 source of truth; the formula adds only the gc orchestration
+#                 (root-bead run state, output paths, blocking early-exit).
+#       mol-contributing-triage       -> find-work skill
+#       mol-contributing-start        -> plan-pr skill
+#       mol-contributing-blast-radius -> blast-radius skill
+#       mol-contributing-review       -> check skill
+#       mol-contributing-ship         -> ship skill
+#     (write-issue has no formula peer — issue authoring sits upstream of the
+#     PR flow; use the skill directly.)
+#
 # Usage in your city's pack.toml:
 #   [imports.contributing]
 #   source = "../packs/contributing"   # path; or git URL when published
 #
-# The skills then load for your coding agent. Nothing here pushes a branch or
-# opens a PR — each step produces an artifact (an issue, a plan, a report) you
-# act on. Pushing is always your call.
+# The skills then load for your coding agent; the formulas register as gc
+# methods. Nothing here pushes a branch or opens a PR — each step produces an
+# artifact (an issue, a plan, a report) you act on. Pushing is always your call.
 
 [pack]
 name = "contributing"
-version = "0.2.1"
+version = "0.3.0"
 schema = 2

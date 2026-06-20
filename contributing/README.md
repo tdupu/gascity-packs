@@ -42,6 +42,36 @@ Two entry points join the same loop:
 The [`contributing`](skills/contributing/SKILL.md) skill is the operational map;
 it explains both entry points and links each step to its skill.
 
+## Two ways to run it
+
+The same lifecycle, the same standards, two delivery modes:
+
+- **Skills (agent-read)** — your coding agent applies a step by *reading* the
+  skill text. This is the default for a contributor working with a coding agent:
+  no orchestration, no city required.
+- **Formulas (gc-orchestrated)** — thin `mol-contributing-*` wrappers let a city
+  *dispatch* a step to a polecat session as a gc formula. Each wrapper is
+  orchestration only: it resolves the run's root bead, records state, writes the
+  output artifact, and enforces blocking early-exits — then **delegates every
+  standard to its sibling skill**. The skill stays the single source of truth; the
+  formula never restates the audit, the gates, or the dimensions.
+
+| Formula | Applies skill | Models on (pr-pipeline) |
+|---------|---------------|-------------------------|
+| `mol-contributing-triage` | [`find-work`](skills/find-work/SKILL.md) | `mol-pr-triage` |
+| `mol-contributing-start` | [`plan-pr`](skills/plan-pr/SKILL.md) | `mol-pr-start` |
+| `mol-contributing-blast-radius` | [`blast-radius`](skills/blast-radius/SKILL.md) | `mol-pr-blast-radius` |
+| `mol-contributing-review` | [`check`](skills/check/SKILL.md) | `mol-pr-review` |
+| `mol-contributing-ship` | [`ship`](skills/ship/SKILL.md) | `mol-pr-ship` |
+
+There is no formula for `write-issue`: issue authoring sits upstream of the PR
+flow (you have nothing to orchestrate against yet), so use that skill directly.
+
+Formula outputs land under `.gc/contributing/` (work-queue, plan, blast-radius,
+review, and ship reports), and run state is recorded in the molecule's root-bead
+notes. Like the skills, the formulas stop before pushing — `mol-contributing-ship`
+ends at the readiness report and never runs `git push` or `gh pr create`.
+
 ## Nothing here pushes for you
 
 Each step produces an artifact you act on — an issue body, a plan, a blast-radius
@@ -66,7 +96,7 @@ this directory — they're self-contained Markdown.
 contributing/
 ├── pack.toml                       schema=2; no imports (self-contained)
 ├── README.md
-├── skills/
+├── skills/                         agent-read mode
 │   ├── contributing/SKILL.md       the lifecycle map (both entry points)
 │   ├── write-issue/SKILL.md        file a maintainer-grade issue
 │   ├── find-work/SKILL.md          triage open issues into a work-queue
@@ -74,13 +104,20 @@ contributing/
 │   ├── blast-radius/SKILL.md       map the impact surface of a change
 │   ├── check/SKILL.md              mechanical gates + the B1–B36 audit
 │   └── ship/SKILL.md               pre-push self-review gate
+├── formulas/                       gc-orchestrated mode (thin wrappers over the skills)
+│   ├── mol-contributing-triage.formula.toml        -> find-work
+│   ├── mol-contributing-start.formula.toml         -> plan-pr
+│   ├── mol-contributing-blast-radius.formula.toml  -> blast-radius
+│   ├── mol-contributing-review.formula.toml        -> check
+│   └── mol-contributing-ship.formula.toml          -> ship
 ├── doctor/                         preflight checks (gc, gh, git present)
 │   ├── check-gc.sh   + gc/doctor.toml
 │   ├── check-gh.sh   + gh/doctor.toml
 │   └── check-git.sh  + git/doctor.toml
 └── tests/
     ├── test_contributing_skill_frontmatter.py   skills have name + description
-    └── test_contributing_pack_structure.py      self-contained; doctor scripts executable
+    ├── test_contributing_pack_structure.py      self-contained; doctor scripts executable
+    └── test_contributing_formulas.py            formulas parse; each references a real skill
 ```
 
 ## Tests
