@@ -1,0 +1,28 @@
+# Event-trigger order — fire mol-brief-prep on a brief-prep request bead.
+#
+# Request shape (per [[brief-prep]] skill + [[project_brief_stack_workflow]]):
+# The Mayor's sling-bead path creates a request bead with
+# metadata.brief_prep_request=true, metadata.brief_input_artifact=<ref>,
+# metadata.brief_artifact_type=<branch|bead|pr|gh-issue|diff>, and
+# status=ready. This order detects that transition and pours
+# mol-brief-prep into the ops pool.
+#
+# STATUS: Phase 1 scaffold. Predicate + pool wiring lands in
+# subsequent phases alongside the formula stubs it triggers.
+
+[order]
+description = "Pour mol-brief-prep on a brief-prep request bead landing ready."
+scope = "rig"
+formula = "mol-brief-prep"
+trigger = "event"
+pool = "polecat"
+
+[trigger_event]
+# Watch for new brief-prep request beads landing ready. Predicate
+# evaluated server-side on bead state-change events.
+on = "bead.status_change"
+predicate = '''
+  status == "ready"
+  && metadata.brief_prep_request == true
+  && metadata.brief_path == null
+'''

@@ -12,6 +12,12 @@ Operational/substrate primitives for Gas Town. Sibling to `gastown/` and
 - You want **cross-rig instrumentation** (dispatch reliability,
   restoration drills, heartbeat plumbing) without dragging it into a
   domain pack.
+- You want to **codify the brief-prep pipeline as a dispatchable
+  formula** so brief production runs on the same substrate as every
+  other ops/ workflow (gather → §5 test evidence → 10-section compose
+  → external FP-review → optional second-opinion → bookkeeping). Pairs
+  with the existing [[brief-prep]] skill in agent-skills; formula adds,
+  skill stays, per [[codification-preserves-brief-pipeline]].
 - You want a **public, non-mathematical** home for ops primitives so the
   math pack (`mathematics/`) stays focused on research content and
   `gastown/` stays focused on coordination.
@@ -36,15 +42,19 @@ ops/
     experiment-pickup.toml             # wake source polecat; hand back artifacts; close bead
     experiment-respawn.toml            # decision-matrix-driven unclaim + repool (Phase 5; stub)
     escalate-stuck-experiment.toml     # Mayor mail emitter (Phase 4; stub)
+    mol-brief-prep.toml                # end-to-end brief-prep pipeline (Phase 1; stub)
     gates/
-      experiment-must-have-target.toml      # dispatch-side check formula
-      experiment-must-have-clerk-route.toml # drop-off validation check formula
+      experiment-must-have-target.toml         # dispatch-side check formula
+      experiment-must-have-clerk-route.toml    # drop-off validation check formula
+      brief-must-have-artifact-input.toml      # mol-brief-prep envelope-check gate
+      brief-must-have-test-evidence.toml       # mol-brief-prep pre-deposit §5 gate
   orders/
     on-experiment-dropoff.toml         # event → experiment-acknowledge
     watchdog-adaptive-check.toml       # cooldown (dynamic) → experiment-check-on-it
     on-experiment-done.toml            # event → experiment-pickup
     on-experiment-health-red.toml      # event → escalate-stuck-experiment (Phase 4; stub)
     on-experiment-session-dead.toml    # event → experiment-respawn (Phase 5; stub)
+    on-brief-prep-request.toml         # event → mol-brief-prep (Phase 1; stub)
   agents/
     .gitkeep                           # experiment-clerk role decision deferred — see §5.3
   assets/
@@ -101,6 +111,41 @@ polecat to the experiment-clerk daemon (formula, not literal agent —
 see §5.3) on drop-off, and is handed back on pickup. The source-polecat
 session can exit between drop-off and pickup; the clerk wakes it (or
 its successor) when the experiment finishes.
+
+### Brief-prep pipeline (codified)
+
+The pack also hosts the codification of the brief-prep pipeline — a
+specialized worker that takes an artifact (branch / bead-id / PR /
+diff / GH-issue) and produces a pull-eligible brief with §5 test
+evidence, FP-converged external review, optional second-opinion, and
+audited bookkeeping. The substrate is the [[brief-prep]] skill in
+agent-skills; this pack's `mol-brief-prep.toml` is the dispatchable
+formula codification of that workflow.
+
+Per [[codification-preserves-brief-pipeline]]: the formula ADDS to the
+skill — it does NOT replace it. After landing, `mol-brief-prep` is
+invocable via `gc formula run mol-brief-prep` (or fired by the
+`on-brief-prep-request` order on a Mayor sling-bead) but is NOT yet
+bound as the default brief-prep entry-point. A future skill→formula
+swap is a separate Taylor-decision.
+
+Per Taylor's IIA verdict (2026-06-25) — see clerk relay fd5c8dba —
+this codification is shape n=5 of
+`[[gascity-orders-and-formulas-decomposition-pattern]]`, alongside the
+brief-pipeline (n=1), experiment-monitoring (n=2), no-brainer-cycle
+(n=3), and codification-pattern-confirmed (n=4). All five share the
+same shape: formula = workflow logic; order = trigger; gate =
+pre-flight defense.
+
+Hard rules carried through from the skill (see formula description for
+the full list): NO presenting to Taylor (Mayor's job); NO `bd close`
+on adjudication-class beads; NO commits or pushes (brief deposits are
+local-only); NO `gh issue close`; NO branch deletes; credential
+discipline per [[never-echo-credentials]].
+
+Full contract — input metadata, output metadata, §5 gate schema,
+self-rejection conditions, artifact-type dispatch — lives in
+`formulas/mol-brief-prep.toml`.
 
 ## Phases
 

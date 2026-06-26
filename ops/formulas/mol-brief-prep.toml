@@ -1,0 +1,638 @@
+description = """
+End-to-end brief-prep pipeline as a Gas City formula.
+
+Codifies the [[brief-prep]] skill (agent-skills) as a TOML formula so
+brief production is dispatchable, resumable, and auditable through the
+same substrate that runs every other ops/ workflow. Composes with
+[[present-it]] (10-section structure), [[grill-and-present]] (legacy
+orchestrator path), [[coordinate-review]] (FP-loop external gate),
+[[catch-no-brainer]] (pre-classifier on the deposited brief), and
+[[is-good-experiment]] / [[is-good-test]] (test-quality rules for §5).
+
+**STATUS: Phase 1 scaffold.** Step bodies are description-only; the
+runnable logic lands in subsequent phases. The shape, gates, contract,
+self-rejection conditions, and per-artifact-type dispatch table are
+normative now so callers (Mayor sling-bead path, watchdog reprocessing
+loop) and consumers (brief-stack readers, bookkeeper bead queries) can
+target a stable contract.
+
+## Coexistence with the existing brief-prep skill (LOAD-BEARING)
+
+Per [[codification-preserves-brief-pipeline]]: the existing brief-prep
+SKILL.md stays operational until an explicit Taylor-approved swap. This
+formula ADDS a TOML codification; it does NOT replace the skill. After
+landing, the formula is invocable via `gc formula run mol-brief-prep`
+but is NOT yet bound as the default brief-prep entry-point. A future
+skill→formula swap is a separate Taylor-decision.
+
+The formula CALLS the named skills; it does NOT duplicate their logic.
+Skills remain the implementation; the formula is the workflow recipe.
+
+## The brief-prep pipeline in one sentence
+
+INPUT (artifact: branch / bead-id / PR / diff / GH-issue-N) → CLASSIFY
+→ RUN TESTS (§5 evidence) → COMPOSE 10-section brief → SELF-REVIEW →
+EXTERNAL FP-LOOP (coordinate-review) → optional SECOND-OPINION (C-gate)
+→ BOOKKEEPING (brief-record + follow-ups) → RETURN summary. Self-rejects
+if any gate fails; never presents to Taylor (Mayor's job) and never
+executes decisions (Mayor or Taylor's job).
+
+## Trigger
+
+Fired by the `on-brief-prep-request` order (event trigger on
+`metadata.brief_prep_request == true && status == ready`). The Mayor's
+sling-bead path creates a request-bead with the artifact reference;
+this order pours the formula. One fire per request-bead; failure leaves
+the request intact (status unchanged, no brief deposited) and emits a
+Mayor-surface mail.
+
+## Contract
+
+  IN:  request-bead with
+       `metadata.brief_prep_request = true`,
+       `metadata.brief_input_artifact = <branch|bead-id|PR-N|GH-issue-N|diff-SHA1..SHA2>`,
+       `metadata.brief_artifact_type` ∈ {branch, bead, pr, gh-issue, diff},
+       `metadata.brief_reviewer_persona` (optional, defaults per artifact type),
+       `metadata.brief_second_opinion_mode` ∈ {auto, force-on, force-off} (optional, default `auto`).
+  OUT: request-bead with
+       `metadata.brief_path = <abs path to deposited brief>`,
+       `metadata.brief_status` ∈ {approved, review-failed, blocked},
+       `metadata.brief_verdict = <brief's recommended action>`,
+       `metadata.brief_unlock_count = <int>`,
+       `metadata.brief_record_bead = <bead-id>` (when status=approved),
+       `metadata.brief_followup_beads = <comma-separated bead-ids>` (when status=approved),
+       status transitioned per outcome (approved → status=open, awaiting
+       Mayor; review-failed → status=open + escalated mail; blocked →
+       status=open with `metadata.brief_prep_blocked_on = <reason>`).
+       Deposited brief lives at the configured `{{brief_stack_path}}`
+       (typically `<rig-root>/.beads/briefs/<artifact-safe-name>-brief.md`).
+
+## Dispositions (per [[brief-prep]] artifact-type dispatch)
+
+Each artifact type drives §2 (test-applicability) and the default
+reviewer persona for the external review gate.
+
+| `brief_artifact_type` | Test source                                                       | Default reviewer persona                                              |
+|-----------------------|-------------------------------------------------------------------|-----------------------------------------------------------------------|
+| `branch`              | `git diff origin/<base>..origin/<branch> -- <project-test-dir>/` | "merge reviewer paranoid about test coverage and regression risk"     |
+| `bead`                | bead `metadata.tests` field                                       | "implementation reviewer alert to scope creep and missing gates"      |
+| `pr`                  | `gh pr view <N> --json files` ∩ project test dir                  | "outgoing-PR reviewer focused on scorecard categories"                |
+| `gh-issue`            | citation verification (cited commit / file referenced in close)   | "close-issue reviewer alert to victory-condition gaps"                |
+| `diff`                | `git diff <SHA1>..<SHA2>` ∩ project test dir                      | "diff-review reviewer focused on what changed and what could break"   |
+
+The map is exhaustive over `brief_artifact_type`. Unknown types refuse
++ surface to Mayor (mirror the no-brainer-cycle `envelope-check` refusal
+path — classifier-drift signal).
+
+## Defense-in-depth gates
+
+Gates run BEFORE any work; refusals leave the request intact and emit
+a Mayor-surface mail. Mirrors the `experiment-acknowledge.envelope-check`
+pattern (gates first, action second; never act on stale envelope).
+
+1. `brief-must-have-artifact-input` — request-bead carries a non-empty
+   `metadata.brief_input_artifact` and a recognized `brief_artifact_type`.
+2. `brief-must-have-test-evidence` — pre-deposit gate; §5 of the
+   composed brief carries at minimum (file + command + literal
+   pass/fail) for every test the artifact touches, OR an explicit
+   "unrunnable: <reason>" declaration. No silent skips.
+
+## Self-rejection conditions (refuse to deposit)
+
+If ANY hold at the deposit step, STOP and surface to Mayor instead of
+depositing (set `metadata.brief_prep_blocked_on = <reason>`):
+
+  1. §5 lacks test-run evidence for ALL applicable tests.
+  2. `coordinate-review` failed to converge in `{{coordinate_review_cap}}`
+     rounds.
+  3. Second-opinion polecat (C-gate) triggered and disagreed with the
+     primary review.
+  4. `unlock_count` could not be computed (bd unreachable, queries
+     error).
+  5. The artifact has already been adjudicated (existing
+     `decisions.jsonl` line for the same artifact).
+  6. Brief contradicts a prior brief without merging or explicit
+     override.
+
+## Hard rules
+
+  - **NO presenting to Taylor.** That's Mayor's job. Return the
+    `brief_record_bead` id; Mayor calls `pull-brief`.
+  - **NO `bd close` on adjudication-class beads.** Taylor decides;
+    agents propose.
+  - **NO commits or pushes.** Brief deposits are local-only artifact
+    writes.
+  - **NO `gh issue close`.** The brief recommends; Taylor or Mayor
+    (via decisions.jsonl) executes.
+  - **NO branch deletes.**
+  - **Credential discipline** per [[never-echo-credentials]] — no
+    `echo $TOKEN`, no `${VAR:-X}` expansions, no grep on env. The
+    deposited brief writes paths, bead IDs, SHAs, file names — never
+    tokens.
+
+Per Taylor's IIA verdict (2026-06-25) — see clerk relay fd5c8dba — this
+formula is shape n=5 of [[gascity-orders-and-formulas-decomposition-pattern]]
+(prior: n=1 brief-pipeline; n=2 experiment-monitoring; n=3
+no-brainer-cycle; n=4 codification-pattern-confirmed). All share the
+same shape: formula = workflow logic; order = trigger; gate =
+pre-flight defense.
+
+## Composition
+
+  - [[brief-prep]] (agent-skills) — substrate implementation. Stays
+    operational; this formula does not replace it. Skill is the HOW;
+    formula is the WHAT-WHEN.
+  - [[present-it]] — provides the 10-section brief structure used in
+    the `compose-brief` step.
+  - [[grill-and-present]] — alternative orchestrator path the Mayor
+    may invoke instead of this formula when the artifact needs
+    interactive grilling before the brief lands.
+  - [[critical-review]] — adversarial reviewer invoked by
+    [[coordinate-review]] in the external-review-gate step.
+  - [[coordinate-review]] — FP-loop driver for the external-review-gate
+    step (per [[as-h7r]] META-FP framework).
+  - [[catch-no-brainer]] — pre-classifies the deposited brief AFTER
+    this formula returns; not invoked from within.
+  - [[is-good-experiment]] / [[is-good-test]] — test-quality rules
+    applied in `run-tests` and `self-review` steps.
+  - `gate-sweep` (core pack) — runs every 30s; if the deposit step
+    stamps a gate on the request-bead (e.g. `brief:deposited`),
+    gate-sweep reaps it. No direct call — purely coordinative.
+
+## Decisions log (audit trail)
+
+This formula's outputs are themselves part of the audit trail. The
+brief at `{{brief_stack_path}}` carries deposited-by + session metadata
+in its frontmatter; the brief-record bead created in `bookkeeping`
+carries `metadata.brief_path` and `metadata.cohort = brief-stack`. The
+no-brainer cycle's `decisions.jsonl` is a separate downstream artifact;
+this formula does NOT write to it (only the no-brainer-cycle formula
+does).
+
+## Cross-references
+
+  - [[brief-prep]] — the substrate skill this formula codifies.
+  - [[codification-preserves-brief-pipeline]] — the load-bearing rule:
+    formula ADDS; skill stays.
+  - [[gascity-orders-and-formulas-decomposition-pattern]] — n=5 with
+    this formula.
+  - [[gascity-workflow-surface-13-row-dispatch]] — brief-prep is row
+    11 (the current GAP this formula fills).
+  - [[brief-test-evidence-required]] — §5 contract enforced by the
+    `brief-must-have-test-evidence` gate.
+  - [[project_brief_stack_workflow]] — durable-stack infra schema
+    (frontmatter + bookkeeping convention used in the `compose-brief`
+    and `bookkeeping` steps).
+  - [[as-h7r]] — META-FP framework that `coordinate-review` composes
+    with in the external-review-gate step.
+  - `he-6lz0-redesign-brief.md` (sibling: ops/ experiment-monitoring
+    Phase 1 design source).
+  - [[never-echo-credentials]] — credential discipline across the
+    pipeline, including the deposited brief.
+  - sibling beads: as-bzu (ops/ pack Phase 1 scaffold; this formula
+    depends on it landing first), as-4i8 (no-brainer-cycle formula;
+    same Phase 1 scaffold pattern), as-2bgd (Phase 8d + artifact-type
+    dispatch precedent).
+"""
+formula = "mol-brief-prep"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[vars]
+[vars.binding_prefix]
+description = "Import binding prefix when ops/ is consumed via another pack's [imports.ops]."
+default = ""
+
+[vars.brief_stack_path]
+description = "Path (relative to rig root) where deposited briefs land. Mirrors [[project_brief_stack_workflow]] convention."
+default = ".beads/briefs"
+
+[vars.coordinate_review_cap]
+description = "Maximum FP-loop rounds for the external-review-gate step before declaring review-failed. Matches [[brief-prep]] skill Phase 5 default."
+default = "4"
+
+[vars.second_opinion_mode]
+description = "C-gate behaviour for Phase 5b. `auto` triggers second-opinion per [[brief-prep]] skill conditions; `force-on` always runs; `force-off` skips entirely."
+default = "auto"
+
+[vars.test_timeout]
+description = "Per-test wall-time budget (seconds) for the run-tests step. Mirrors [[brief-prep]] skill Phase 2 default."
+default = "600"
+
+[[steps]]
+id = "envelope-check"
+title = "Validate request-bead envelope (defense-in-depth gates)"
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Read request-bead via `$GC_BEAD_ID`.
+  2. Run gate formula:
+     - `brief-must-have-artifact-input`
+  3. On gate failure:
+     - Stamp `metadata.brief_prep_blocked_on = <gate name>` on the
+       request-bead.
+     - Mail Mayor with REFUSED + request-bead-id + gate name.
+     - `gc runtime drain-ack`; exit non-zero.
+  4. On pass: continue.
+
+This step does NOT yet run `brief-must-have-test-evidence` — that gate
+checks the COMPOSED brief and runs in `external-review-gate` instead,
+once a draft brief exists. Envelope-check covers only the input
+contract.
+
+Per [[gate-keep-architecture]]'s X-policy + X-gate + improve-X trinity:
+the policy is "every brief-prep request carries an artifact reference",
+the gate is `brief-must-have-artifact-input`, and the improve-X path is
+this step's refusal mail to Mayor (so the sling-bead path can fix the
+input shape).
+"""
+
+[[steps]]
+id = "classify-artifact"
+title = "Identify artifact type, locate it, and resolve test source"
+needs = ["envelope-check"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour, per [[brief-prep]] skill Phase 1 (artifact
+classification) + Phase 2 first-pass (test source resolution):
+
+  1. Read `metadata.brief_artifact_type` and `metadata.brief_input_artifact`
+     from the request-bead.
+  2. Dispatch by artifact type per the Dispositions table in this
+     formula's description:
+
+     - `branch`:
+         - `git fetch origin` then `git log --oneline origin/<base>..origin/<branch>`.
+         - Test source: `git diff origin/<base>..origin/<branch> -- <project-test-dir>/`.
+     - `bead`:
+         - `bd show <id>` — capture title, description, metadata.
+         - Test source: bead's `metadata.tests` field (may be empty).
+     - `pr`:
+         - `gh pr view <N> --json title,body,files`.
+         - Test source: PR files ∩ project test directories.
+     - `gh-issue`:
+         - `gh issue view <N> --json title,body,comments`.
+         - Test source: citation verification — find the cited commit
+           or file referenced in the issue close; verify it exists.
+     - `diff`:
+         - Parse `metadata.brief_input_artifact` as `<SHA1>..<SHA2>`.
+         - `git diff <SHA1>..<SHA2>` for the surface; ∩ project test
+           dirs for test source.
+
+  3. If the artifact does not exist or is ambiguous (cannot resolve
+     branch / bead / PR / commit refs): stamp
+     `metadata.brief_prep_blocked_on = "artifact-unresolved: <detail>"`,
+     mail Mayor with UNABLE-TO-RUN + bead id + reason, exit non-zero.
+
+  4. Stash the resolved artifact handle + test-source plan into
+     env-var-passable state (e.g.
+     `BRIEF_ARTIFACT_HANDLE=<resolved-form>`,
+     `BRIEF_TEST_PLAN=<test-files-list-or-empty>`) so subsequent steps
+     read them without re-resolving. Phase 1 stub-only; Phase 2 pins
+     the exact env-var contract.
+
+Never trust user-supplied artifact strings — always verify the artifact
+exists in the canonical source (git, bd, gh) before passing the handle
+to downstream steps. Composes with [[check-docs-before-designing-workarounds]]
+(verify the artifact's authoritative source before designing the brief).
+"""
+
+[[steps]]
+id = "run-tests"
+title = "Execute the test plan and gather §5 evidence (file + command + pass/fail)"
+needs = ["classify-artifact"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour, per [[brief-prep]] skill Phase 2 (test execution)
+and [[brief-test-evidence-required]] contract:
+
+  1. Iterate over `BRIEF_TEST_PLAN` (from classify-artifact).
+  2. For each test:
+     a. Locate the runnable form (e.g. `magma -b magma/test/<file>.mag`,
+        `bash magma/scripts/test/<file>.sh`, `pytest tests/<file>.py`).
+        The runner is artifact-domain-specific; the formula does NOT
+        embed runner knowledge — call out to a project-supplied
+        runner-resolver (`{{binding_prefix}}brief-test-resolve`) when
+        runners aren't trivial. Phase 1 stub-only; Phase 2 pins the
+        resolver contract.
+     b. Run with timeout `{{test_timeout}}` seconds. Capture exit code,
+        first 200 lines of stdout, and wall time.
+     c. If many tests: divide-and-conquer using parallel background
+        invocations. Phase 1 stub-only; Phase 2 pins the parallelism
+        contract.
+  3. For each test, apply [[is-good-experiment]] / [[is-good-test]]
+     rules:
+     - Does the test header name the property being verified?
+     - Are both PASS and FAIL outcomes meaningful (no asymmetric tests)?
+     - Coverage proportional to artifact scope?
+     - Pitfalls planned for (not-loading-data, slow-route,
+       assert-by-accident)?
+  4. Record per-test result as a structured record:
+     `{file, command, exit_code, pass_fail, wall_time, good_test_verdict}`.
+     If a test is genuinely unrunnable (no Magma installed, missing
+     DATA, project setup gap): declare it EXPLICITLY as
+     `unrunnable: <reason>`. NEVER silently skip — that's the §5
+     contract violation [[brief-test-evidence-required]] guards against.
+  5. Pass the structured results forward (env-var
+     `BRIEF_TEST_RESULTS_PATH` pointing at a temp JSON file) for
+     `compose-brief` to cite verbatim in §5.
+
+If ALL tests fail or are unrunnable: mark the brief as a
+"blocker"-class artifact. The §10 verdict (recommended action) in
+`compose-brief` must reflect that blocking condition — this formula
+does NOT silently downgrade a blocker into a normal brief.
+
+Tests run side-effect-free (read-only against the artifact's checkout);
+no commits, no pushes, no metadata writes on adjacent beads.
+"""
+
+[[steps]]
+id = "compose-brief"
+title = "Draft the 10-section brief (cite §5 evidence verbatim)"
+needs = ["run-tests"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour, per [[brief-prep]] skill Phase 3 + [[present-it]]
+10-section structure:
+
+  1. Compose the 10 sections (per [[present-it]]):
+     - §1 What — what the artifact IS, one paragraph.
+     - §2 Where in the code — file paths + line numbers.
+     - §3 Math/theory — only when the artifact touches mathematical
+       content; "N/A — non-math artifact" is a valid line.
+     - §4 Assumptions — what the artifact assumes about the system.
+     - §5 Test evidence — VERBATIM from `BRIEF_TEST_RESULTS_PATH`
+       (file + command + exit + pass/fail per test). Never paraphrase.
+     - §6 Authorship + dates — `git log` extraction for branch/diff;
+       bd metadata for bead; gh API for PR/issue.
+     - §7 Investigation needed — what's unclear; file follow-up beads
+       in `bookkeeping` with `metadata.surfaced_by_brief = <brief-file>`.
+     - §8 Dependencies — what the artifact depends on, what depends on
+       the artifact (used in `unlock_count` computation).
+     - §9 Risks — at least one entry; "None surfaced" requires an
+       explicit 1-line reason.
+     - §10 Decision options + recommended verdict — MERGE / DELETE /
+       CLOSE-CONFIRMED / INVESTIGATE / BLOCK / etc. with the brief's
+       rationale.
+
+  2. Compute `unlock_count` (per [[review-order-by-unlock-count]]):
+     - Direct-blocked: `bd list --status blocked --limit 0 | grep -F "← .* <artifact-bead>"`.
+     - Plus indirect (if GH-issue closure: beads whose
+       `metadata.closes_gh_issues` contains the issue number).
+     - Sum direct + indirect. Record the computation transcript in §10
+       so reviewers can verify.
+
+  3. Save to: `{{brief_stack_path}}/<artifact-safe-name>-brief.md`.
+     Add frontmatter per [[project_brief_stack_workflow]] schema:
+
+       ---
+       artifact: <artifact-id>
+       status: pending-review
+       deposited_at: <ISO-8601 now>
+       deposited_by: mol-brief-prep (session <GC_SESSION_ID>)
+       review_gate: pending
+       unlock_count: <int>
+       priority: P0..P4
+       ---
+
+  4. If §5 evidence is incomplete (test ran but result missing,
+     unrunnable without a reason, etc.): FIX before proceeding. The
+     `brief-must-have-test-evidence` gate runs in the next step and
+     will refuse to advance an incomplete §5.
+
+Per [[brief-prep]] skill's invokability fallback: if a downstream
+runtime cannot Skill-invoke [[present-it]] (overnight-supervisor,
+non-subagent-capable host), this step inline-composes the 10 sections
+using the same template. The fallback path is normative — the formula
+must not require [[present-it]] to be Skill-invokable, only that the
+10-section structure is honored.
+"""
+
+[[steps]]
+id = "self-review"
+title = "Skill-level self-review (test-quality rules + cross-reference check)"
+needs = ["compose-brief"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour, per [[brief-prep]] skill Phase 4:
+
+  1. Re-apply [[is-good-experiment]] / [[is-good-test]] rules to every
+     test that wasn't already gated in `run-tests`. Specifically:
+     - Asymmetric tests (PASS meaningful but FAIL silent, or vice
+       versa) — flag in §10 risks.
+     - Missing-coverage tests — flag in §7 investigation-needed.
+
+  2. Verify the composed brief has:
+     - §5 test evidence (file + command + exit + pass/fail) for every
+       applicable test.
+     - §10 risks section with at least one entry; "None surfaced"
+       requires explicit text.
+     - All cross-referenced beads/branches/intrinsics exist:
+       - `bd show <id>` for every bead-id cited.
+       - `git rev-parse <ref>` for every branch / SHA cited.
+       - `grep` for every intrinsic / function name cited.
+
+  3. If self-review finds BLOCKING gaps: FIX them in-place (re-open
+     `compose-brief` work as needed). Don't deposit a knowingly-broken
+     brief.
+
+Self-review is the LAST in-formula sanity check before handing the
+brief to the external review gate. Composes with
+[[critical-review]] (called downstream via [[coordinate-review]]) but
+runs first to catch trivial issues without spending a reviewer round.
+"""
+
+[[steps]]
+id = "external-review-gate"
+title = "External adversarial review via coordinate-review (FP-loop, cap)"
+needs = ["self-review"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour, per [[brief-prep]] skill Phase 5 + [[as-h7r]]
+META-FP framework:
+
+  1. Run the `brief-must-have-test-evidence` gate against the composed
+     brief. If REJECT: stamp `metadata.brief_prep_blocked_on =
+     "test-evidence-missing"`, mail Mayor, exit non-zero. (The §5
+     contract is non-negotiable.)
+
+  2. Invoke [[coordinate-review]] on the brief:
+
+       coordinate-review
+         artifact={{brief_stack_path}}/<artifact-safe-name>-brief.md
+         reviewer_persona=<from request metadata or default-per-type>
+         cap={{coordinate_review_cap}}
+         store_beads=false
+
+  3. Update the brief's frontmatter `status` field at each iteration:
+     `in-review-iter-1`, `in-review-iter-2`, ..., up to
+     `{{coordinate_review_cap}}`.
+
+  4. Outcomes:
+     - APPROVING within cap rounds: frontmatter `status → approved`.
+       Set `metadata.brief_status = approved` on request-bead. Continue
+       to `optional-second-opinion`.
+     - cap rounds without APPROVING: frontmatter `status →
+       review-failed`. Set `metadata.brief_status = review-failed`.
+       DO NOT deposit-and-pretend; file a follow-up bead and surface
+       to Mayor. Skip to `bookkeeping` with a review-failed verdict
+       (no second-opinion in this branch).
+
+The reviewer persona defaults per artifact type (see Dispositions
+table in this formula's description); the Mayor's sling-bead path can
+override via `metadata.brief_reviewer_persona`.
+
+Per [[as-h7r]] META-FP: the FP-loop converges when the reviewer
+returns APPROVING; non-convergence within cap is a defined outcome
+(not an exception). The cap exists to bound wall-clock; raising it
+without raising review quality is the wrong fix [[coordinate-review]]
+guards against.
+"""
+
+[[steps]]
+id = "optional-second-opinion"
+title = "C-gate: optional independent reviewer (per second_opinion_mode)"
+needs = ["external-review-gate"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour, per [[brief-prep]] skill Phase 5b:
+
+  1. Read `{{second_opinion_mode}}` (formula var) and
+     `metadata.brief_second_opinion_mode` (request override, takes
+     precedence).
+  2. If `force-off`: skip; continue to `bookkeeping`.
+  3. If `force-on`: always run second-opinion.
+  4. If `auto`: trigger on ANY of:
+     - Brief touches notes.tex with a hard gate (project-specific
+       check).
+     - Brief recommends DELETE on a branch with >5 commits.
+     - Brief contradicts a prior brief or bead (check via
+       `grep -l "<artifact>" {{brief_stack_path}}/`).
+     - §10 explicitly flags uncertainty (literal substring
+       "uncertainty"/"unclear"/"ambiguous" in the verdict text).
+
+  5. If triggered (force-on OR auto-condition): invoke
+     [[coordinate-review]] a SECOND time with an INDEPENDENT
+     `reviewer_persona`:
+
+       "independent skeptic, fresh eyes; you have not seen this
+        brief before"
+
+     Cap at 2 rounds (independent of the primary cap).
+
+  6. Outcomes:
+     - Both reviews converge to APPROVING: frontmatter `status →
+       approved` (already set in primary; reaffirmed here). Continue
+       to `bookkeeping`.
+     - Second-opinion disagrees: set
+       `metadata.brief_status = blocked`,
+       `metadata.brief_prep_blocked_on = "second-opinion-disagrees"`,
+       mail Mayor with the disagreement summary. Skip to `bookkeeping`
+       with blocked verdict.
+
+The independent persona is the load-bearing element — without it the
+second-opinion devolves into "same reviewer, same blind spots" and
+adds no signal. The persona string is literal and normative (not a
+formula var) to prevent drift toward un-independent personas.
+"""
+
+[[steps]]
+id = "bookkeeping"
+title = "File brief-record + follow-up beads per project_brief_stack_workflow"
+needs = ["optional-second-opinion"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour, per [[brief-prep]] skill Phase 6 and
+[[project_brief_stack_workflow]] §"Bookkeeping convention":
+
+  1. File a `[brief-record]` tracker bead:
+
+       bd create
+         --title "[brief-record] <artifact> — verdict <VERDICT>"
+         --type task
+         --priority <P>
+         --description "..."
+         --metadata brief_path=<full-path>
+         --metadata brief_status=<approved|review-failed|blocked>
+         --metadata cohort=brief-stack
+
+  2. For each finding the brief surfaces (§7 or §10): file a follow-up
+     bead:
+
+       bd create
+         --title "<finding>"
+         --type <task|bug|design>
+         --metadata surfaced_by_brief=<brief-filename>
+
+  3. Attach to relevant planning epics via:
+
+       bd dep add <follow-up-bead> <epic-bead> --type related
+       (or --type blocks where appropriate)
+
+  4. Stamp the request-bead with bookkeeping pointers:
+
+       bd update <request-bead>
+         --set-metadata brief_record_bead=<bead-id>
+         --set-metadata brief_followup_beads=<comma-separated bead-ids>
+
+  5. If `metadata.brief_status` is `review-failed` or `blocked`:
+     bookkeeping STILL files a `[brief-record]` bead (with the
+     non-approved status) so the failure is auditable. Follow-up beads
+     are filed iff there are surfaced findings worth tracking.
+
+Bookkeeping is intentionally separate from `optional-second-opinion`
+so that even the blocked / review-failed paths land an auditable
+record. The Mayor's `pull-brief` path reads `brief-record` beads to
+find pull-eligible artifacts; without this step, blocked briefs would
+be invisible to the queue.
+
+Per [[polecat-self-resolve-discipline]]: this formula does NOT close
+the request-bead. The Mayor's `pull-brief` path closes it after
+adjudication. We propose; Mayor + Taylor decide; Mayor closes.
+"""
+
+[[steps]]
+id = "return-summary"
+title = "Return concise structured summary for the Mayor"
+needs = ["bookkeeping"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour, per [[brief-prep]] skill Phase 7:
+
+  1. Emit one concise structured summary to stdout (caller-readable):
+
+       ARTIFACT: <artifact-id>
+       BRIEF-PATH: {{brief_stack_path}}/<file>.md
+       VERDICT: <brief's recommended action — MERGE / DELETE / ...>
+       STATUS: <approved | review-failed | blocked>
+       UNLOCK-COUNT: <int>
+       FP-ROUNDS: <N> (and <M> for second-opinion if triggered)
+       BRIEF-RECORD-BEAD: <bead-id>
+       FOLLOW-UP-BEADS: <bead-ids comma-separated>
+       TESTS-RUN: <N pass> + <M fail> + <K unrunnable-but-declared>
+       NOTES: <one short line of any non-obvious context>
+
+  2. `gc runtime drain-ack`; exit 0 (formula succeeded — outcome is in
+     `metadata.brief_status` on the request-bead).
+
+The summary is the Mayor's signal to pull (when STATUS=approved) or
+to investigate (when STATUS=blocked|review-failed). The Mayor's
+sling-bead path consumes this output via the standard `gc convoy
+status` channel; no out-of-band mail is required for routine summaries.
+
+Per [[never-echo-credentials]]: the summary writes paths, bead IDs,
+artifact IDs — never tokens or secrets. The brief file itself is the
+auditable record; this summary is the dispatch signal.
+"""

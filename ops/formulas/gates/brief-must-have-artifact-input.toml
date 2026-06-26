@@ -1,0 +1,91 @@
+description = """
+Gate formula — reject a brief-prep request without a recognized
+artifact reference.
+
+**STATUS: Phase 1 scaffold.** Gate logic lands in subsequent phases;
+description-only here.
+
+## Purpose
+
+Dispatch-side defense against `mol-brief-prep` firing on a malformed
+request-bead. The Mayor's sling-bead path is the intended entry-point;
+this gate catches direct `gc convoy pour` invocations or
+sling-bead-shape drift before the formula's `envelope-check` step
+touches anything.
+
+Pairs with `brief-must-have-test-evidence.toml` per
+[[gate-keep-architecture]]'s X-policy + X-gate + improve-X trinity:
+the policy is "every brief-prep request carries an artifact reference
+of recognized type"; the gate is THIS file; the improve-X path is
+mol-brief-prep's refusal mail to Mayor (so the sling-bead path can fix
+the input shape before the next pour).
+
+## Contract
+
+  CHECK:
+    `metadata.brief_input_artifact` is set and non-empty.
+    `metadata.brief_artifact_type` is set and ∈ {branch, bead, pr,
+      gh-issue, diff}.
+
+  ON FAIL: gate emits REJECT with the literal failing key name(s);
+           the parent formula (`mol-brief-prep.envelope-check`)
+           translates that to a Mayor-surface mail and drops the
+           request (status unchanged, brief not deposited).
+
+The artifact-type enumeration is the same one driving the Dispositions
+table in `mol-brief-prep`'s description. Unknown types fail this gate
+rather than falling through to an unhandled branch in
+`classify-artifact` — fail-loudly at the envelope, never in the middle
+of the pipeline.
+
+## Composition
+
+Reused by:
+  - `mol-brief-prep.envelope-check` (entry-point defense).
+  - Future: any other formula that consumes the same request-bead
+    shape (e.g., a hypothetical `mol-brief-prep-batch` for the queue
+    drain mentioned in [[project_brief_stack_workflow]]).
+
+## Cross-references
+
+- [[brief-prep]] — substrate skill; contract for input shape.
+- [[project_brief_stack_workflow]] — frontmatter + bookkeeping schema.
+- [[gate-keep-architecture]] — X-policy + X-gate + improve-X trinity.
+- [[never-echo-credentials]] — gate writes failing key NAMES, never
+  metadata values.
+- sibling: `experiment-must-have-target.toml` (same shape, different
+  domain).
+"""
+formula = "brief-must-have-artifact-input"
+version = 1
+kind = "gate"
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[[steps]]
+id = "check"
+title = "Assert request-bead has artifact input + recognized type"
+description = """
+**STUB — Phase 1.** Logic lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Read `metadata.brief_input_artifact` from the request-bead.
+     If unset or empty: exit code 1 with stderr:
+       `GATE-REJECT: brief-must-have-artifact-input (missing artifact)`
+  2. Read `metadata.brief_artifact_type` from the request-bead.
+     If unset, empty, OR not in {branch, bead, pr, gh-issue, diff}:
+     exit code 1 with stderr:
+       `GATE-REJECT: brief-must-have-artifact-input (bad type: <value>)`
+  3. Else: exit 0.
+
+The gate is single-pass; no metadata writes. Parent formula
+(`mol-brief-prep`) owns the consequence (mail Mayor, stamp
+`brief_prep_blocked_on`, exit non-zero).
+
+Per [[never-echo-credentials]]: stderr writes the failing key NAME and
+(for the type case) the literal type value the user supplied — never
+the artifact reference itself (which could carry a path or branch name
+that's sensitive). The artifact reference stays in metadata only.
+"""

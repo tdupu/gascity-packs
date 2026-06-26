@@ -1,0 +1,112 @@
+description = """
+Gate formula — refuse to deposit a brief whose §5 lacks structured
+test evidence.
+
+**STATUS: Phase 1 scaffold.** Gate logic lands in subsequent phases;
+description-only here.
+
+## Purpose
+
+Pre-deposit defense against silently-skipped test runs. The §5
+contract from [[brief-test-evidence-required]] is non-negotiable: every
+test the artifact touches must appear in §5 as
+`file + command + exit code + pass/fail`, OR be explicitly declared
+`unrunnable: <reason>`. Silent skips are the failure mode this gate
+prevents.
+
+Pairs with `brief-must-have-artifact-input.toml` per
+[[gate-keep-architecture]]'s X-policy + X-gate + improve-X trinity:
+the policy is "every deposited brief carries §5 evidence per the
+contract"; the gate is THIS file; the improve-X path is mol-brief-prep's
+refusal-to-deposit (block + Mayor mail) so the brief returns to
+`compose-brief` for §5 repair before the FP-loop spends another round.
+
+## Contract
+
+  CHECK: the composed brief at `{{brief_stack_path}}/<name>-brief.md`
+         contains a `## §5` (or equivalent heading) section, and the
+         §5 body contains, for every applicable test:
+         - a `file:` line (test file path),
+         - a `command:` line (literal command run),
+         - either `exit: <int>` + `result: <pass|fail>` lines,
+           OR a `unrunnable: <reason>` line.
+
+  ON FAIL: gate emits REJECT with the per-test deficit (which test
+           lacks which field); the parent formula
+           (`mol-brief-prep.external-review-gate`) stamps
+           `metadata.brief_prep_blocked_on = "test-evidence-missing"`,
+           mails Mayor, exits non-zero. The brief is NOT moved to
+           `pending-review`; it stays in draft state for §5 repair.
+
+The §5 schema (file/command/exit/result/unrunnable lines) is the
+literal contract `present-it` writes when invoked from
+`mol-brief-prep.compose-brief`. The gate parses for these lines as
+text — no Markdown-AST parsing required, no schema validator needed.
+This keeps the gate fast and runtime-portable.
+
+## Composition
+
+Reused by:
+  - `mol-brief-prep.external-review-gate` (pre-deposit defense; runs
+    BEFORE the [[coordinate-review]] FP-loop so review rounds aren't
+    wasted on briefs missing §5).
+  - Future: any post-deposit reaper that revisits old briefs to
+    re-check evidence quality (out of scope for Phase 1).
+
+## Cross-references
+
+- [[brief-test-evidence-required]] — the §5 contract this gate
+  enforces.
+- [[brief-prep]] — substrate skill; §5 schema source.
+- [[present-it]] — the 10-section writer that produces §5 in the form
+  this gate expects.
+- [[is-good-experiment]] / [[is-good-test]] — test-quality rules
+  applied by `mol-brief-prep.run-tests` and `mol-brief-prep.self-review`
+  BEFORE this gate runs.
+- [[gate-keep-architecture]] — X-policy + X-gate + improve-X trinity.
+- [[never-echo-credentials]] — gate output writes test FILE PATHS +
+  the literal contract field names that are missing — never test
+  STDOUT contents (which could carry tokens / paths from a debug log).
+"""
+formula = "brief-must-have-test-evidence"
+version = 1
+kind = "gate"
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[[steps]]
+id = "check"
+title = "Assert composed brief §5 has file + command + pass/fail per applicable test"
+description = """
+**STUB — Phase 1.** Logic lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Read the brief path from `metadata.brief_path` on the request-bead
+     (set by `mol-brief-prep.compose-brief`).
+  2. Read the §5 evidence map from `BRIEF_TEST_RESULTS_PATH` (env var
+     pointing at the structured JSON `mol-brief-prep.run-tests` wrote).
+  3. Parse the brief file's §5 section as text. For every test entry
+     in `BRIEF_TEST_RESULTS_PATH`:
+     - Confirm the §5 body mentions the test `file:`.
+     - Confirm a `command:` line follows.
+     - Confirm EITHER (`exit:` + `result:`) lines OR a
+       `unrunnable: <reason>` line follows.
+  4. On any missing field: exit code 1 with stderr listing the test
+     file and the missing field(s):
+       `GATE-REJECT: brief-must-have-test-evidence
+        - <test-file>: missing <field>`
+  5. Else: exit 0.
+
+The gate is single-pass; no metadata writes. Parent formula
+(`mol-brief-prep`) owns the consequence (mail Mayor, stamp
+`brief_prep_blocked_on = "test-evidence-missing"`, refuse to advance
+the brief to `pending-review`).
+
+Per [[never-echo-credentials]]: stderr writes test FILE PATHS + the
+literal contract field names that are missing. Never writes the test
+STDOUT body (which `mol-brief-prep.run-tests` captures separately for
+the brief's §5 evidence quotes — that body may contain tokens / paths
+from a debug log).
+"""
