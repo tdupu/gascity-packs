@@ -1,0 +1,13 @@
+# False positives in upstream history (gastownhall/gascity-packs, already public).
+# Each line is a gitleaks fingerprint: <commit>:<file>:<rule>:<line>.
+
+# JSON schema doc, "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n" placeholder.
+68792e8900f1581d9464c5a1c7b7f69feccaa85f:github/docs/github-app-identity.md:private-key:46
+
+# Slack SETUP.md docs: literal "xoxb-YOUR-TOKEN" placeholder in curl example.
+ac1c9f74a4ca5abbfbfdbea3a564ee84c452c027:slack-pack/adapter/SETUP.md:curl-auth-header:108
+ac1c9f74a4ca5abbfbfdbea3a564ee84c452c027:slack-pack/adapter/SETUP.md:curl-auth-header:115
+
+# Discord test fixture: RFC 6455 canonical WebSocket handshake nonce
+# (dGhlIHNhbXBsZSBub25jZQ== = base64 of "the sample nonce").
+f27aa40a71cb0247e252893b444aadc5f1e70bfd:discord/tests/test_discord_gateway_service.py:generic-api-key:745
