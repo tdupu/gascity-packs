@@ -1,0 +1,82 @@
+description = """
+Gate formula — the quality floor for the META-FP loop. Reject an
+iteration whose critical-review verdict is anything other than
+APPROVING.
+
+**STATUS: Phase 1 scaffold.** Gate logic lands in Phase 8d;
+description-only here.
+
+## Purpose
+
+Defends against the failure mode where a creator passes the
+monotone-shrink gate by deleting random content. Per
+`[[as-bb5]]` §Quality floor: \"A revision wins the gate only if it
+is shorter AND still APPROVING per critical-review. Prevents
+trivial-deletion gaming.\"
+
+Without this gate, the monotone-shrink invariant is mathematically
+valid but artifactually meaningless — a creator could trivially win
+every iteration by deleting one character, and the loop would
+terminate at a destroyed artifact.
+
+## Contract
+
+  CHECK: `META_FP_REVIEW_VERDICT == \"APPROVING\"`.
+  ON FAIL: gate emits REJECT_AND_RETRY (via the parent formula's
+           verdict-emit) with `reason = \"quality_floor:
+           critical-review verdict <VERDICT> != APPROVING\"`. The
+           calling skill re-runs the revision step with the prior
+           (last APPROVING) candidate.
+
+## Composition
+
+Reused by:
+  - `meta-fp-cycle.quality-floor-gate` (sole consumer today).
+  - Future: any artifact-shaping skill that wants the same quality
+    floor.
+
+## Cross-references
+
+- `[[as-bb5]]` — quality-floor rule source (§Quality floor).
+- `[[gate-keep-architecture]]` trinity — X-gate (this); X-policy
+  (the APPROVING-required invariant); improve-X (the calling skill's
+  retry-with-revised-candidate loop).
+- `[[dispatcher-policy-no-infinite-loop]]` — gate is single-pass;
+  no metadata writes from the gate itself.
+- Sibling: `iteration-must-shrink-or-split` — both gates must PASS
+  for the meta-fp-cycle to ACCEPT_REVISION.
+"""
+formula = "iteration-must-be-approving"
+version = 1
+kind = "gate"
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[[steps]]
+id = "check"
+title = "Assert critical-review verdict is APPROVING"
+description = """
+**STUB — Phase 1.** Logic lands in Phase 8d.
+
+Intended behaviour:
+
+  1. Read `META_FP_REVIEW_VERDICT` from env.
+  2. If unset or empty: exit 1 with stderr:
+     `GATE-REJECT: iteration-must-be-approving (envelope: META_FP_REVIEW_VERDICT unset)`.
+  3. If not in the enumerated set {APPROVING, NEEDS-REVISION}:
+     exit 1 with stderr:
+     `GATE-REJECT: iteration-must-be-approving (envelope: unknown verdict <V>)`.
+  4. If verdict == \"APPROVING\": exit 0.
+  5. Else (verdict == \"NEEDS-REVISION\"): exit 1 with stderr:
+     `GATE-REJECT: iteration-must-be-approving (verdict NEEDS-REVISION)`.
+
+The gate is single-pass; no metadata writes. Parent formula owns the
+consequence (verdict-emit REJECT_AND_RETRY).
+
+Note: the gate does NOT examine the CREATE verdict separately — the
+parent formula's converged-check step already short-circuits to
+TERMINATE_CONVERGED when BOTH are APPROVING. This gate handles the
+case where create is APPROVING but review is NEEDS-REVISION (the
+loop should re-run, not accept).
+"""
