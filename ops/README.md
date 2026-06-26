@@ -15,6 +15,13 @@ Operational/substrate primitives for Gas Town. Sibling to `gastown/` and
 - You want a **public, non-mathematical** home for ops primitives so the
   math pack (`mathematics/`) stays focused on research content and
   `gastown/` stays focused on coordination.
+- You want to **codify the `[[never-echo-credentials]]` discipline as
+  a runtime gate** so any agent-produced artifact (brief, mail body,
+  commit message, pack content) is scanned for literal tokens / PATs /
+  keys BEFORE publication forms. Pairs with the existing pre-push
+  gitleaks hooks (push-layer defense); this gate adds the
+  artifact-layer defense per [[gate-keep-architecture]] and
+  [[codification-preserves-brief-pipeline]] Guardrail 1.
 
 ## What the pack ships (Phase 1 scaffold)
 
@@ -37,8 +44,9 @@ ops/
     experiment-respawn.toml            # decision-matrix-driven unclaim + repool (Phase 5; stub)
     escalate-stuck-experiment.toml     # Mayor mail emitter (Phase 4; stub)
     gates/
-      experiment-must-have-target.toml      # dispatch-side check formula
-      experiment-must-have-clerk-route.toml # drop-off validation check formula
+      experiment-must-have-target.toml         # dispatch-side check formula
+      experiment-must-have-clerk-route.toml    # drop-off validation check formula
+      never-echo-credentials-lint.toml         # agent-output credential leak gate (Phase 1; stub)
   orders/
     on-experiment-dropoff.toml         # event → experiment-acknowledge
     watchdog-adaptive-check.toml       # cooldown (dynamic) → experiment-check-on-it
@@ -48,7 +56,7 @@ ops/
   agents/
     .gitkeep                           # experiment-clerk role decision deferred — see §5.3
   assets/
-    .gitkeep                           # cadence script helpers land here
+    never-echo-credentials-patterns.toml  # gitleaks-shape rules + allowlist for the lint gate
 ```
 
 The stubs are valid TOML and parse-clean against `gc formula list` /
@@ -102,6 +110,53 @@ see §5.3) on drop-off, and is handed back on pickup. The source-polecat
 session can exit between drop-off and pickup; the clerk wakes it (or
 its successor) when the experiment finishes.
 
+### Never-echo-credentials lint (codified discipline)
+
+The pack also hosts the codification of the `[[never-echo-credentials]]`
+discipline — agents must never expose tokens / PATs / keys via stdout,
+argv, files, history, or screenshots. Established after a real leak
+incident (cozy's grep leak, 2026-06-22); codified as a runtime gate at
+the **agent-output layer** so the policy is enforced BEFORE content
+reaches publication forms (commit, mail body, brief deposit,
+pack-content write).
+
+Layered defense:
+
+| Layer | Check | Where |
+|---|---|---|
+| Agent-output (THIS gate) | Scan artifact text BEFORE publication | `ops/formulas/gates/never-echo-credentials-lint.toml` |
+| Git-push | Scan push commit range | repo `pre-push` hook (gitleaks) |
+
+Both layers needed:
+- `gascity-packs/` is PUBLIC — agent-output layer catches BEFORE the
+  artifact even becomes a commit (commit history is forever).
+- Push-hook layer is the last-mile defense if the agent-output gate is
+  bypassed or not yet wired into the producing formula.
+
+The pre-push hook scope was narrowed to push-range per `[[as-zjbb]]`
+(gascity) / `[[as-du4u]]` (gascity-packs); the documentation-placeholder
+allowlist follows the `[[as-jnf]]` `.gitleaksignore` precedent.
+
+Per `[[gate-keep-architecture]]`'s X-policy + X-gate + improve-X
+trinity: the policy is `[[never-echo-credentials]]`; the gate is the
+TOML in `gates/`; the improve-X path is the parent formula's
+refusal-to-publish (block + Mayor mail) so the artifact returns to the
+producing step for credential redaction before another publication
+attempt.
+
+Pattern rules + allowlist live in
+`ops/assets/never-echo-credentials-patterns.toml` (gitleaks-shape TOML;
+parsable into a `gitleaks detect --config` invocation). The rules
+cover GitHub PAT prefixes, AWS access-key shapes, generic API-key
+assignments, private-key PEM blocks, and Slack `xoxb-`/`xoxp-`
+tokens; allowlist covers documented placeholder shapes
+(`xoxb-YOUR-TOKEN`, `ghp_YOUR_TOKEN_HERE`, RFC-canonical examples).
+
+Pairs with `as-wjv-dispatch-gate` (Phase 1 sibling per `[[as-oat3]]`):
+that gate is the skill-level SAFETY OVERRIDE check; this gate is the
+artifact-level complement. Together they implement defense-in-depth at
+both the skill-execution layer and the artifact-publication layer.
+
 ## Phases
 
 This pack lands in 7 phases. **Phase 1 (this scaffold)** is the first;
@@ -129,6 +184,14 @@ gates, and skills — no credentials, API keys, or tokens. Cross-host
 heartbeat plumbing (Phase 6) references credentials by env-var name
 only; never literals (per `[[never-echo-credentials]]`).
 
+The privacy contract is enforced at runtime by the
+`never-echo-credentials-lint` gate (see
+[Never-echo-credentials lint](#never-echo-credentials-lint-codified-discipline)
+above) — any artifact this pack's formulas produce passes through the
+gate BEFORE publication, so accidental literal-credential inclusion is
+blocked at the agent-output layer rather than relying on the push-hook
+last-mile.
+
 ## Cross-references
 
 - **Design source**: `he-6lz0-redesign-brief.md` (Taylor verdict A
@@ -142,4 +205,8 @@ only; never literals (per `[[never-echo-credentials]]`).
   `[[gate-keep-architecture]]`,
   `[[reference-bd-backup-subcommand]]`,
   `[[check-docs-before-designing-workarounds]]`,
-  `[[never-echo-credentials]]`
+  `[[never-echo-credentials]]`,
+  `[[codification-preserves-brief-pipeline]]`
+- **Codification precedents**: `[[as-jnf]]` (`.gitleaksignore`
+  allowlist shape), `[[as-zjbb]]` / `[[as-du4u]]` (pre-push hook
+  narrowing), `[[as-wjv]]` (SAFETY OVERRIDE skill-level sibling)
