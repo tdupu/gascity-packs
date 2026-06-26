@@ -47,6 +47,7 @@ ops/
       experiment-must-have-clerk-route.toml    # drop-off validation check formula
       iteration-must-shrink-or-split.toml      # meta-fp-cycle math gate (as-bb5)
       iteration-must-be-approving.toml         # meta-fp-cycle quality floor (as-bb5)
+      as-wjv-dispatch-gate.toml                # SAFETY OVERRIDE on SKILL.md dispatch (Phase 1; stub)
   orders/
     on-experiment-dropoff.toml         # event → experiment-acknowledge
     watchdog-adaptive-check.toml       # cooldown (dynamic) → experiment-check-on-it
@@ -146,6 +147,32 @@ First consumer: `coordinate-review` SKILL.md (agent-skills); install
 gated by Taylor approval per `[[as-wjv]]` SAFETY OVERRIDE policy
 (sub-bead `as-gz0n`).
 
+### as-wjv-dispatch-gate (SAFETY OVERRIDE on SKILL.md dispatch)
+
+Codification of `[[as-wjv]]` — Taylor's standing directive that any
+edit to a SKILL.md or agent-prompt artifact requires explicit
+per-session greenlight. The gate fires synchronously on dispatch:
+BLOCK if any path in the envelope matches the 5 SKILL.md / agent-prompt
+prefixes (`agent_skills/skills/**/SKILL.md`,
+`~/.claude/skills/**/SKILL.md`, `gascity-packs/**/agents/*.md`,
+`.claude/commands/**`, `CLAUDE.md`) AND no `GC_TAYLOR_GREENLIGHT` is
+set in the current session; otherwise ALLOW.
+
+Every BLOCK and ALLOW_WITH_OVERRIDE writes a JSON-line audit record
+to `~/gt/<rig>/.beads/decisions.jsonl`. Per
+`[[never-echo-credentials]]`: the audit record logs paths + the
+greenlight token only, NEVER the file contents or diff hunks.
+
+Gate (not formula) — single-pass, exits 0 (ALLOW) or 1 (BLOCK). The
+calling dispatch substrate owns the consequence: typically halting the
+flow and surfacing the greenlight request to Taylor via
+`mol-mayor-q-brief` (sibling 2/4, bead `as-da9n`).
+
+This is the **heavy gate** in the
+`[[gate-keep-architecture]]` X-policy / X-gate / improve-X trinity.
+The advisory pre-flight is `mol-pre-action-checklist` check 6
+(sibling 4/4, bead `as-ktkx`).
+
 ## Phases
 
 This pack lands in 8+ phases across two lanes (experiment-monitoring +
@@ -166,6 +193,8 @@ appropriate parent.
 | 8b | No-brainer cycle runnable implementation (step bodies + decisions.jsonl writer + integration tests against `[[catch-no-brainer]]` fixtures) | TBD |
 | 8c | META-FP convergence framework scaffold (this work; formula + 2 gates as stubs) | `as-2h0` |
 | 8d | META-FP runnable implementation (step bodies + integration tests against `coordinate-review` iteration logs) | TBD |
+| 9a | Policy-conversion lane scaffolds (4 sibling formulas as stubs: dispatch-gate, mayor-q-brief, never-echo-credentials-lint, pre-action-checklist) | `as-oat3` / `as-da9n` / `as-82ty` / `as-ktkx` |
+| 9b | Policy-conversion runnable implementation (per-formula Phase 2 / 3 bodies + integration tests against memory references) | TBD |
 
 Numbering note: the brief's §9.1 cost table uses Phase 0-7 (8 rows);
 this README collapses brief Phase 0 + Phase 1 into "Phase 1 scaffold"
@@ -203,4 +232,6 @@ only; never literals (per `[[never-echo-credentials]]`).
   `[[gate-keep-architecture]]`,
   `[[reference-bd-backup-subcommand]]`,
   `[[check-docs-before-designing-workarounds]]`,
+  `[[codification-preserves-brief-pipeline]]`,
+  `[[as-wjv]]`,
   `[[never-echo-credentials]]`

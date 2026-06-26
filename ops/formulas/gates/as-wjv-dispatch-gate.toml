@@ -1,0 +1,244 @@
+description = """
+Gate formula — the SAFETY OVERRIDE for any dispatch envelope that touches
+a SKILL.md or agent-prompt artifact. Codification of `[[as-wjv]]` (Taylor
+standing directive: user-skill-touching edits require explicit per-session
+Taylor greenlight).
+
+**STATUS: Phase 1 scaffold.** Gate logic lands in Phase 2;
+description-only here.
+
+## Purpose
+
+`[[as-wjv]]` is a load-bearing safety policy: SKILL.md content is a live
+contract between Taylor and his agents, and any edit can silently change
+agent behavior across every future session that loads that skill. The
+gate enforces that no dispatch (brief / sling / commit / file-write)
+touching a SKILL.md path proceeds without an explicit Taylor greenlight
+that lives at SESSION scope (not bead scope — the greenlight does NOT
+carry forward to the next session even for the same bead).
+
+Without this gate, the policy lives only as a memory file that every
+agent must remember to check. Codifying it as a TOML gate that the
+dispatch substrate fires automatically means the protection survives
+agent context loss, memory drift, and operator handoff.
+
+## What this gate is (not)
+
+This is a **gate**, not a workflow formula:
+
+- It fires synchronously on dispatch — BLOCK or ALLOW, no STAGE.
+- It does NOT itself prompt Taylor for the greenlight — that's the
+  calling skill's job (e.g. `coordinate-review` stages a brief; Mayor
+  surfaces the question).
+- It does NOT decide what counts as a SKILL.md edit beyond the path-
+  prefix list — that's intentional; the path list is the only piece of
+  policy this gate encodes.
+
+## Contract
+
+  CHECK: For each path in the dispatch envelope, IF path matches a
+         SKILL.md / agent-prompt prefix AND no `GC_TAYLOR_GREENLIGHT`
+         is set in the current session, BLOCK.
+
+  IN (env vars):
+    - `WJV_DISPATCH_PATHS`     — newline-separated list of paths the
+                                  dispatch envelope wants to touch.
+                                  Empty / unset → ALLOW (no SKILL.md
+                                  involvement).
+    - `WJV_DISPATCH_KIND`      — one of `commit` | `push` | `file-write`
+                                  | `install` | `brief-deposit` |
+                                  `sling`. Drives whether the gate
+                                  inspects the file content (Phase 2
+                                  may differentiate `file-write` from
+                                  `commit`).
+    - `WJV_DISPATCH_BEAD_ID`   — optional. The bead the dispatch is
+                                  serving. Logged in the audit trail
+                                  but does NOT confer greenlight.
+    - `GC_TAYLOR_GREENLIGHT`   — session-scoped flag. Format: a short
+                                  token + timestamp set by Mayor /
+                                  the skill that surfaced the brief
+                                  to Taylor; e.g.
+                                  `as-oat3:2026-06-26T17:00:00Z`.
+                                  Phase 2 will validate the token
+                                  shape and reject expired greenlights
+                                  (> 1h old). For Phase 1 scaffold,
+                                  presence of any non-empty value is
+                                  enough to ALLOW.
+
+  ON FAIL (BLOCK): exit 1 with stderr line:
+                   `GATE-REJECT: as-wjv-dispatch-gate (<reason>)`.
+                   Also write a `BLOCK` line to the audit trail at
+                   `~/gt/<rig>/.beads/decisions.jsonl`:
+                     {\"gate\":\"as-wjv-dispatch-gate\",
+                      \"verdict\":\"BLOCK\",
+                      \"bead_id\":\"<id>\",
+                      \"kind\":\"<kind>\",
+                      \"paths\":[<paths>],
+                      \"timestamp\":\"<ISO-8601>\"}.
+
+  ON PASS (ALLOW): exit 0. IF greenlight was used (path matched but
+                   greenlight present), write an `ALLOW_WITH_OVERRIDE`
+                   line to the audit trail with the same envelope
+                   plus `\"greenlight\":\"<value>\"` for traceability.
+                   Per `[[never-echo-credentials]]`: log the greenlight
+                   TOKEN identifier ONLY (the format is non-secret per
+                   spec), never the surrounding session state.
+
+Single-pass per fire (per
+`[[dispatcher-policy-no-infinite-loop]]`). Gate emits its verdict and
+exits; the dispatch substrate consumes the exit code.
+
+## SKILL.md / agent-prompt path prefixes
+
+The path list this gate matches against. Phase 2 will lift it into a
+`[vars.skill_artifact_prefixes]` so downstream rigs can extend it
+without forking this gate.
+
+| # | Prefix | Why it's load-bearing |
+|---|---|---|
+| 1 | `**/agent_skills/skills/**/SKILL.md` | Canonical skill repo (per-session live skills). |
+| 2 | `~/.claude/skills/**/SKILL.md` | User-scope skill mount; symlinks to (1). |
+| 3 | `**/gascity-packs/**/agents/*.md` | Agent-prompt artifacts (Mayor / clerk / polecat prompt overrides). |
+| 4 | `**/.claude/commands/**` | User-scope slash commands; same blast radius as skills. |
+| 5 | `**/CLAUDE.md` (root or any subdir) | Per-project agent context; load-bearing on the project profile. |
+
+A dispatch envelope listing multiple paths fires the gate ONCE — the
+gate reports the FIRST matching path in the reason but lists ALL
+matches in the audit-trail entry.
+
+## Composition
+
+- **Sibling formulas** in the `policy-conversion` series:
+  - `mol-pre-action-checklist` (sibling 4/4, bead `as-ktkx`) —
+    check 6 is a pre-flight of this gate; the checklist STAGES the
+    concern, the gate BLOCKS the dispatch.
+  - `mol-mayor-q-brief` (sibling 2/4, bead `as-da9n`) — when this
+    gate BLOCKS, the calling skill SHOULD pour `mol-mayor-q-brief`
+    to stage the greenlight request as a brief instead of guessing.
+  - `never-echo-credentials-lint` (sibling 3/4, bead `as-82ty`) —
+    sister policy gate; same composition pattern (advisory checklist
+    + heavy gate).
+
+- **Composes with**:
+  - `coordinate-review` SKILL.md (agent-skills) — first known
+    consumer; staged installs cite the greenlight token in the brief
+    envelope.
+  - Staging discipline at `~/gt/tmp-for-taylor/<bead>-review/` — the
+    physical staging directory the gate's BLOCK message recommends.
+  - `[[codification-preserves-brief-pipeline]]` Guardrail 1 — this
+    gate IS the codification of Guardrail 1's pre-merge check.
+
+## Audit trail
+
+Every gate fire (BLOCK or ALLOW_WITH_OVERRIDE) writes a JSON line to
+`~/gt/<rig>/.beads/decisions.jsonl`. ALLOW with no greenlight needed
+(no SKILL.md path in envelope) does NOT log — the gate is a no-op for
+those calls and logging would flood decisions.jsonl with noise.
+
+The audit trail entry NEVER includes file contents, only the path
+strings. Per `[[never-echo-credentials]]`: the greenlight token is
+logged as-is (it is a session identifier + timestamp, not a secret per
+spec), but a `commit` dispatch envelope's diff is NEVER echoed.
+
+## Cross-references
+
+- `[[as-wjv]]` — source memory; the SAFETY OVERRIDE policy itself.
+- `[[codification-preserves-brief-pipeline]]` — Guardrail 1 alignment;
+  this gate IS the codification.
+- `[[mayor-farm-out-doctrine]]` — Mayor coordinates the greenlight
+  request via brief; this gate enforces no-greenlight-no-action.
+- `[[never-echo-credentials]]` — sister policy gate; same composition
+  pattern.
+- `[[gate-keep-architecture]]` trinity — X-gate (this); X-policy
+  (`[[as-wjv]]` SAFETY OVERRIDE itself); improve-X (the calling
+  skill's brief + greenlight loop).
+- `[[dispatcher-policy-no-infinite-loop]]` — single-pass gate; never
+  retries internally.
+- `as-ktkx` — sibling 4/4 (`mol-pre-action-checklist`); check 6 is
+  the advisory pre-flight of this gate.
+- `as-bzu` — Phase 1 scaffold parent of this pack.
+- `as-gz0n` — concrete instance of `[[as-wjv]]` staging (the
+  coordinate-review v2 install brief).
+"""
+formula = "as-wjv-dispatch-gate"
+version = 1
+kind = "gate"
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[[steps]]
+id = "check"
+title = "Assert no SKILL.md / agent-prompt path in dispatch envelope without Taylor greenlight"
+description = """
+**STUB — Phase 1.** Logic lands in Phase 2.
+
+Intended behaviour:
+
+  1. Read `WJV_DISPATCH_PATHS` (newline-separated). If empty / unset:
+     exit 0 (ALLOW — no SKILL.md involvement to check).
+  2. Read `WJV_DISPATCH_KIND`. If unset or not in enumerated set
+     {commit, push, file-write, install, brief-deposit, sling}:
+     exit 1 with stderr:
+     `GATE-REJECT: as-wjv-dispatch-gate (envelope: WJV_DISPATCH_KIND
+     unset or unknown)`.
+  3. For each path in `WJV_DISPATCH_PATHS`, glob-match against the 5
+     SKILL.md / agent-prompt prefixes (see description). Collect ALL
+     matches into `WJV_MATCHES`.
+  4. If `WJV_MATCHES` empty: exit 0 (ALLOW — no SKILL.md path matched).
+  5. If `WJV_MATCHES` non-empty AND `GC_TAYLOR_GREENLIGHT` unset / empty:
+     - Write audit-trail line to `~/gt/<rig>/.beads/decisions.jsonl`
+       (use `$BEADS_DIR` if set; fall back to walking up from cwd for
+       `.beads/`):
+       ```json
+       {\"gate\":\"as-wjv-dispatch-gate\",\"verdict\":\"BLOCK\",
+        \"bead_id\":\"$WJV_DISPATCH_BEAD_ID\",
+        \"kind\":\"$WJV_DISPATCH_KIND\",
+        \"paths\":[$WJV_MATCHES_JSON],
+        \"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
+       ```
+     - Exit 1 with stderr:
+       `GATE-REJECT: as-wjv-dispatch-gate (no Taylor greenlight for
+       SKILL.md / agent-prompt path: <first-match>; see [[as-wjv]]
+       SAFETY OVERRIDE; stage via mol-mayor-q-brief before retrying)`.
+  6. If `WJV_MATCHES` non-empty AND `GC_TAYLOR_GREENLIGHT` set
+     (non-empty):
+     - Phase 2 will validate the token shape (regex
+       `^[a-z]+-[a-z0-9]+:\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$`)
+       and reject expired greenlights (timestamp > 1h old). Phase 1
+       scaffold accepts any non-empty value as proof of greenlight.
+     - Write audit-trail line to `~/gt/<rig>/.beads/decisions.jsonl`:
+       ```json
+       {\"gate\":\"as-wjv-dispatch-gate\",
+        \"verdict\":\"ALLOW_WITH_OVERRIDE\",
+        \"bead_id\":\"$WJV_DISPATCH_BEAD_ID\",
+        \"kind\":\"$WJV_DISPATCH_KIND\",
+        \"paths\":[$WJV_MATCHES_JSON],
+        \"greenlight\":\"$GC_TAYLOR_GREENLIGHT\",
+        \"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
+       ```
+     - Exit 0 (ALLOW with audit).
+
+Gate is single-pass; no metadata writes back to the dispatch envelope.
+The dispatch substrate (the formula or skill that called this gate)
+owns the consequence of exit code — typically halting the dispatch
+flow and either surfacing the brief request or proceeding.
+
+Per `[[never-echo-credentials]]`: the audit-trail entries log path
+strings and the greenlight TOKEN identifier ONLY. They NEVER echo file
+contents, diff hunks, or surrounding session state. The token is a
+session identifier (non-secret by spec); a future migration to a
+HMAC-signed token would still log the token but not the signing key.
+
+Phase 2 implementation notes:
+
+  - The 5-prefix glob list belongs in `[vars.skill_artifact_prefixes]`
+    so downstream rigs can extend it.
+  - The greenlight 1h expiry belongs in `[vars.greenlight_max_age_s]`.
+  - The audit-trail path lookup (`$BEADS_DIR` then walk-up) belongs in
+    a helper function so the same logic is reused across sibling
+    policy gates (`never-echo-credentials-lint`, etc.).
+  - The gate is single-pass and side-effect-free except for the
+    audit-trail append — which is idempotent on the (gate, timestamp,
+    bead) tuple per `[[dispatcher-policy-no-infinite-loop]]`.
+"""
