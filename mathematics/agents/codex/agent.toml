@@ -1,0 +1,28 @@
+# codex — math-research consult agent (STUB)
+#
+# Status: stub. The PLAN.md in this pack's root captures the open design
+# questions — generalist vs. variants (Q1), composition shape (Q2), first
+# use case (Q5) — that this definition deliberately does not pre-answer.
+#
+# The fields below are the minimum a Gas City agent registration needs;
+# they should be reconsidered once PLAN.md converges:
+#
+#   scope     - "rig" is a placeholder. A generalist agent may want
+#               "city" scope so a single Codex session serves multiple
+#               rigs; a variant family may stay rig-scoped.
+#   wake_mode - "fresh" is the safe default for stateless consults.
+#               If the agent grows into a long-lived session that keeps
+#               MCP / Codex context warm, this becomes "warm" or similar.
+#   work_dir  - the rig root is a reasonable default for a math-rig
+#               consult agent. Revisit if the agent needs a dedicated
+#               workspace.
+#
+# PRIVACY: no credentials live here. The Codex MCP wiring is configured
+# at user scope (per he-j6zp verdict A) outside this pack; this agent
+# definition only references the MCP entry by name once that lands.
+
+scope = "rig"
+wake_mode = "fresh"
+work_dir = "{{.RigRoot}}"
+idle_timeout = "1h"
+max_active_sessions = 1

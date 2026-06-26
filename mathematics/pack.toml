@@ -1,0 +1,33 @@
+# Mathematics — research-tooling pack for math projects in a Gas City.
+#
+# Provides the codex-as-agent role and (over time) skills, formulas, and orders
+# for math research workflows: LaTeX review, Magma critique, notes pinpoint
+# citation, Magma diff-alg / Clifford-algebra work, hecke-style notes pipelines.
+#
+# This is an INITIAL STUB. The design space — generalist codex agent vs.
+# variants (codex-reviewer / codex-prover / codex-coder), composition with
+# polecat/order/skill primitives, first use case — is still open. See
+# PLAN.md in this directory for the queued design questions and future
+# polecat dispatches.
+#
+# PRIVACY: this pack is PUBLIC. Agent definitions and configs live here;
+# credentials (Codex API key, PATs) NEVER do. The pack only references env
+# var names (e.g. $CODEX_API_KEY) when configuration eventually needs them.
+
+[pack]
+name = "mathematics"
+schema = 2
+
+# Imports — gascity provides the workflow primitives codex agents will compose
+# with (orders, formula contracts, etc.). gastown provides the rig roles
+# (polecat / witness / refinery) that may consult the codex agent.
+[imports.gc]
+source = "../gascity"
+
+[imports.gastown]
+source = "../gastown"
+
+# Agent stamping is intentionally omitted at the stub stage. Once PLAN.md
+# converges on generalist-vs-variants and on always-on vs on-demand, a
+# [[named_session]] block lands here. Until then, the codex agent is a
+# definition-only stub at agents/codex/.

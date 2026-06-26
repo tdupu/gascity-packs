@@ -1,0 +1,3 @@
+# Placeholder. Helper scripts and templates land in this directory as
+# the codex agent acquires runtime needs (e.g. assets/scripts/* shell
+# helpers, assets/templates/* prompt fragments).

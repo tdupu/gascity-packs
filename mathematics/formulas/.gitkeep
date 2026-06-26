@@ -1,0 +1,4 @@
+# Placeholder. Future formulas (e.g. mol-codex-review) land in this
+# directory once PLAN.md (in the pack root) converges on a first use
+# case. Until then, keeping the directory tracked preserves the pack
+# shape that imports / downstream tooling will assume.
