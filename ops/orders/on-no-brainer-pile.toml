@@ -1,0 +1,37 @@
+# Event-trigger order — fire no-brainer-cycle on a brief-bead that has
+# been classified no-brainer=true by the catch-no-brainer skill.
+#
+# Pairs with `no-brainer-cycle` formula (this pack) and `catch-no-brainer`
+# skill (in agent-skills repo).
+#
+# Shape: classifier writes `metadata.no_brainer_verdict = "true"` +
+# `metadata.no_brainer_category` on the brief-bead and flips status to
+# `ready`. This order detects that transition and pours `no-brainer-cycle`
+# to execute the disposition.
+#
+# STATUS: Phase 1 scaffold. Predicate + pool wiring lands in Phase 8b
+# alongside the formula stubs they trigger. The predicate shape is
+# normative now (classifier targets this contract).
+
+[order]
+description = "Execute the disposition of a brief classified no-brainer by the catch-no-brainer skill."
+scope = "rig"
+formula = "no-brainer-cycle"
+trigger = "event"
+pool = "polecat"
+
+[trigger_event]
+# Watch for brief-beads landing ready with a no-brainer verdict.
+# Predicate evaluated server-side on bead state-change events.
+#
+# The `executed_at == null` clause guarantees one-shot: re-firing on
+# an already-executed brief is the formula's responsibility to refuse,
+# not the order's. We belt-and-brace it here anyway because the
+# classifier may re-classify on a brief diff (verdict_max_age expiry)
+# and re-flip status to ready.
+on = "bead.status_change"
+predicate = '''
+  status == "ready"
+  && metadata.no_brainer_verdict == "true"
+  && metadata.no_brainer_executed_at == null
+'''

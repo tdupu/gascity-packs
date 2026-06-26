@@ -1,0 +1,91 @@
+description = """
+Gate formula — reject a brief that lacks a fresh classifier verdict.
+
+**STATUS: Phase 1 scaffold.** Gate logic lands in Phase 8b; description-
+only here.
+
+## Purpose
+
+Defense-in-depth check at execution time. The classifier
+([[catch-no-brainer]]) writes a verdict + timestamp on the brief-bead;
+the cycle re-checks both before any destructive action.
+
+A verdict can go stale for two reasons:
+
+  1. **Diff drift** — the brief's underlying diff changed since
+     classification (e.g. a follow-up commit landed on the branch);
+     the old verdict is now an answer to a different question.
+  2. **Server-set drift** — `[[he-lele]]` §"Safety override" path set
+     can expand. A brief classified before a path was added to the
+     server set might re-classify cat-E now.
+
+Stale verdicts must NOT be acted on. Refusing is always safe; the
+brief re-flows through the classifier on next round.
+
+## Contract
+
+  CHECK: `metadata.no_brainer_verdict == "true"`
+         && `metadata.no_brainer_category` ∈ {stale-branch,
+              done-with-cited-commit, defer-ratify-existing-held,
+              execution-confirmation-with-proof}
+         && `metadata.no_brainer_classified_at` is set
+         && `now() - no_brainer_classified_at <= verdict_max_age`
+            (default `verdict_max_age = 1h`; see
+             `no-brainer-cycle.vars.verdict_max_age`).
+  ON FAIL: gate emits REJECT with the literal failed clause; the
+           parent formula (`no-brainer-cycle.envelope-check`)
+           translates that to a Mayor-surface mail and a
+           `disposition=refused` line in decisions.jsonl. The brief
+           re-flows through the classifier on next round.
+
+## Composition
+
+Reused by:
+  - `no-brainer-cycle.envelope-check` (sole consumer today).
+  - Future: any execution formula that consumes catch-no-brainer
+    output (e.g. a future Mayor-side digest formula that wants to
+    refuse stale classifications).
+
+## Cross-references
+
+- `[[catch-no-brainer]]` — the verdict producer; output schema
+  documented in that skill's §"Output schema".
+- `[[gate-keep-architecture]]` trinity — this is the X-gate; the
+  X-policy is the verdict_max_age default; the improve-X is the
+  classifier re-fire on next round.
+- `[[dispatcher-policy-no-infinite-loop]]` — gate is single-pass;
+  no metadata writes from the gate itself.
+"""
+formula = "brief-must-have-classifier-verdict"
+version = 1
+kind = "gate"
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[[steps]]
+id = "check"
+title = "Assert classifier verdict is present and fresh"
+description = """
+**STUB — Phase 1.** Logic lands in Phase 8b.
+
+Intended behaviour:
+
+  1. Read `metadata.no_brainer_verdict`,
+     `metadata.no_brainer_category`,
+     `metadata.no_brainer_classified_at` from the brief-bead.
+  2. If any of the three is unset / empty: exit code 1 with stderr:
+     `GATE-REJECT: brief-must-have-classifier-verdict (missing field)`.
+  3. If `no_brainer_verdict != "true"`: exit code 1 with stderr:
+     `GATE-REJECT: brief-must-have-classifier-verdict (verdict not true)`.
+  4. If `no_brainer_category` is not in the enumerated set: exit 1
+     with stderr: `GATE-REJECT: brief-must-have-classifier-verdict
+     (unknown category <X>)`.
+  5. If `now() - no_brainer_classified_at > verdict_max_age`: exit 1
+     with stderr: `GATE-REJECT: brief-must-have-classifier-verdict
+     (verdict stale: <age> > <max>)`.
+  6. Else: exit 0.
+
+The gate is single-pass; no metadata writes. Parent formula owns the
+consequence (refusal mail, decisions.jsonl append, drain-ack).
+"""

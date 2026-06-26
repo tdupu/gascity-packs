@@ -1,0 +1,96 @@
+description = """
+Gate formula — reject a brief whose underlying diff touches the server
+path set, even if it was classified no-brainer=true.
+
+**STATUS: Phase 1 scaffold.** Gate logic lands in Phase 8b;
+description-only here.
+
+## Purpose
+
+Defense-in-depth re-check of [[he-lele]] §"Safety override" path set
+at execution time. The classifier filtered cat-E briefs at
+classification time, but the server path set evolves (paths get added
+to it) and a classified-fresh-then-server-set-grew brief could slip
+through.
+
+This gate re-applies the cat-E check at execution. Refusing is always
+safe; a server-touching brief is by construction *not* a no-brainer
+and must route through Mayor/Taylor.
+
+## Contract
+
+  CHECK: The brief's diff (resolved from `metadata.brief_path` or
+         `metadata.brief_diff_summary`) touches NO path in the live
+         server set:
+            - `magma/scripts/dispatch.sh`
+            - `magma/make/dispatch/*`
+            - `gt-dolt*`, `gt-upf*` (rig binaries)
+            - `~/gt/.gc/daemon*`, `~/gt/.gc/agent-bridge/*`
+            - `~/gt/.dolt-data/*`, `~/.dolt-data/*`
+            - any ssh-write target on `aia-s27` host
+         (Path set is sourced from `[[he-lele]]` G5; see
+          `[[he-xkq3]]` for the canonical registry.)
+  ON FAIL: gate emits REJECT with the matched path; the parent
+           formula (`no-brainer-cycle.envelope-check`) translates that
+           to a Mayor-surface mail tagged `cat-E-late-detection` and a
+           `disposition=refused` line in decisions.jsonl. The brief
+           re-routes to Mayor/Taylor for manual adjudication.
+
+The server set is **path-prefix matched**. A diff touching
+`magma/scripts/dispatch.sh.bak` does NOT match (different file); a
+diff touching `magma/scripts/dispatch.sh` DOES match. Glob expansion
+follows POSIX shell rules.
+
+## Composition
+
+Reused by:
+  - `no-brainer-cycle.envelope-check` (sole consumer today).
+  - Future: any execution formula consuming catch-no-brainer output
+    that wants the same defense-in-depth re-check.
+
+## Cross-references
+
+- `[[he-lele]]` §"Safety override" — canonical server path set.
+- `[[he-xkq3]]` G5 — cat-E in the gates registry (fires before G9).
+- `[[catch-no-brainer]]` §"Classification rule" step 1 — the
+  classifier's cat-E check; this gate re-applies it at execution.
+- `[[gate-keep-architecture]]` trinity — X-gate (this); X-policy
+  (path set lives in he-lele); improve-X (the classifier's cat-E
+  check is the upstream filter).
+- `[[never-echo-credentials]]` — the gate's reject message names the
+  matched PATH (not its contents).
+"""
+formula = "brief-must-not-be-server-touching"
+version = 1
+kind = "gate"
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[[steps]]
+id = "check"
+title = "Assert diff touches no path in the server set"
+description = """
+**STUB — Phase 1.** Logic lands in Phase 8b.
+
+Intended behaviour:
+
+  1. Resolve diff source. Prefer in this order:
+     a. `metadata.brief_diff_paths` (newline-separated path list
+        the classifier already extracted), if present.
+     b. Otherwise read `metadata.brief_path`, parse the brief's
+        diff-summary block, extract paths.
+  2. Read the server path set from a colon-separated env var
+     (default: `[[he-lele]]` G5 list above, materialized at
+     compile time into the gate's runtime env).
+  3. For each diff path, check against each server path entry:
+     - Literal match → REJECT.
+     - Glob entry (`*` suffix) → prefix match → REJECT.
+  4. On any match: exit code 1 with stderr:
+     `GATE-REJECT: brief-must-not-be-server-touching (<diff-path> matches <server-set-entry>)`.
+  5. On no matches: exit 0.
+
+The gate is single-pass; no metadata writes. Parent formula owns the
+consequence. Per [[never-echo-credentials]], the reject message names
+the PATH only — never the file contents.
+"""

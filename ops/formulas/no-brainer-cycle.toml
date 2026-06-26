@@ -1,0 +1,297 @@
+description = """
+Execute the disposition of a brief that has been pre-classified as a
+"no-brainer" by the [[catch-no-brainer]] skill.
+
+**STATUS: Phase 1 scaffold.** Step bodies are description-only; runnable
+logic lands in Phase 8b (see ops/README.md Phases table). The shape,
+gates, decisions.jsonl contract, and per-category disposition map are
+normative now so the classifier (detection half) and the pipe consumers
+(decisions.jsonl readers) can target a stable contract.
+
+## The no-brainer cycle in one sentence
+
+DETECTION (catch-no-brainer) → CLASSIFICATION fingerprint on a brief-bead
+→ EXECUTION (this formula) → audited record in decisions.jsonl.
+
+This formula is the **execution half**. The classifier is the detection
+half ([[catch-no-brainer]] skill in agent-skills). Together they close
+the loop: a brief flows through the no-brainer route bypassing Taylor
+adjudication, with every disposition auditable and reversible from
+decisions.jsonl.
+
+## Trigger
+
+Fired by the `on-no-brainer-pile` order (event trigger on
+`metadata.no_brainer_verdict == "true" && status == ready`). One fire
+per brief-bead; failure leaves the brief intact (status unchanged,
+decisions.jsonl unwritten) and emits a Mayor-surface mail.
+
+## Contract
+
+  IN:  brief-bead with `metadata.brief_path = <abs path>`,
+       `metadata.no_brainer_verdict = "true"`,
+       `metadata.no_brainer_category` ∈ {stale-branch, done-with-cited-commit,
+                                          defer-ratify-existing-held,
+                                          execution-confirmation-with-proof},
+       `metadata.no_brainer_classified_at = <ISO-8601>`,
+       (category-specific fields — see Dispositions below).
+  OUT: brief-bead with:
+       - `metadata.no_brainer_executed_at = <ISO-8601>`
+       - `metadata.no_brainer_disposition = <one of {closed, deleted, deferred, ratified, refused}>`
+       - status transitioned per disposition (closed → status=closed;
+         deferred → status unchanged; refused → status=open + escalated mail).
+       - one JSON line appended to `decisions.jsonl` (see Decisions log below).
+       - cascade: any beads that this one blocked are re-evaluated by
+         the existing `on-bead-unblocked` order (not owned here).
+
+## Dispositions (per [[catch-no-brainer]] category)
+
+| Category                            | Mechanical action                                                              |
+|-------------------------------------|--------------------------------------------------------------------------------|
+| `stale-branch` (cat-A)              | Delete local + remote branch (`git push origin --delete <branch>`); close parent bead with close-reason naming the brief; no source touched. |
+| `done-with-cited-commit`            | Resolve `metadata.cited_commit_sha`; verify it exists in `origin/main` via `git merge-base --is-ancestor <sha> origin/main`; close parent bead with close-reason `superseded by <sha>`. |
+| `defer-ratify-existing-held`        | Stamp brief as deferred (`metadata.deferred_at`, `metadata.deferred_reason = ratified-existing-held`); leave parent bead unchanged; the cluster's existing unblocker bead remains the live work item. |
+| `execution-confirmation-with-proof` | Resolve `metadata.proof_blob_sha`; verify the proof is reachable in git (`git cat-file -e <sha>`); close parent bead with close-reason `executed; proof <sha>`. |
+
+Per Taylor's 2026-06-25 directive: shape n=3 of
+[[gascity-orders-and-formulas-decomposition-pattern]] — brief-pipeline
+(n=1) + experiment-monitoring (n=2) + no-brainer-cycle (n=3). All three
+share the same shape: formula = disposition logic; order = trigger;
+gate = pre-flight defense.
+
+## Defense-in-depth gates
+
+The classifier already filtered; the cycle re-runs two **fast** gates
+before any destructive action:
+
+1. `brief-must-have-classifier-verdict` — verdict present + not stale
+   (> `verdict_max_age` since `no_brainer_classified_at` invalidates).
+2. `brief-must-not-be-server-touching` — re-check [[he-lele]] §"Safety
+   override" path set. If a stale verdict slipped through and the diff
+   now touches the server set, refuse and escalate.
+
+The gate composition mirrors `experiment-acknowledge.envelope-check` —
+gates first, action second. Never act on stale classifier output.
+
+## Decisions log (audit trail)
+
+Path: `<rig-root>/.no-brainer/decisions.jsonl` (one JSON line per fire).
+
+Schema (one JSON-line per executed brief):
+```json
+{"executed_at":"<ISO-8601-utc>",
+ "brief_path":"<abs>",
+ "brief_bead_id":"<id>",
+ "parent_bead_id":"<id-or-null>",
+ "category":"<stale-branch|done-with-cited-commit|defer-ratify-existing-held|execution-confirmation-with-proof>",
+ "disposition":"<closed|deleted|deferred|ratified|refused>",
+ "branch_deleted":"<branch-name-or-null>",
+ "cited_commit_sha":"<sha-or-null>",
+ "proof_blob_sha":"<sha-or-null>",
+ "refused_reason":"<text-or-null>",
+ "classifier_verdict_ts":"<ISO-8601-utc>",
+ "formula_version":"1"}
+```
+
+The log is append-only; it is the **inverse** of the pile in
+[[catch-no-brainer]] §"Side effects". Consumers (Mayor digest, weekly
+Taylor review) read it to spot-check the cycle. Refusal lines are the
+audit signal for classifier drift.
+
+## Composition
+
+- `[[catch-no-brainer]]` — produces the classifier verdict this
+  formula consumes.
+- `gate-sweep` (core pack) — runs every 30s; if this formula's
+  execution stamps a gate on the parent bead (e.g. `gh:pr-merged`),
+  gate-sweep reaps it. No direct call — purely coordinative.
+- `experiment-lifecycle.envelope-check` — sibling defense-in-depth
+  pattern (gates first, action second) lifted from the
+  experiment-monitoring pipeline.
+- `on-bead-unblocked` (core pack) — cascade re-evaluation of beads
+  this one unblocked is owned upstream; nothing to do here beyond
+  closing the parent bead correctly.
+
+## Cross-references
+
+- `[[catch-no-brainer]]` — detection half (skill in agent-skills).
+- `[[gascity-orders-and-formulas-decomposition-pattern]]` — n=3.
+- `[[he-lele]]` — 5-criterion + cat-A/B/C/D + cat-E server-touching.
+- `[[he-xkq3]]` — gates registry (G5 cat-E precedes G9 no-brainer).
+- `[[gate-keep-architecture]]` — X-policy + X-gate + improve-X trinity.
+- `[[dispatcher-policy-no-infinite-loop]]` — single-pass per fire.
+- `[[polecat-self-resolve-discipline]]` — closes parent beads; never
+  re-opens.
+- `[[never-echo-credentials]]` — disposition log writes brief paths,
+  bead IDs, SHAs — never tokens.
+"""
+formula = "no-brainer-cycle"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[vars]
+[vars.binding_prefix]
+description = "Import binding prefix when ops/ is consumed via another pack's [imports.ops]."
+default = ""
+
+[vars.verdict_max_age]
+description = "Maximum age of the classifier verdict at execution time. Stale verdicts refuse and re-route to Taylor."
+default = "1h"
+
+[vars.decisions_log_path]
+description = "Path relative to rig root for the append-only audit log."
+default = ".no-brainer/decisions.jsonl"
+
+[[steps]]
+id = "envelope-check"
+title = "Validate brief-bead envelope (defense-in-depth gates)"
+description = """
+**STUB — Phase 1.** Behaviour lands in Phase 8b.
+
+Intended behaviour:
+
+  1. Read brief-bead via `$GC_BEAD_ID`.
+  2. Run gate formulas (both must PASS):
+     - `brief-must-have-classifier-verdict`
+     - `brief-must-not-be-server-touching`
+  3. On any failure: append a `disposition=refused` line to
+     `{{decisions_log_path}}` with `refused_reason = <gate name>`;
+     transition brief-bead `status=open` + assignee=Mayor;
+     mail Mayor with REFUSED + brief_bead_id + gate name;
+     `gc runtime drain-ack`; exit non-zero.
+  4. On all pass: continue.
+
+The classifier already filtered. This step is defense-in-depth — the
+classifier output may be stale (verdict_max_age expired) or the diff
+may have grown into the server set since classification. Never trust a
+classifier verdict at execution time without re-checking.
+"""
+
+[[steps]]
+id = "dispatch-by-category"
+title = "Resolve the per-category disposition and stage the action"
+needs = ["envelope-check"]
+description = """
+**STUB — Phase 1.** Behaviour lands in Phase 8b.
+
+Intended behaviour:
+
+  1. Read `metadata.no_brainer_category` from the brief-bead.
+  2. Map category → action plan:
+
+     - `stale-branch`:
+         action = {kind: delete-branch,
+                   branch: metadata.stale_branch_name,
+                   close_parent: true,
+                   close_reason: "stale branch deleted per brief {brief_path}"}.
+
+     - `done-with-cited-commit`:
+         action = {kind: close-with-citation,
+                   cited_sha: metadata.cited_commit_sha,
+                   close_parent: true,
+                   close_reason: "superseded by {cited_sha}"};
+         REQUIRE: `git merge-base --is-ancestor <sha> origin/main`.
+
+     - `defer-ratify-existing-held`:
+         action = {kind: stamp-deferred,
+                   close_parent: false,
+                   leave_unblocker: metadata.unblocker_bead_id}.
+
+     - `execution-confirmation-with-proof`:
+         action = {kind: close-with-proof,
+                   proof_sha: metadata.proof_blob_sha,
+                   close_parent: true,
+                   close_reason: "executed; proof {proof_sha}"};
+         REQUIRE: `git cat-file -e <sha>`.
+
+  3. Unknown category: refuse + mail Mayor (mirror envelope-check
+     refusal path). The dispatch table is exhaustive by construction;
+     an unknown category indicates classifier drift.
+"""
+
+[[steps]]
+id = "execute-action"
+title = "Execute the staged action atomically"
+needs = ["dispatch-by-category"]
+description = """
+**STUB — Phase 1.** Behaviour lands in Phase 8b.
+
+Intended behaviour, by action.kind:
+
+  - `delete-branch`:
+      1. `git push origin --delete <branch>` (capture exit).
+      2. On failure (branch already absent OR no permission): treat
+         already-absent as success; treat permission-denied as REFUSE.
+      3. `bd close <parent_bead_id> --reason "<close_reason>"`.
+
+  - `close-with-citation`:
+      1. Re-verify `git merge-base --is-ancestor <cited_sha> origin/main`
+         (gate ran earlier; could race with a force-push between).
+      2. `bd close <parent_bead_id> --reason "<close_reason>"`.
+
+  - `stamp-deferred`:
+      1. `bd update <brief_bead_id> --set-metadata deferred_at=<now>
+         --set-metadata deferred_reason=ratified-existing-held
+         --set-metadata unblocker_bead_id=<id>`.
+      2. NO close on parent. Cluster's existing unblocker remains
+         the live work item.
+
+  - `close-with-proof`:
+      1. Re-verify `git cat-file -e <proof_sha>` (proof reachable in
+         git object DB — defends against stale proof references after
+         a gc).
+      2. `bd close <parent_bead_id> --reason "<close_reason>"`.
+
+Per [[dispatcher-policy-no-infinite-loop]] this step is single-pass.
+A retried fire is the order's responsibility, not the formula's.
+"""
+
+[[steps]]
+id = "record-decision"
+title = "Append an audit line to decisions.jsonl"
+needs = ["execute-action"]
+description = """
+**STUB — Phase 1.** Behaviour lands in Phase 8b.
+
+Intended behaviour:
+
+  1. Compose the JSON-line per the schema in the formula description
+     (`Decisions log` section).
+  2. Append (LF-terminated) to `<rig-root>/{{decisions_log_path}}`.
+  3. Use POSIX `>>` append (atomic for ≤ PIPE_BUF on POSIX systems);
+     decisions.jsonl is append-only so concurrent fires interleave but
+     never overwrite.
+  4. NEVER write secrets / tokens into this log — only brief path,
+     bead IDs, SHAs, category, disposition, refused_reason.
+     ([[never-echo-credentials]] applies even to audit logs.)
+
+The audit log is consumed by:
+  - Mayor digest (weekly summary of dispositions / refusals).
+  - Taylor spot-checks (look at refusal lines for classifier drift).
+  - This formula's own integration tests (assert one line per fire).
+"""
+
+[[steps]]
+id = "stamp-brief-executed"
+title = "Stamp brief-bead with execution metadata + cleanup pile"
+needs = ["record-decision"]
+description = """
+**STUB — Phase 1.** Behaviour lands in Phase 8b.
+
+Intended behaviour:
+
+  1. `bd update <brief_bead_id> --set-metadata
+        no_brainer_executed_at=<now>
+        no_brainer_disposition=<closed|deleted|deferred|ratified>`.
+  2. Move brief file from `.pile/.no-brainer/<slug>.md` to
+     `.pile/.no-brainer/.processed/<slug>.md` (idempotent; if already
+     in `.processed/`, no-op).
+  3. `gc runtime drain-ack`; exit 0.
+
+The pile cleanup keeps `.pile/.no-brainer/` as the live queue — empty
+when the cycle has caught up. `.processed/` is the post-execution
+graveyard read by Mayor digest / Taylor spot-checks alongside
+decisions.jsonl.
+"""

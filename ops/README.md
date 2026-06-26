@@ -12,6 +12,11 @@ Operational/substrate primitives for Gas Town. Sibling to `gastown/` and
 - You want **cross-rig instrumentation** (dispatch reliability,
   restoration drills, heartbeat plumbing) without dragging it into a
   domain pack.
+- You want to **auto-execute briefs the classifier flagged as
+  no-brainers** (stale-branch deletion, ratify-existing-held, close-
+  with-cited-commit, execution-confirmation-with-proof) without Taylor
+  per-brief attention — the execution half of the no-brainer cycle
+  paired with the [[catch-no-brainer]] skill in agent-skills.
 - You want a **public, non-mathematical** home for ops primitives so the
   math pack (`mathematics/`) stays focused on research content and
   `gastown/` stays focused on coordination.
@@ -36,15 +41,19 @@ ops/
     experiment-pickup.toml             # wake source polecat; hand back artifacts; close bead
     experiment-respawn.toml            # decision-matrix-driven unclaim + repool (Phase 5; stub)
     escalate-stuck-experiment.toml     # Mayor mail emitter (Phase 4; stub)
+    no-brainer-cycle.toml              # execute disposition of a no-brainer brief (Phase 8b; stub)
     gates/
-      experiment-must-have-target.toml      # dispatch-side check formula
-      experiment-must-have-clerk-route.toml # drop-off validation check formula
+      experiment-must-have-target.toml         # dispatch-side check formula
+      experiment-must-have-clerk-route.toml    # drop-off validation check formula
+      brief-must-have-classifier-verdict.toml  # no-brainer-cycle defense-in-depth gate
+      brief-must-not-be-server-touching.toml   # no-brainer-cycle cat-E re-check
   orders/
     on-experiment-dropoff.toml         # event → experiment-acknowledge
     watchdog-adaptive-check.toml       # cooldown (dynamic) → experiment-check-on-it
     on-experiment-done.toml            # event → experiment-pickup
     on-experiment-health-red.toml      # event → escalate-stuck-experiment (Phase 4; stub)
     on-experiment-session-dead.toml    # event → experiment-respawn (Phase 5; stub)
+    on-no-brainer-pile.toml            # event → no-brainer-cycle (Phase 8a; stub)
   agents/
     .gitkeep                           # experiment-clerk role decision deferred — see §5.3
   assets/
@@ -102,10 +111,45 @@ see §5.3) on drop-off, and is handed back on pickup. The source-polecat
 session can exit between drop-off and pickup; the clerk wakes it (or
 its successor) when the experiment finishes.
 
+### No-brainer cycle (execution half)
+
+The pack also hosts the **execution half** of the no-brainer cycle —
+the inverse of the classifier in [[catch-no-brainer]] (agent-skills).
+Both compose into one closed loop:
+
+  brief lands → classifier writes verdict → cycle executes disposition
+  → audit line in `decisions.jsonl` → cluster moves on.
+
+The classifier is **detection** (a skill, judgment-load floor only).
+The cycle is **execution** (a formula here, mechanical only). Per
+Taylor's 2026-06-25 directive this is shape n=3 of
+`[[gascity-orders-and-formulas-decomposition-pattern]]`, alongside the
+brief-pipeline (n=1) and experiment-monitoring (n=2).
+
+Categories the cycle handles (set by the classifier, normative now):
+
+| Category                              | Mechanical action                           |
+|---------------------------------------|---------------------------------------------|
+| `stale-branch` (cat-A)                | Delete branch; close parent bead.           |
+| `done-with-cited-commit`              | Verify SHA in `origin/main`; close parent.  |
+| `defer-ratify-existing-held`          | Stamp deferred; leave parent open.          |
+| `execution-confirmation-with-proof`   | Verify proof reachable in git; close parent.|
+
+Defense-in-depth gates re-check at execution time before any
+destructive action — verdict freshness
+(`brief-must-have-classifier-verdict`) and server-set non-touch
+(`brief-must-not-be-server-touching`). Refusals append a
+`disposition=refused` line to `decisions.jsonl` and route to Mayor;
+never act on a stale or cat-E verdict.
+
+Full schema for `decisions.jsonl` and the per-category dispatch table
+live in `formulas/no-brainer-cycle.toml`.
+
 ## Phases
 
-This pack lands in 7 phases. **Phase 1 (this scaffold)** is the first;
-subsequent phases file as sub-beads under `as-bzu`.
+This pack lands in 8 phases. **Phase 1 (this scaffold)** is the first;
+subsequent phases file as sub-beads under `as-bzu` (experiment lane) or
+`as-4i8` (no-brainer-cycle lane).
 
 | Phase | Scope | Bead |
 |---|---|---|
@@ -116,6 +160,8 @@ subsequent phases file as sub-beads under `as-bzu`.
 | 5 | Restoration drill (cron-wakeup of brainstorm A6) | TBD |
 | 6 | Cross-host SSH heartbeat tunnel | TBD |
 | 7 | Cross-rig instrumentation (dispatch reliability) | TBD |
+| 8a | No-brainer cycle scaffold (this work) — formula + order + 2 gates as stubs | `as-4i8` |
+| 8b | No-brainer cycle runnable implementation (step bodies + decisions.jsonl writer + integration tests against [[catch-no-brainer]] fixtures) | TBD |
 
 Numbering note: the brief's §9.1 cost table uses Phase 0-7 (8 rows);
 this README collapses brief Phase 0 + Phase 1 into "Phase 1 scaffold"
@@ -132,10 +178,19 @@ only; never literals (per `[[never-echo-credentials]]`).
 ## Cross-references
 
 - **Design source**: `he-6lz0-redesign-brief.md` (Taylor verdict A
-  2026-06-25)
+  2026-06-25; experiment-monitoring lane); Taylor 2026-06-25 directive
+  "we need to codify the no-brainer cycle with a formula" + "that is a
+  bead for gascity-packs" (no-brainer-cycle lane).
 - **Sibling pack in flight**: `gascity-packs/mathematics/` (bead `as-ajw`)
-- **Pattern instance**: `[[brief-pipeline-as-formulas-and-orders]]`
-  (n=1, brief-pipeline domain); ops (n=2, experiment-monitoring domain)
+- **Pattern instance**:
+  `[[gascity-orders-and-formulas-decomposition-pattern]]` —
+  n=1 brief-pipeline; n=2 experiment-monitoring (this pack); n=3
+  no-brainer-cycle (this pack). All three share the same
+  formula+order+gates(+optional cooldown-sweep) shape.
+- **Detection half** of the no-brainer cycle:
+  `[[catch-no-brainer]]` skill in `agent-skills` repo
+  (classifier; emits JSON-line verdicts; writes
+  `metadata.no_brainer_verdict` on brief-beads).
 - **Composes with memories**: `[[mayor-farm-out-doctrine]]`,
   `[[polecat-self-resolve-discipline]]`,
   `[[dispatcher-policy-no-infinite-loop]]`,
