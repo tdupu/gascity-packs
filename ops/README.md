@@ -42,6 +42,7 @@ ops/
     experiment-respawn.toml            # decision-matrix-driven unclaim + repool (Phase 5; stub)
     escalate-stuck-experiment.toml     # Mayor mail emitter (Phase 4; stub)
     meta-fp-cycle.toml                 # per-iteration META-FP convergence check (Phase 8d; stub)
+    mol-pre-action-checklist.toml      # advisory 8-item pre-action CHECK formula (Phase 1; stub)
     gates/
       experiment-must-have-target.toml         # dispatch-side check formula
       experiment-must-have-clerk-route.toml    # drop-off validation check formula
@@ -146,6 +147,49 @@ First consumer: `coordinate-review` SKILL.md (agent-skills); install
 gated by Taylor approval per `[[as-wjv]]` SAFETY OVERRIDE policy
 (sub-bead `as-gz0n`).
 
+### Pre-action checklist (mol-pre-action-checklist)
+
+The pack also hosts a **non-blocking advisory CHECK formula** for the
+\"check policies before acting\" discipline (per Taylor 2026-06-26
+verbatim *\"I'm sort of pissed that our policies aren't being followed\"*).
+Codifies the n=5+ `[[check-docs-before-designing-workarounds]]` pattern
+plus the broader policy-check ritual into a TOML formula that the
+calling skill invokes before any non-trivial action.
+
+Walks an 8-item checklist (relevant memory? brief-pipeline adjacent?
+sibling bead? existing fork? credentials at risk? SKILL.md edit?
+Taylor-decidable verdict? Mayor inline-eligible?) and emits a single
+JSON-line verdict:
+
+  `{\"verdict\":\"PROCEED|BLOCK|STAGE\",\"reasons\":[...],...}`
+
+Severity per check is calibrated in the formula's table: checks 5
+(credentials) and 6 (SKILL.md) are BLOCK on fail; the other 6 are
+STAGE. The calling skill OWNS the response to BLOCK / STAGE — this
+formula never halts heavy operations directly. Per
+`[[gate-keep-architecture]]`: heavy gates (push / commit / dispatch)
+stay on their specialized formulas; the checklist composes with them.
+
+Phase 1 (this scaffold) ships the contract + per-step semantics. Phase
+2 lands runnable bash for the mechanical checks (5: credential scan;
+6: SKILL.md path match; envelope + verdict-emit). Phase 3 lands the
+heuristic checks (1, 3, 4, 7, 8). Sibling policy-conversion formulas
+land in parallel sub-beads (as-oat3 / as-da9n / as-82ty).
+
+Sibling formulas this checklist composes with:
+
+  - `as-wjv-dispatch-gate` (sibling 1/4, bead `as-oat3`) — check 6
+    pre-flights this gate.
+  - `mol-mayor-q-brief` (sibling 2/4, bead `as-da9n`) — STAGE-on-7
+    stages the question as a brief instead of inline-adjudication.
+  - `never-echo-credentials-lint` (sibling 3/4, bead `as-82ty`) —
+    check 5 pre-flights this lint.
+
+Upstream composer: `mol-brief-prep` invokes the checklist before
+depositing a brief so the brief itself carries a `pre_action_verdict`
+field. A `BLOCK` verdict halts brief deposit; a `STAGE` verdict
+annotates the brief with the surfaced concerns.
+
 ## Phases
 
 This pack lands in 8+ phases across two lanes (experiment-monitoring +
@@ -166,6 +210,8 @@ appropriate parent.
 | 8b | No-brainer cycle runnable implementation (step bodies + decisions.jsonl writer + integration tests against `[[catch-no-brainer]]` fixtures) | TBD |
 | 8c | META-FP convergence framework scaffold (this work; formula + 2 gates as stubs) | `as-2h0` |
 | 8d | META-FP runnable implementation (step bodies + integration tests against `coordinate-review` iteration logs) | TBD |
+| 9a | Policy-conversion lane scaffolds (4 sibling formulas as stubs: dispatch-gate, mayor-q-brief, never-echo-credentials-lint, pre-action-checklist) | `as-oat3` / `as-da9n` / `as-82ty` / `as-ktkx` |
+| 9b | Policy-conversion runnable implementation (per-formula Phase 2 / 3 bodies + integration tests against memory references) | TBD |
 
 Numbering note: the brief's §9.1 cost table uses Phase 0-7 (8 rows);
 this README collapses brief Phase 0 + Phase 1 into "Phase 1 scaffold"
@@ -203,4 +249,8 @@ only; never literals (per `[[never-echo-credentials]]`).
   `[[gate-keep-architecture]]`,
   `[[reference-bd-backup-subcommand]]`,
   `[[check-docs-before-designing-workarounds]]`,
+  `[[feedback-check-policies-before-acting]]`,
+  `[[codification-preserves-brief-pipeline]]`,
+  `[[grills-here-briefs-there]]`,
+  `[[as-wjv]]`,
   `[[never-echo-credentials]]`

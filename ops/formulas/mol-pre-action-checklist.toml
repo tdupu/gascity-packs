@@ -1,0 +1,545 @@
+description = """
+Pre-action checklist — codification of `[[check-policies-before-acting]]`
+(extension of `[[check-docs-before-designing-workarounds]]`, n=5+ wins
+this session).
+
+**STATUS: Phase 1 scaffold.** Step bodies are description-only contracts;
+runnable check logic lands in subsequent phases. Shape, per-step semantics,
+verdict schema, and composition with sibling gates are normative now so
+downstream formulas (`mol-mayor-q-brief`, `mol-brief-prep`, the dispatch
+gates) can target them.
+
+## What this formula is
+
+A **non-blocking, advisory CHECK formula** invoked before any non-trivial
+agent action (commit / push / dispatch / install / migration / file-write
+on a load-bearing artifact). Walks an 8-item checklist, emits one of
+`PROCEED` / `BLOCK` / `STAGE`, and lets the calling skill decide what to
+do with the verdict.
+
+This is **NOT** a workflow gate that itself halts heavy operations. Per
+`[[gate-keep-architecture]]`: heavy gates (push / commit / dispatch) stay
+on their specialized formulas (`never-echo-credentials-lint` for secrets,
+`as-wjv-dispatch-gate` for SKILL.md edits, etc.). The checklist
+**composes with** those gates by pre-flighting the same concerns; it
+**does not replace** them.
+
+The value of the checklist is forcing the calling skill to surface
+\"have you considered X?\" questions before action — converting tacit
+policy knowledge into an auditable JSON-line decision trail.
+
+## Why this exists
+
+Per Taylor verbatim 2026-06-26 07:28: *\"I'm sort of pissed that our
+policies aren't being followed.\"* A session of accumulated policy
+violations (mayor-questions-as-briefs not honored, triage-first-then-merge
+violated, stale-file relays, etc.) demonstrated the cost of
+\"guess-and-correct\" over \"check-first-then-act\". The checklist
+codifies the latter as a per-action ritual that survives Mayor / clerk
+session restarts.
+
+Source memory: `[[check-docs-before-designing-workarounds]]` (n=5+
+substrate wins) → extended to all policies via
+`[[feedback-check-policies-before-acting]]`. This formula is the
+machine-readable version of those two memories.
+
+## Contract
+
+  IN (env vars):
+    - `PRE_ACTION_KIND`       — one of `commit` | `push` | `dispatch` |
+                                 `install` | `migration` | `file-write`
+                                 | `other`. Drives which sub-checks fire.
+    - `PRE_ACTION_TARGET`     — short string describing the artifact /
+                                 destination (e.g. `gascity-packs/ops/foo.toml`,
+                                 `polecat-spawn:as-xyz`, `~/.claude/skills/bar`).
+                                 Used only for log / reason text — never
+                                 evaluated against a credential pattern.
+    - `PRE_ACTION_SUMMARY`    — short string summarizing what is about
+                                 to happen (e.g. `add formula scaffold`,
+                                 `merge polecat/as-xyz`). Used in BLOCK
+                                 / STAGE reasons.
+    - `PRE_ACTION_BEAD_ID`    — optional. If set, used for sibling-bead
+                                 grep (check 3) and Mayor-farm-out
+                                 routing inference (check 8).
+
+  OUT (stdout JSON-line):
+    {\"verdict\":\"PROCEED|BLOCK|STAGE\",
+     \"reasons\":[<short strings, one per failing check>],
+     \"checks_run\":<int>,
+     \"checks_passed\":<int>,
+     \"action_kind\":\"<kind>\",
+     \"action_target\":\"<target>\",
+     \"formula_version\":\"1\"}
+
+  Verdict semantics:
+    - `PROCEED`  — all checks passed. Calling skill may continue.
+    - `STAGE`    — soft-block: at least one check surfaced a concern the
+                   skill should resolve (stage to a brief, ping Mayor,
+                   add a TODO), but the action is not categorically
+                   unsafe. Common for checks 1 / 2 / 7 / 8.
+    - `BLOCK`    — hard-block: a check flagged a categorical unsafety
+                   (credentials in target, SKILL.md edit without
+                   `[[as-wjv]]` staging). Calling skill MUST NOT
+                   proceed without resolving the cited reason. Common
+                   for checks 5 / 6.
+
+Single-pass per fire (per
+`[[dispatcher-policy-no-infinite-loop]]`). The calling skill owns the
+loop / retry; this formula owns the per-action verdict.
+
+## The 8 checks
+
+| # | Check | Source memory | Default severity on fail |
+|---|---|---|---|
+| 1 | Is there a relevant memory / policy? | grep MEMORY.md + `.claude/memory/` | STAGE |
+| 2 | Does the action touch a brief-pipeline-adjacent artifact? | `[[codification-preserves-brief-pipeline]]` Guardrails | STAGE |
+| 3 | Is there a sibling bead doing the same / similar work? | `bd list` + grep on `$PRE_ACTION_SUMMARY` keywords | STAGE |
+| 4 | Is there an existing fork / pattern to follow? | `[[check-docs-before-designing-workarounds]]` | STAGE |
+| 5 | Are credentials at risk? | `[[never-echo-credentials]]` lint | BLOCK |
+| 6 | Does the action touch SKILL.md / agent prompts? | `[[as-wjv]]` SAFETY OVERRIDE | BLOCK |
+| 7 | Is the verdict path Taylor-decidable? | `[[grills-here-briefs-there]]` | STAGE |
+| 8 | Is this within Mayor's farm-out / inline-eligible? | `[[mayor-farm-out-doctrine]]` | STAGE |
+
+Per `[[never-echo-credentials]]`: this formula NEVER prints the contents
+of `$PRE_ACTION_TARGET` or any file it inspects. Reasons cite the path
++ check name + memory ref only; never an excerpt that could leak a key.
+
+## Execution model
+
+Each step description is the contract for one of the 8 checks plus an
+envelope-check and a final verdict-emit. The calling skill runs them in
+declaration order. Each step is single-pass; a step that wants to fail
+appends its short-string reason to `$PRE_ACTION_REASONS` (newline-
+separated) and increments `$PRE_ACTION_FAIL_COUNT`. The verdict-emit
+step at the end aggregates: any BLOCK-severity failure → `BLOCK`; any
+STAGE-severity failure → `STAGE`; otherwise `PROCEED`.
+
+Phase 1 (this scaffold) ships the contract + per-step semantics. Phase
+2 will ship runnable bash for the mechanical checks (5: gitleaks-style
+credential scan; 6: path-prefix match against `~/.claude/skills/**` and
+`**/agents/*.md`). Phase 3 will ship the heuristic checks (1, 3, 4, 7,
+8) once the supporting indices (memory grep cache, sibling-bead query
+predicate, Mayor-routing predicate) land.
+
+## Composition
+
+- **Sibling formulas** in this `policy-conversion` series:
+  - `as-wjv-dispatch-gate` (sibling 1/4, bead `as-oat3`) — check 6 is
+    a pre-flight of this gate; the gate still fires on the actual
+    edit.
+  - `mol-mayor-q-brief` (sibling 2/4, bead `as-da9n`) — when this
+    formula emits `STAGE` because of check 7 (Taylor-decidable), the
+    calling skill SHOULD pour `mol-mayor-q-brief` to stage the
+    decision as a brief instead of guessing.
+  - `never-echo-credentials-lint` (sibling 3/4, bead `as-82ty`) —
+    check 5 is a pre-flight of this lint; the lint still fires on
+    the actual write.
+
+- **Upstream composer**: `mol-brief-prep` invokes this formula before
+  depositing a brief so the brief itself carries a `pre_action_verdict`
+  field in its envelope. A `BLOCK` verdict halts brief deposit; a
+  `STAGE` verdict annotates the brief with the surfaced concerns.
+
+- **Composes with** (does not replace):
+  - `[[gate-keep-architecture]]` — checklist is the X-policy reminder;
+    the actual X-gates stay on their specialized formulas; the
+    improve-X is the calling skill's BLOCK/STAGE response loop.
+  - Brief-pipeline gate registry (per `[[brief-pipeline-workflow]]`) —
+    checks 2 / 7 cross-reference the same registry the brief pipeline
+    consults.
+
+## Cross-references
+
+- `[[check-docs-before-designing-workarounds]]` — source memory; n=5+
+  wins this session.
+- `[[feedback-check-policies-before-acting]]` — Taylor's 2026-06-26
+  extension to all policies (the verbatim trigger for this codification).
+- `[[codification-preserves-brief-pipeline]]` — alignment guard; the
+  checklist ADDS a check; it does not REPLACE the brief pipeline.
+- `[[mayor-farm-out-doctrine]]` — check 8 source.
+- `[[as-wjv]]` — check 6 source (SAFETY OVERRIDE for SKILL.md / agent
+  edits).
+- `[[never-echo-credentials]]` — check 5 source; also constrains this
+  formula's own output (never echo target contents).
+- `[[grills-here-briefs-there]]` — check 7 source.
+- `[[gate-keep-architecture]]` — composition pattern; this is the
+  X-policy reminder, not the X-gate.
+- `[[dispatcher-policy-no-infinite-loop]]` — single-pass execution
+  invariant.
+- `as-oat3`, `as-da9n`, `as-82ty` — sibling policy-conversion beads.
+- `as-bzu` — Phase 1 scaffold parent of this pack.
+"""
+formula = "mol-pre-action-checklist"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[vars]
+[vars.binding_prefix]
+description = "Import binding prefix when ops/ is consumed via another pack's [imports.ops]."
+default = ""
+
+[[steps]]
+id = "envelope-check"
+title = "Validate action envelope (args present + sane)"
+description = """
+**STUB — Phase 1.** Logic lands in Phase 2.
+
+Validate every required env var is set and well-formed. Envelope failure
+emits `BLOCK` with reason `envelope: <var> is empty or unset` so the
+calling skill rebuilds the env and re-invokes; envelope failure is NOT a
+substantive verdict on the action.
+
+Intended behaviour:
+
+  1. Require `PRE_ACTION_KIND` set and in enumerated set
+     {commit, push, dispatch, install, migration, file-write, other}.
+     If unset / unknown: emit BLOCK with reason
+     `envelope: PRE_ACTION_KIND must be one of <set>`.
+  2. Require `PRE_ACTION_TARGET` non-empty. If empty: BLOCK with
+     `envelope: PRE_ACTION_TARGET is empty`.
+  3. Require `PRE_ACTION_SUMMARY` non-empty. If empty: BLOCK with
+     `envelope: PRE_ACTION_SUMMARY is empty`.
+  4. `PRE_ACTION_BEAD_ID` is optional; if set, validate it matches
+     `^[a-z]+-[a-z0-9]+$` (bd ID shape). If malformed: BLOCK with
+     `envelope: PRE_ACTION_BEAD_ID malformed`.
+  5. Initialize accumulators: `PRE_ACTION_REASONS=\"\"`,
+     `PRE_ACTION_FAIL_COUNT=0`, `PRE_ACTION_BLOCK_COUNT=0`,
+     `PRE_ACTION_CHECKS_RUN=0`, `PRE_ACTION_CHECKS_PASSED=0`. Export
+     all of these so downstream steps can update them.
+
+The envelope step never PROCEEDs on its own; it only short-circuits on
+malformed input. A clean envelope falls through to check 1.
+"""
+
+[[steps]]
+id = "check-1-memory-policy"
+title = "Check 1: Is there a relevant memory / policy?"
+needs = ["envelope-check"]
+description = """
+**STUB — Phase 1.** Logic lands in Phase 3 (heuristic check).
+
+Source: `[[check-docs-before-designing-workarounds]]` + Mayor checklist
+items 1, 2, 5.
+
+Intended behaviour:
+
+  1. Tokenize `PRE_ACTION_SUMMARY` into 3-6 keyword tokens (drop
+     stop-words, split on whitespace + dashes).
+  2. For each token, grep:
+     - `~/.claude/MEMORY.md` (if present)
+     - `~/.claude/projects/*/memory/*.md`
+     - `~/gt/<rig>/.beads/briefs/decisions.jsonl` (if present)
+  3. If any match: surface the matching memory names (NOT contents —
+     per `[[never-echo-credentials]]` discipline) as a STAGE reason:
+     `check-1: matching memories found — review before acting:
+     <mem1>, <mem2>`.
+  4. If no match AND `PRE_ACTION_KIND in {dispatch, install, migration}`:
+     STAGE reason `check-1: no prior memory found for high-stakes
+     action — surface to Mayor before proceeding`.
+  5. Otherwise: PASS silently. Increment `PRE_ACTION_CHECKS_PASSED`.
+
+Always increment `PRE_ACTION_CHECKS_RUN`. STAGE reasons append to
+`PRE_ACTION_REASONS` and increment `PRE_ACTION_FAIL_COUNT` (but NOT
+`PRE_ACTION_BLOCK_COUNT`).
+
+This step's match output is by memory NAME ONLY — never the body. A
+matched memory containing a credential pattern would still be safe to
+cite by name.
+"""
+
+[[steps]]
+id = "check-2-brief-pipeline-adjacent"
+title = "Check 2: Does the action touch a brief-pipeline-adjacent artifact?"
+needs = ["check-1-memory-policy"]
+description = """
+**STUB — Phase 1.** Logic lands in Phase 3 (heuristic check).
+
+Source: `[[codification-preserves-brief-pipeline]]` Guardrails.
+
+Intended behaviour:
+
+  1. Match `PRE_ACTION_TARGET` against the brief-pipeline-adjacent
+     prefixes:
+     - `**/.beads/briefs/**`
+     - `**/.beads/.gates-candidate-pile/**`
+     - `**/.beads/decisions.jsonl`
+     - `**/agent_skills/skills/coordinate-review/**`
+     - `**/agent_skills/skills/brief-prep/**`
+     - `**/agent_skills/skills/grill-and-present/**`
+     - `**/agent_skills/skills/critical-review/**`
+     - `**/agent_skills/skills/revise-artifact/**`
+     - `**/agent_skills/skills/create-artifact/**`
+     - `**/gascity-packs/ops/formulas/meta-fp-cycle.toml`
+     - `**/gascity-packs/ops/formulas/gates/iteration-must-*.toml`
+  2. If match: STAGE reason `check-2: target <path> is brief-pipeline-
+     adjacent; per [[codification-preserves-brief-pipeline]] this
+     codification ADDS to the pipeline — verify it does not REPLACE`.
+  3. Otherwise: PASS silently. Increment `PRE_ACTION_CHECKS_PASSED`.
+
+Always increment `PRE_ACTION_CHECKS_RUN`.
+
+The prefix list is a configuration concern; Phase 2 will lift it into a
+`[vars.brief_pipeline_prefixes]` list so downstream rigs can extend it
+without forking this formula.
+"""
+
+[[steps]]
+id = "check-3-sibling-bead"
+title = "Check 3: Is there a sibling bead doing the same / similar work?"
+needs = ["check-2-brief-pipeline-adjacent"]
+description = """
+**STUB — Phase 1.** Logic lands in Phase 3 (heuristic check).
+
+Source: Mayor checklist item 4 (existing brief/decisions check).
+
+Intended behaviour:
+
+  1. Reuse the same keyword tokens computed in check 1 (export them
+     from check 1 as `PRE_ACTION_KEYWORDS`).
+  2. For each token, run `bd search \"$token\" --limit 5` and collect
+     results.
+  3. Filter to open / in_progress beads NOT matching `PRE_ACTION_BEAD_ID`
+     (so we don't flag the bead doing this very action as a sibling of
+     itself).
+  4. If any match: STAGE reason `check-3: possible sibling work:
+     <bead-id-1>, <bead-id-2>, ... — verify scope before acting`.
+  5. Otherwise: PASS silently. Increment `PRE_ACTION_CHECKS_PASSED`.
+
+Always increment `PRE_ACTION_CHECKS_RUN`.
+
+Per `[[dispatcher-policy-no-infinite-loop]]`: this step does NOT spawn
+agents or call out to other formulas — it is a single read against the
+local bd cache.
+"""
+
+[[steps]]
+id = "check-4-existing-fork-pattern"
+title = "Check 4: Is there an existing fork / pattern to follow?"
+needs = ["check-3-sibling-bead"]
+description = """
+**STUB — Phase 1.** Logic lands in Phase 3 (heuristic check).
+
+Source: `[[check-docs-before-designing-workarounds]]` — Mayor checklist
+item 3.
+
+Intended behaviour:
+
+  1. If `PRE_ACTION_KIND in {dispatch, install, migration}` AND the
+     target lives under `**/gascity-packs/**`: STAGE reason
+     `check-4: high-stakes action on gascity-packs — confirm a fork
+     survey was done; see [[check-docs-before-designing-workarounds]]
+     §forks-survey`.
+  2. Otherwise: PASS silently. Increment `PRE_ACTION_CHECKS_PASSED`.
+
+Always increment `PRE_ACTION_CHECKS_RUN`.
+
+Phase 2 will refine this from a path-based heuristic to a cached
+fork-survey freshness probe (e.g., \"was the last
+`gh api repos/.../forks` newer than 7 days?\").
+"""
+
+[[steps]]
+id = "check-5-credentials-at-risk"
+title = "Check 5: Are credentials at risk? (BLOCK severity)"
+needs = ["check-4-existing-fork-pattern"]
+description = """
+**STUB — Phase 1.** Logic lands in Phase 2 (mechanical check).
+
+Source: `[[never-echo-credentials]]` — Taylor standing directive;
+load-bearing on `[[backup-destinations-must-be-private]]` and the
+gitleaks pre-publication discipline.
+
+This is a BLOCK-severity check — failure halts the calling skill.
+
+Intended behaviour (Phase 2):
+
+  1. If `PRE_ACTION_KIND not in {commit, push, file-write}`:
+     skip the file-content scan (no file to scan). Still run check 5b.
+  2. Resolve target file path from `PRE_ACTION_TARGET`. If the path
+     does not exist on disk: PASS silently (nothing to leak yet).
+  3. If the path exists: run a pattern scan against the file for the
+     enumerated credential patterns from `[[never-echo-credentials]]`:
+     - `[A-Z][A-Z0-9_]+_TOKEN\\s*=\\s*['\"]?[A-Za-z0-9_-]{20,}`
+     - `ghp_[A-Za-z0-9]{36,}`
+     - `sk-[A-Za-z0-9]{20,}`
+     - `AKIA[A-Z0-9]{16}` (AWS access key)
+     - `-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----`
+     - generic `(api[_-]?key|secret|password)\\s*=\\s*['\"][^'\"]+['\"]`
+  4. If any pattern matches: BLOCK reason `check-5: credential pattern
+     match in <path> — DO NOT proceed; see [[never-echo-credentials]]`.
+     **NEVER include the matched substring or the surrounding line in
+     the reason** — only the path + pattern category.
+  5. 5b: regardless of file scan, if `PRE_ACTION_KIND == push` AND the
+     target remote is a public GitHub repo (heuristic: `git remote get-url
+     <remote>` resolves to a non-private slug — Phase 2 will use
+     `gh api repos/<owner>/<repo>` to confirm `private==false`): emit a
+     STAGE reason `check-5b: pushing to public remote <slug>; confirm
+     no secrets in diff`.
+  6. Otherwise: PASS silently. Increment `PRE_ACTION_CHECKS_PASSED`.
+
+Always increment `PRE_ACTION_CHECKS_RUN`. BLOCK reasons increment both
+`PRE_ACTION_FAIL_COUNT` and `PRE_ACTION_BLOCK_COUNT`.
+
+This step's output discipline is paramount: ANY echo of credential
+content here would itself violate the policy this check exists to
+enforce.
+"""
+
+[[steps]]
+id = "check-6-skill-md-touch"
+title = "Check 6: Does the action touch SKILL.md / agent prompts? (BLOCK severity)"
+needs = ["check-5-credentials-at-risk"]
+description = """
+**STUB — Phase 1.** Logic lands in Phase 2 (mechanical check).
+
+Source: `[[as-wjv]]` SAFETY OVERRIDE — user-skill / agent-prompt edits
+require explicit Taylor approval + staging via the dispatch gate
+(`as-wjv-dispatch-gate`, sibling bead `as-oat3`).
+
+This is a BLOCK-severity check — failure halts the calling skill.
+
+Intended behaviour (Phase 2):
+
+  1. Match `PRE_ACTION_TARGET` against SKILL.md / agent-prompt prefixes:
+     - `**/agent_skills/skills/**/SKILL.md`
+     - `~/.claude/skills/**/SKILL.md`
+     - `**/gascity-packs/**/agents/*.md`
+     - `**/.claude/commands/**`
+     - `**/CLAUDE.md` (root or any subdir)
+  2. If match AND `PRE_ACTION_KIND in {commit, push, file-write,
+     install}`: BLOCK reason `check-6: target <path> is a SKILL.md /
+     agent-prompt artifact — [[as-wjv]] SAFETY OVERRIDE requires
+     explicit Taylor approval + staging via as-wjv-dispatch-gate
+     (sibling formula); DO NOT proceed without it`.
+  3. If match AND `PRE_ACTION_KIND == dispatch`: STAGE reason
+     `check-6: dispatching against a SKILL.md / agent-prompt artifact;
+     confirm the dispatched agent will honor [[as-wjv]] staging`.
+  4. Otherwise: PASS silently. Increment `PRE_ACTION_CHECKS_PASSED`.
+
+Always increment `PRE_ACTION_CHECKS_RUN`. BLOCK reasons increment both
+`PRE_ACTION_FAIL_COUNT` and `PRE_ACTION_BLOCK_COUNT`.
+
+This step's path list is a configuration concern; Phase 2 will lift it
+into a `[vars.skill_artifact_prefixes]` list so downstream rigs can
+extend it.
+
+This check intentionally fires on `commit` not just `push` — a local
+commit to a SKILL.md without staging is already a violation; the push
+is just when it becomes public.
+"""
+
+[[steps]]
+id = "check-7-taylor-decidable"
+title = "Check 7: Is the verdict path Taylor-decidable?"
+needs = ["check-6-skill-md-touch"]
+description = """
+**STUB — Phase 1.** Logic lands in Phase 3 (heuristic check).
+
+Source: `[[grills-here-briefs-there]]` — the grill happens in
+conversation; the brief delivers the decision to Taylor; agents do NOT
+adjudicate Taylor-decidable items themselves.
+
+Intended behaviour:
+
+  1. If `PRE_ACTION_KIND == dispatch` AND the dispatched work is a
+     known Taylor-decidable class (heuristic: target matches
+     `**/.beads/briefs/**` OR `PRE_ACTION_SUMMARY` contains any of
+     {verdict, decision, approve, taylor, decide, brief}): STAGE reason
+     `check-7: action looks Taylor-decidable — confirm a brief is
+     staged via mol-mayor-q-brief (sibling); do not adjudicate inline`.
+  2. If `PRE_ACTION_KIND in {commit, push, install, migration}` AND
+     `PRE_ACTION_SUMMARY` contains any of {policy, standing-directive,
+     verdict, decision-record}: STAGE reason `check-7: action records a
+     policy / verdict — confirm Taylor approved BEFORE the action; do
+     not back-fill consent`.
+  3. Otherwise: PASS silently. Increment `PRE_ACTION_CHECKS_PASSED`.
+
+Always increment `PRE_ACTION_CHECKS_RUN`.
+
+This step intentionally errs on the side of staging — false positives
+(spurious STAGE reasons) cost the calling skill an extra brief
+deposit; false negatives (Taylor finds out a decision was made without
+him) cost trust.
+"""
+
+[[steps]]
+id = "check-8-mayor-farm-out"
+title = "Check 8: Is this within Mayor's farm-out / inline-eligible scope?"
+needs = ["check-7-taylor-decidable"]
+description = """
+**STUB — Phase 1.** Logic lands in Phase 3 (heuristic check).
+
+Source: `[[mayor-farm-out-doctrine]]` — Mayor coordinates; does not
+execute substrate work. Substrate execution (commit / push / install)
+should be farmed out to a polecat unless the action is in the
+inline-eligible list (status reads, bead updates, mail send, brief
+deposit).
+
+Intended behaviour:
+
+  1. If the current agent role is `mayor` (heuristic:
+     `$GC_AGENT` matches `*mayor*` OR runtime context indicates Mayor
+     session) AND `PRE_ACTION_KIND in {commit, push, install,
+     migration, file-write}` on a target NOT in the Mayor-inline
+     allowlist (`**/.beads/briefs/**`, `**/.beads/decisions.jsonl`,
+     mail send, bd updates without code changes):
+     STAGE reason `check-8: Mayor is about to execute substrate work
+     directly — per [[mayor-farm-out-doctrine]], farm this out to a
+     polecat via gc sling`.
+  2. If `PRE_ACTION_KIND == dispatch` AND the dispatched target is a
+     polecat AND `PRE_ACTION_SUMMARY` matches a Mayor-inline-eligible
+     pattern (status check, bead annotation, mail send): STAGE reason
+     `check-8: dispatching a polecat for a Mayor-inline-eligible task —
+     consider inline execution to save a session slot`.
+  3. Otherwise: PASS silently. Increment `PRE_ACTION_CHECKS_PASSED`.
+
+Always increment `PRE_ACTION_CHECKS_RUN`.
+
+This check is the only one whose verdict depends on the calling
+agent's identity rather than the action target alone. Phase 3 will
+expose the role-detection logic as a `[vars.role_detector_command]`
+override so the formula stays portable across runtime providers that
+expose role differently.
+"""
+
+[[steps]]
+id = "verdict-emit"
+title = "Emit aggregated verdict"
+needs = ["check-8-mayor-farm-out"]
+description = """
+**STUB — Phase 1.** Logic lands in Phase 2 (mechanical aggregation).
+
+Aggregate the per-check accumulators and emit the single JSON-line
+verdict to stdout. This is the only step that writes to stdout in a
+normal (non-envelope-failure) run.
+
+Intended behaviour:
+
+  1. Read `PRE_ACTION_FAIL_COUNT`, `PRE_ACTION_BLOCK_COUNT`,
+     `PRE_ACTION_REASONS` (newline-separated string),
+     `PRE_ACTION_CHECKS_RUN`, `PRE_ACTION_CHECKS_PASSED` from env.
+  2. Compute verdict:
+     - `PRE_ACTION_BLOCK_COUNT > 0` → `BLOCK`
+     - else `PRE_ACTION_FAIL_COUNT > 0` → `STAGE`
+     - else → `PROCEED`
+  3. Convert `PRE_ACTION_REASONS` (newline-separated) into a JSON array
+     of strings. Each reason is already a short string per the per-step
+     contracts; this step does NOT add extra text.
+  4. Emit:
+     ```
+     {\"verdict\":\"<V>\",\"reasons\":[<json-array>],
+      \"checks_run\":<N>,\"checks_passed\":<P>,
+      \"action_kind\":\"<kind>\",\"action_target\":\"<target>\",
+      \"formula_version\":\"1\"}
+     ```
+  5. Exit 0 regardless of verdict — the calling skill consumes the
+     JSON and decides what to do. A BLOCK verdict that exits non-zero
+     would short-circuit the skill's error handling and could mask
+     the structured reason.
+
+Per `[[never-echo-credentials]]`: the reasons array is bounded in
+content by what each check appended; this step does NOT include
+`$PRE_ACTION_TARGET`'s file contents, only the path string itself.
+"""
