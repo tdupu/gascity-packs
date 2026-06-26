@@ -1,0 +1,15 @@
+# False positives — verified by reading source context.
+# Format: <commit-sha>:<path>:<rule-id>:<line>
+# See as-jnf for verification notes.
+
+# Documentation example showing the SHAPE of a JSON schema field (literal
+# placeholder, not a real key).
+68792e8900f1581d9464c5a1c7b7f69feccaa85f:github/docs/github-app-identity.md:private-key:46
+
+# Historical Slack setup docs — curl examples with placeholder strings.
+# slack-pack/ no longer exists in current main; entries cover history only.
+ac1c9f74a4ca5abbfbfdbea3a564ee84c452c027:slack-pack/adapter/SETUP.md:curl-auth-header:108
+ac1c9f74a4ca5abbfbfdbea3a564ee84c452c027:slack-pack/adapter/SETUP.md:curl-auth-header:115
+
+# RFC 6455 WebSocket handshake example nonce in a test — well-known spec value.
+f27aa40a71cb0247e252893b444aadc5f1e70bfd:discord/tests/test_discord_gateway_service.py:generic-api-key:745
