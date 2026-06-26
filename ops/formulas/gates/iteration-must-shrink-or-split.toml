@@ -1,0 +1,90 @@
+description = """
+Gate formula — the mathematical convergence guarantee for the META-FP
+loop. Reject an iteration that does not strictly shrink the artifact's
+char-count AND does not factor into a sibling artifact.
+
+**STATUS: Phase 1 scaffold.** Gate logic lands in Phase 8d;
+description-only here.
+
+## Purpose
+
+Lifts the per-skill char-decrease invariant from `[[as-bb5]]`'s
+`fp-finder-skill` SKILL.md design into a reusable gate. Any artifact-
+shaping skill that wants bounded-monotone termination calls
+`meta-fp-cycle` per iteration; this gate is the math.
+
+## Math
+
+Let `c_n` = artifact char-count after iteration n.
+
+**Invariant the gate enforces**: either
+  (A) `c_{n+1} < c_n` (strict shrink), or
+  (B) the iteration produced a sibling artifact `s_{n+1}` with its
+      own initial char-count `c'_0`, and the original artifact's
+      `c_{n+1} < c_n` need NOT hold for THIS iteration — but the
+      original's char-count from that point forward is bounded below
+      by the *new* baseline.
+
+The output tuple of artifacts may grow in length; each individual
+artifact still satisfies the per-skill char-decrease invariant
+against its own prior version. New siblings count their baseline from
+their initial size.
+
+Either path keeps the per-artifact char-count bounded below (by 0)
+and strictly decreasing in every accepted iteration. Standard
+bounded-monotone convergence theorem → the loop terminates.
+
+## Contract
+
+  CHECK: `META_FP_NEW_CHARS < META_FP_PREV_CHARS`
+         OR `META_FP_SPLIT_PRESENT == \"true\"`.
+  ON FAIL: gate emits REJECT_AND_RETRY (via the parent formula's
+           verdict-emit) with `reason = \"shrink-or-split: new
+           (<NEW>) >= prev (<PREV>) without split\"`. The calling
+           skill re-runs the revision step.
+
+## Composition
+
+Reused by:
+  - `meta-fp-cycle.shrink-or-split-gate` (sole consumer today).
+  - Future: any artifact-shaping skill that wants the same
+    convergence guarantee (e.g. `fp-finder-skill` directly, if it
+    ever bypasses coordinate-review).
+
+## Cross-references
+
+- `[[as-bb5]]` — math source (FP-finder redesign; bounded-monotone).
+- `[[gate-keep-architecture]]` trinity — X-gate (this); X-policy
+  (the mathematical guarantee); improve-X (the calling skill's
+  retry-with-new-revision loop).
+- `[[dispatcher-policy-no-infinite-loop]]` — gate is single-pass;
+  no metadata writes from the gate itself.
+"""
+formula = "iteration-must-shrink-or-split"
+version = 1
+kind = "gate"
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[[steps]]
+id = "check"
+title = "Assert strict shrink OR split-into-sibling"
+description = """
+**STUB — Phase 1.** Logic lands in Phase 8d.
+
+Intended behaviour:
+
+  1. Read `META_FP_NEW_CHARS`, `META_FP_PREV_CHARS`,
+     `META_FP_SPLIT_PRESENT` from env.
+  2. If any unset / non-integer (chars) / non-boolean (split):
+     exit 1 with stderr:
+     `GATE-REJECT: iteration-must-shrink-or-split (envelope: <field>)`.
+  3. If `NEW < PREV`: exit 0 (Path A — strict shrink).
+  4. Elif `SPLIT_PRESENT == \"true\"`: exit 0 (Path B — split).
+  5. Else: exit 1 with stderr:
+     `GATE-REJECT: iteration-must-shrink-or-split (new=<NEW> >= prev=<PREV>, no split)`.
+
+The gate is single-pass; no metadata writes. Parent formula owns the
+consequence (verdict-emit REJECT_AND_RETRY).
+"""

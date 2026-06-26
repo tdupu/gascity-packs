@@ -12,6 +12,11 @@ Operational/substrate primitives for Gas Town. Sibling to `gastown/` and
 - You want **cross-rig instrumentation** (dispatch reliability,
   restoration drills, heartbeat plumbing) without dragging it into a
   domain pack.
+- You want **bounded fixed-point convergence machinery** for an
+  artifact-shaping skill (e.g. `coordinate-review`, `fp-finder-skill`)
+  — monotone shrink-OR-split + quality floor + cap=10 + wall-time
+  gate — as a reusable formula instead of in-skill logic
+  (`meta-fp-cycle`).
 - You want a **public, non-mathematical** home for ops primitives so the
   math pack (`mathematics/`) stays focused on research content and
   `gastown/` stays focused on coordination.
@@ -36,9 +41,12 @@ ops/
     experiment-pickup.toml             # wake source polecat; hand back artifacts; close bead
     experiment-respawn.toml            # decision-matrix-driven unclaim + repool (Phase 5; stub)
     escalate-stuck-experiment.toml     # Mayor mail emitter (Phase 4; stub)
+    meta-fp-cycle.toml                 # per-iteration META-FP convergence check (Phase 8d; stub)
     gates/
-      experiment-must-have-target.toml      # dispatch-side check formula
-      experiment-must-have-clerk-route.toml # drop-off validation check formula
+      experiment-must-have-target.toml         # dispatch-side check formula
+      experiment-must-have-clerk-route.toml    # drop-off validation check formula
+      iteration-must-shrink-or-split.toml      # meta-fp-cycle math gate (as-bb5)
+      iteration-must-be-approving.toml         # meta-fp-cycle quality floor (as-bb5)
   orders/
     on-experiment-dropoff.toml         # event → experiment-acknowledge
     watchdog-adaptive-check.toml       # cooldown (dynamic) → experiment-check-on-it
@@ -102,10 +110,48 @@ see §5.3) on drop-off, and is handed back on pickup. The source-polecat
 session can exit between drop-off and pickup; the clerk wakes it (or
 its successor) when the experiment finishes.
 
+### META-FP convergence framework
+
+The pack hosts a **reusable bounded fixed-point convergence framework**
+for artifact-shaping skills. Lifted from `[[as-bb5]]`'s `fp-finder-skill`
+SKILL.md design (CLOSED) into a TOML formula so multiple skills
+(`coordinate-review`, `fp-finder-skill`, future siblings) share the
+convergence machinery instead of each re-implementing it.
+
+The framework is **two convergence guarantees**:
+
+1. **Mathematical** — per-skill char-count strictly decreases each
+   accepted iteration (or the iteration factors a chunk into a sibling
+   artifact). Char-count is bounded below by 0; bounded-monotone →
+   convergent. Gate: `iteration-must-shrink-or-split`.
+
+2. **Defense-in-depth** — cap=10 rounds (per Taylor 2026-06-25 verdict
+   on `as-h7r`: "Let's do cap=10. Then I agree with the brief.")
+   PLUS a 15-minute wall-time gate. The cap is belt-and-brace on top
+   of the math guarantee; a cap-hit is a SIGNAL that the artifact +
+   gates need tuning.
+
+Plus a **quality floor** — revision wins ONLY if shorter AND
+`APPROVING` per critical-review. Prevents trivial-deletion gaming.
+Gate: `iteration-must-be-approving`.
+
+The formula `meta-fp-cycle.toml` is called per iteration by the
+artifact-shaping skill; it returns one of `ACCEPT_REVISION`,
+`SPLIT_INTO_SIBLING`, `TERMINATE_CONVERGED`, `TERMINATE_CAP`, or
+`REJECT_AND_RETRY` (full schema in the formula's description block).
+The skill loops on the verdict, not on its own counter — defense-in-
+depth against a skill that "forgets" to check.
+
+First consumer: `coordinate-review` SKILL.md (agent-skills); install
+gated by Taylor approval per `[[as-wjv]]` SAFETY OVERRIDE policy
+(sub-bead `as-gz0n`).
+
 ## Phases
 
-This pack lands in 7 phases. **Phase 1 (this scaffold)** is the first;
-subsequent phases file as sub-beads under `as-bzu`.
+This pack lands in 8+ phases across two lanes (experiment-monitoring +
+no-brainer-cycle + META-FP convergence). **Phase 1 (this scaffold)**
+is the first; subsequent phases file as sub-beads under the
+appropriate parent.
 
 | Phase | Scope | Bead |
 |---|---|---|
@@ -116,6 +162,10 @@ subsequent phases file as sub-beads under `as-bzu`.
 | 5 | Restoration drill (cron-wakeup of brainstorm A6) | TBD |
 | 6 | Cross-host SSH heartbeat tunnel | TBD |
 | 7 | Cross-rig instrumentation (dispatch reliability) | TBD |
+| 8a | No-brainer cycle scaffold (formula + order + 2 gates as stubs) | `as-4i8` |
+| 8b | No-brainer cycle runnable implementation (step bodies + decisions.jsonl writer + integration tests against `[[catch-no-brainer]]` fixtures) | TBD |
+| 8c | META-FP convergence framework scaffold (this work; formula + 2 gates as stubs) | `as-2h0` |
+| 8d | META-FP runnable implementation (step bodies + integration tests against `coordinate-review` iteration logs) | TBD |
 
 Numbering note: the brief's §9.1 cost table uses Phase 0-7 (8 rows);
 this README collapses brief Phase 0 + Phase 1 into "Phase 1 scaffold"
@@ -132,10 +182,21 @@ only; never literals (per `[[never-echo-credentials]]`).
 ## Cross-references
 
 - **Design source**: `he-6lz0-redesign-brief.md` (Taylor verdict A
-  2026-06-25)
+  2026-06-25; experiment-monitoring lane); Taylor 2026-06-25 directive
+  "we need to codify the no-brainer cycle with a formula" (no-brainer
+  cycle lane); Taylor 2026-06-25 verdict on `as-h7r` "Let's do cap=10.
+  Then I agree with the brief." (META-FP lane).
 - **Sibling pack in flight**: `gascity-packs/mathematics/` (bead `as-ajw`)
-- **Pattern instance**: `[[brief-pipeline-as-formulas-and-orders]]`
-  (n=1, brief-pipeline domain); ops (n=2, experiment-monitoring domain)
+- **Pattern instance**:
+  `[[gascity-orders-and-formulas-decomposition-pattern]]` —
+  n=1 brief-pipeline; n=2 experiment-monitoring (this pack); n=3
+  no-brainer-cycle + META-FP convergence (this pack). All share the
+  same formula+order+gates(+optional cooldown-sweep) shape.
+- **Detection half** of the no-brainer cycle:
+  `[[catch-no-brainer]]` skill in `agent-skills` repo (classifier).
+- **First consumer of META-FP**: `coordinate-review` SKILL.md in
+  `agent-skills` repo; install gated by Taylor approval per
+  `[[as-wjv]]` policy (sub-bead `as-gz0n`).
 - **Composes with memories**: `[[mayor-farm-out-doctrine]]`,
   `[[polecat-self-resolve-discipline]]`,
   `[[dispatcher-policy-no-infinite-loop]]`,
