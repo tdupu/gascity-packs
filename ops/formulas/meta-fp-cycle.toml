@@ -3,11 +3,12 @@ Per-iteration convergence check for the META-FP loop that drives
 `coordinate-review` (and any other artifact-shaping skill that wants
 the same guarantee).
 
-**STATUS: Phase 1 scaffold.** Step bodies are description-only; the
-runnable convergence machinery lands in Phase 8d. The shape, contract,
-and per-verdict actions are normative now so the calling skill
-(coordinate-review, fp-finder-skill, future siblings) can target a
-stable contract.
+**STATUS: Phase 8d (runnable).** Step bodies are runnable bash. The
+contract, shape, and per-verdict actions are unchanged from the Phase 1
+scaffold; this phase makes each step a self-contained bash block that
+the calling skill executes sequentially. The first step to emit a
+JSON verdict (single line on stdout) terminates execution for this
+iteration.
 
 ## What META-FP is
 
@@ -34,17 +35,29 @@ counter — defense-in-depth against a skill that "forgets" to check.
 
 The math:
 
-1. **Mathematical guarantee** — per-skill char-count strictly
-   decreases each accepted iteration (per `[[as-bb5]]`). Char-count is
-   bounded below by 0; therefore any infinite sequence of accepted
-   iterations contradicts the monotone-decrease invariant; therefore
-   the loop terminates. (Bounded monotone → convergent.)
+1. **Mathematical guarantee (SKILLS ONLY)** — per-skill char-count
+   strictly decreases each accepted iteration (per `[[as-bb5]]`).
+   Char-count is bounded below by 0; therefore any infinite sequence
+   of accepted iterations contradicts the monotone-decrease invariant;
+   therefore the loop terminates. (Bounded monotone → convergent.)
 
-2. **Defense-in-depth** — cap=10 rounds (per Taylor 2026-06-25 verdict
-   on as-h7r: "Let's do cap=10. Then I agree with the brief.") + a
-   15-minute wall-time gate. These exist as belt-and-brace; if the
-   monotone gate is buggy or the artifact dodges the gate, the cap
-   still terminates the loop.
+   **Scope correction (Taylor 2026-06-25):** the shrink-OR-split rule
+   applies to SKILL.md artifacts only. Other artifact classes —
+   plans, theorems, LaTeX, code, specs — may legitimately grow as
+   refinement adds detail, references, or test coverage. Forcing
+   shrink on those classes is a category error.
+
+   The shrink-OR-split gate is therefore CONDITIONAL on
+   `META_FP_ARTIFACT_TYPE == \"skill\"` (default for backward
+   compatibility). For non-skill artifacts the gate is skipped and
+   the other gates do the convergence work.
+
+2. **Defense-in-depth (UNIVERSAL)** — cap=10 rounds (per Taylor
+   2026-06-25 verdict on as-h7r: \"Let's do cap=10. Then I agree with
+   the brief.\") + a 15-minute wall-time gate. These exist as
+   belt-and-brace; if the monotone gate is buggy or the artifact
+   dodges the gate, the cap still terminates the loop. **These fire
+   on every artifact type — they are not artifact-type-conditional.**
 
 The cap is **defense-in-depth on top of** the mathematical guarantee —
 NOT a replacement for it. A run that hits cap=10 without converging is
@@ -52,10 +65,32 @@ a `TERMINATE_CAP` outcome, which is a SIGNAL that the artifact + gates
 need tuning. The mail to the calling skill records cap-hit so the
 skill can surface it as a "convergence smell" mark on the artifact.
 
+## Universal vs skills-only criteria summary
+
+| Criterion | Scope | Step |
+|---|---|---|
+| envelope validation | universal | `envelope-check` |
+| wall-time 15-min cap | universal | `wall-time-gate` |
+| cap=10 rounds | universal | `cap-check` |
+| mutual APPROVING converged | universal | `converged-check` |
+| shrink-OR-split (mathematical) | **SKILLS ONLY** | `shrink-or-split-gate` |
+| APPROVING quality floor | universal | `quality-floor-gate` |
+| HAND-OFF / verdict-emit | universal | `verdict-emit` |
+
+The shrink-OR-split gate skips itself (no-op) when
+`META_FP_ARTIFACT_TYPE != \"skill\"`. Quality floor still fires; a
+non-skill artifact converges via APPROVING + APPROVING (converged
+step) and cap=10 + wall-time (defense-in-depth).
+
 ## Contract (per iteration)
 
-  IN (env vars / formula args):
-    - `META_FP_ARTIFACT_PATH`  — absolute path to artifact under FP.
+  IN (env vars):
+    - `META_FP_ARTIFACT_PATH`  — absolute path to artifact under FP,
+                                  or the literal `text-block`.
+    - `META_FP_ARTIFACT_TYPE`  — one of `skill` | `plan` | `theorem`
+                                  | `latex` | `code` | `spec` | other.
+                                  Default `skill` (back-compat).
+                                  Controls shrink-OR-split scope.
     - `META_FP_ITERATION`      — integer ≥ 1 (this iteration).
     - `META_FP_PREV_CHARS`     — char-count of artifact at end of
                                   previous iteration (or initial size
@@ -69,7 +104,7 @@ skill can surface it as a "convergence smell" mark on the artifact.
                                   create-artifact / revise-artifact
                                   subagent.
     - `META_FP_WALL_START`     — ISO-8601 timestamp of iteration 1
-                                  start.
+                                  start (e.g., `2026-06-25T20:00:00Z`).
 
   OUT (stdout JSON-line):
     {"verdict":"ACCEPT_REVISION|SPLIT_INTO_SIBLING|TERMINATE_CONVERGED|TERMINATE_CAP|REJECT_AND_RETRY",
@@ -78,11 +113,24 @@ skill can surface it as a "convergence smell" mark on the artifact.
      "chars_delta":<int|null>,
      "wall_elapsed_s":<int>,
      "cap_hit":<bool>,
+     "artifact_type":"<type>",
      "formula_version":"1"}
 
 Single-pass per fire (per
 `[[dispatcher-policy-no-infinite-loop]]`). The calling skill owns the
 loop; this formula owns the per-iteration decision.
+
+## Execution model
+
+Each step description is a self-contained bash block. The calling
+skill (currently `coordinate-review`) runs the bash blocks in
+declaration order; the first block to emit a JSON verdict to stdout
+terminates the iteration. A block that does not emit a verdict returns
+exit code 0 and execution proceeds to the next step. A `verdict-emit`
+step at the end always emits (it is the default ACCEPT path).
+
+Steps use only POSIX shell + `date` + `printf` so any
+`/bin/sh`-capable environment can run them.
 
 ## Composition
 
@@ -99,15 +147,17 @@ loop; this formula owns the per-iteration decision.
   guarantee. Lifts as-bb5's `fp-finder-skill` SKILL.md rule into a
   reusable framework formula.
 - `coordinate-review` SKILL.md (agent-skills) — first consumer; it
-  drives the loop and calls this formula per iteration.
+  drives the loop and calls this formula per iteration, passing
+  `META_FP_ARTIFACT_TYPE` derived from the input artifact.
 
 ## Cross-references
 
 - `[[as-bb5]]` — shrink-OR-split rule source (CLOSED).
 - `as-h7r` — merged brief; Taylor verdict B+D+F + cap=10 (MERGED).
-- `as-2h0` — parent impl bead for the META-FP rewrite (this work).
-- `as-gz0n` — SAFETY OVERRIDE gate for the SKILL.md install
-  (Part 1; Part 2 = this formula).
+- `as-2h0` — Phase 1 scaffold parent impl bead (MERGED via as-gz0n).
+- `as-2bgd` — Phase 8d runnable + scope-correction (this).
+- `as-gz0n` — SAFETY OVERRIDE gate for the v2 SKILL.md install
+  (Part 1 of as-2h0; CLOSED 2026-06-25).
 - `as-4i8` — sibling formula in this pack (no-brainer-cycle).
 - `[[gascity-orders-and-formulas-decomposition-pattern]]` — n=3.
 - `[[gate-keep-architecture]]` trinity — X-gate = the two gate
@@ -128,174 +178,265 @@ description = "Import binding prefix when ops/ is consumed via another pack's [i
 default = ""
 
 [vars.round_cap]
-description = "Defense-in-depth cap on iterations. Per Taylor 2026-06-25 verdict on as-h7r: cap=10."
+description = "Defense-in-depth cap on iterations. Per Taylor 2026-06-25 verdict on as-h7r: cap=10. UNIVERSAL across artifact types."
 default = 10
 
-[vars.wall_time_max]
-description = "Defense-in-depth wall-clock cap per FP loop. Default 15min per as-h7r §criterion-3."
-default = "15m"
+[vars.wall_time_max_s]
+description = "Defense-in-depth wall-clock cap per FP loop in seconds. Default 900s (15min) per as-h7r §criterion-3. UNIVERSAL across artifact types."
+default = 900
 
 [[steps]]
 id = "envelope-check"
 title = "Validate iteration envelope (args present + sane)"
 description = """
-**STUB — Phase 1.** Behaviour lands in Phase 8d.
+Validate every required env var is set and well-formed. Universal —
+fires on every artifact type. Emits `REJECT_AND_RETRY` on malformed
+input so the calling skill can rebuild the env and re-invoke. Envelope
+failure is NOT termination — the skill may have botched its args.
 
-Intended behaviour:
+```bash
+emit() {
+  printf '%s\\n' "$1"
+  exit 0
+}
 
-  1. Assert all required env vars are set (META_FP_ARTIFACT_PATH,
-     META_FP_ITERATION, META_FP_PREV_CHARS, META_FP_NEW_CHARS,
-     META_FP_SPLIT_PRESENT, META_FP_REVIEW_VERDICT,
-     META_FP_CREATE_VERDICT, META_FP_WALL_START).
-  2. Assert META_FP_ITERATION is a positive integer.
-  3. Assert META_FP_PREV_CHARS and META_FP_NEW_CHARS are non-negative
-     integers (PREV ≥ 0, NEW ≥ 0).
-  4. Assert META_FP_REVIEW_VERDICT and META_FP_CREATE_VERDICT are in
-     the enumerated set {APPROVING, NEEDS-REVISION}.
-  5. On any failure: emit
-     `{"verdict":"REJECT_AND_RETRY","reason":"envelope: <field> invalid"}`
-     to stdout; exit 0 (skill resubmits with corrected args; this
-     is not a fatal error).
+# Default META_FP_ARTIFACT_TYPE to "skill" for back-compat.
+META_FP_ARTIFACT_TYPE="${META_FP_ARTIFACT_TYPE:-skill}"
+export META_FP_ARTIFACT_TYPE
 
-Envelope failure is NOT termination — the calling skill may have
-botched its args. The skill rebuilds the env and re-invokes.
+for v in META_FP_ARTIFACT_PATH META_FP_ITERATION META_FP_PREV_CHARS \\
+         META_FP_NEW_CHARS META_FP_SPLIT_PRESENT \\
+         META_FP_REVIEW_VERDICT META_FP_CREATE_VERDICT \\
+         META_FP_WALL_START; do
+  eval "val=\\$$v"
+  if [ -z "$val" ]; then
+    emit '{"verdict":"REJECT_AND_RETRY","reason":"envelope: '"$v"' is empty or unset","formula_version":"1"}'
+  fi
+done
+
+case "$META_FP_ITERATION" in
+  ''|*[!0-9]*)
+    emit '{"verdict":"REJECT_AND_RETRY","reason":"envelope: META_FP_ITERATION must be a positive integer","formula_version":"1"}' ;;
+esac
+[ "$META_FP_ITERATION" -ge 1 ] || \\
+  emit '{"verdict":"REJECT_AND_RETRY","reason":"envelope: META_FP_ITERATION must be >= 1","formula_version":"1"}'
+
+case "$META_FP_PREV_CHARS" in
+  ''|*[!0-9]*)
+    emit '{"verdict":"REJECT_AND_RETRY","reason":"envelope: META_FP_PREV_CHARS must be a non-negative integer","formula_version":"1"}' ;;
+esac
+case "$META_FP_NEW_CHARS" in
+  ''|*[!0-9]*)
+    emit '{"verdict":"REJECT_AND_RETRY","reason":"envelope: META_FP_NEW_CHARS must be a non-negative integer","formula_version":"1"}' ;;
+esac
+
+case "$META_FP_REVIEW_VERDICT" in
+  APPROVING|NEEDS-REVISION) ;;
+  *)
+    emit '{"verdict":"REJECT_AND_RETRY","reason":"envelope: META_FP_REVIEW_VERDICT must be APPROVING or NEEDS-REVISION","formula_version":"1"}' ;;
+esac
+case "$META_FP_CREATE_VERDICT" in
+  APPROVING|NEEDS-REVISION) ;;
+  *)
+    emit '{"verdict":"REJECT_AND_RETRY","reason":"envelope: META_FP_CREATE_VERDICT must be APPROVING or NEEDS-REVISION","formula_version":"1"}' ;;
+esac
+
+case "$META_FP_SPLIT_PRESENT" in
+  true|false) ;;
+  *)
+    emit '{"verdict":"REJECT_AND_RETRY","reason":"envelope: META_FP_SPLIT_PRESENT must be true or false","formula_version":"1"}' ;;
+esac
+```
 """
 
 [[steps]]
 id = "wall-time-gate"
-title = "Defense-in-depth: terminate if wall-time exceeded"
+title = "Defense-in-depth: terminate if wall-time exceeded (UNIVERSAL)"
 needs = ["envelope-check"]
 description = """
-**STUB — Phase 1.** Behaviour lands in Phase 8d.
+Universal — fires on every artifact type. Computes elapsed seconds
+since `META_FP_WALL_START`; if > `{{wall_time_max_s}}` (default 900s
+= 15 min), emit `TERMINATE_CAP`. The cap is for safety; the math gate
+guarantees termination for skills. A wall-time hit signals the
+artifact + gates need tuning, not a normal exit.
 
-Intended behaviour:
+```bash
+emit() {
+  printf '%s\\n' "$1"
+  exit 0
+}
 
-  1. Compute `elapsed = now() - META_FP_WALL_START` (seconds).
-  2. If `elapsed > {{wall_time_max}}` (parse to seconds):
-       emit `{"verdict":"TERMINATE_CAP","reason":"wall_time exceeded
-       <elapsed>s > <max>s","cap_hit":true,"wall_elapsed_s":<elapsed>}`
-       and exit 0.
-  3. Else: continue.
+# Parse the ISO-8601 start time. macOS `date` and GNU `date` differ;
+# try GNU form first, fall back to BSD.
+start_epoch=$(date -u -d "$META_FP_WALL_START" +%s 2>/dev/null) || \\
+  start_epoch=$(date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$META_FP_WALL_START" +%s 2>/dev/null) || {
+  emit '{"verdict":"REJECT_AND_RETRY","reason":"wall-time: could not parse META_FP_WALL_START as ISO-8601","formula_version":"1"}'
+}
+now_epoch=$(date -u +%s)
+elapsed=$(( now_epoch - start_epoch ))
 
-The cap is for safety; the math gate guarantees termination. A
-wall-time hit is a signal to the skill that the artifact + gates need
-tuning, NOT a normal exit.
+if [ "$elapsed" -gt {{wall_time_max_s}} ]; then
+  emit '{"verdict":"TERMINATE_CAP","reason":"wall_time exceeded '"$elapsed"'s > {{wall_time_max_s}}s","iteration":'"$META_FP_ITERATION"',"wall_elapsed_s":'"$elapsed"',"cap_hit":true,"artifact_type":"'"$META_FP_ARTIFACT_TYPE"'","formula_version":"1"}'
+fi
+
+export META_FP_WALL_ELAPSED_S="$elapsed"
+```
 """
 
 [[steps]]
 id = "cap-check"
-title = "Defense-in-depth: terminate if iteration count exceeds cap"
+title = "Defense-in-depth: terminate if iteration count exceeds cap (UNIVERSAL)"
 needs = ["wall-time-gate"]
 description = """
-**STUB — Phase 1.** Behaviour lands in Phase 8d.
+Universal — fires on every artifact type. Per Taylor 2026-06-25
+verdict on as-h7r: cap=10. Defense-in-depth on top of the mathematical
+convergence guarantee (which is itself skills-only). A cap-hit means
+the gates failed to converge in 10 rounds; record the smell on the
+artifact and hand off to the user (criterion 4).
 
-Intended behaviour:
+```bash
+emit() {
+  printf '%s\\n' "$1"
+  exit 0
+}
 
-  1. If `META_FP_ITERATION > {{round_cap}}`:
-       emit `{"verdict":"TERMINATE_CAP","reason":"iteration <N> >
-       cap <{{round_cap}}>","cap_hit":true}` and exit 0.
-  2. Else: continue.
-
-Per Taylor 2026-06-25 verdict on as-h7r: cap=10. Defense-in-depth on
-top of the mathematical convergence guarantee (monotone-shrink). A
-cap-hit means the math gate failed to converge in 10 rounds; record
-the smell on the artifact.
+if [ "$META_FP_ITERATION" -gt {{round_cap}} ]; then
+  emit '{"verdict":"TERMINATE_CAP","reason":"iteration '"$META_FP_ITERATION"' > cap {{round_cap}}","iteration":'"$META_FP_ITERATION"',"wall_elapsed_s":'"${META_FP_WALL_ELAPSED_S:-0}"',"cap_hit":true,"artifact_type":"'"$META_FP_ARTIFACT_TYPE"'","formula_version":"1"}'
+fi
+```
 """
 
 [[steps]]
 id = "converged-check"
-title = "Mutual APPROVING → TERMINATE_CONVERGED"
+title = "Mutual APPROVING → TERMINATE_CONVERGED (UNIVERSAL)"
 needs = ["cap-check"]
 description = """
-**STUB — Phase 1.** Behaviour lands in Phase 8d.
+Universal — fires on every artifact type. Mutual APPROVING is the
+formal stop condition: both the creator and the reviewer agree the
+artifact is good. The loop terminates with this candidate as the
+final answer.
 
-Intended behaviour:
+```bash
+emit() {
+  printf '%s\\n' "$1"
+  exit 0
+}
 
-  1. If `META_FP_CREATE_VERDICT == \"APPROVING\"` AND
-     `META_FP_REVIEW_VERDICT == \"APPROVING\"`:
-       emit `{\"verdict\":\"TERMINATE_CONVERGED\",
-              \"reason\":\"create + review both APPROVING\",
-              \"iteration\":<N>,\"chars_delta\":<delta>}`
-       and exit 0.
-  2. Else: continue.
+delta=$(( META_FP_NEW_CHARS - META_FP_PREV_CHARS ))
 
-Mutual APPROVING is the formal stop condition — both the creator and
-the reviewer agree the artifact is good. The loop terminates with
-this candidate as the final answer.
+if [ "$META_FP_CREATE_VERDICT" = "APPROVING" ] && \\
+   [ "$META_FP_REVIEW_VERDICT" = "APPROVING" ]; then
+  emit '{"verdict":"TERMINATE_CONVERGED","reason":"create + review both APPROVING","iteration":'"$META_FP_ITERATION"',"chars_delta":'"$delta"',"wall_elapsed_s":'"${META_FP_WALL_ELAPSED_S:-0}"',"cap_hit":false,"artifact_type":"'"$META_FP_ARTIFACT_TYPE"'","formula_version":"1"}'
+fi
+
+export META_FP_CHARS_DELTA="$delta"
+```
 """
 
 [[steps]]
 id = "shrink-or-split-gate"
-title = "Mathematical guarantee: monotone shrink OR factor-out split"
+title = "Mathematical guarantee: monotone shrink OR factor-out split (SKILLS ONLY)"
 needs = ["converged-check"]
 description = """
-**STUB — Phase 1.** Behaviour lands in Phase 8d.
+**SKILLS-ONLY gate.** Fires only when
+`META_FP_ARTIFACT_TYPE == \"skill\"`. The shrink-OR-split rule is the
+mathematical convergence guarantee for the skill-tightening case (per
+`[[as-bb5]]`).
 
-Intended behaviour (gate logic from
-`gates/iteration-must-shrink-or-split.toml`):
+For non-skill artifacts (plans, theorems, LaTeX, code, specs) this
+gate is skipped — those classes may grow legitimately as refinement
+adds detail. Termination for non-skills comes from the universal gates
+(converged-check + cap=10 + wall-time).
 
-  1. If `META_FP_NEW_CHARS < META_FP_PREV_CHARS`:
-       Path A — strict shrink. Continue to quality-floor-gate.
-  2. Elif `META_FP_SPLIT_PRESENT == \"true\"`:
-       Path B — split into sibling. The candidate did not shrink,
-       but it produced a sibling artifact. Continue to
-       quality-floor-gate. (Each individual artifact still has to
-       satisfy the per-skill char-decrease gate against its prior
-       version on FUTURE iterations; baseline for a new sibling is
-       its initial size.)
-  3. Else:
-       Gate FAIL. emit `{\"verdict\":\"REJECT_AND_RETRY\",
-       \"reason\":\"shrink-or-split: new (<NEW>) >= prev (<PREV>)
-       without split\",\"chars_delta\":<delta>}` and exit 0.
+Per Taylor 2026-06-25 scope clarification: shrink-OR-split is SKILLS
+ONLY. Other 5 META-FP criteria remain UNIVERSAL.
 
-The shrink-OR-split rule is the mathematical convergence guarantee.
-Without it, the loop has no termination proof.
+Gate logic for skills:
+
+  1. Strict shrink (`NEW < PREV`) → continue to quality-floor.
+  2. Split present (`META_FP_SPLIT_PRESENT == true`) → continue;
+     the candidate did not shrink but produced a sibling artifact.
+     Future iterations rebaseline against the new size.
+  3. Else → emit `REJECT_AND_RETRY`. Skill restores the prior
+     candidate and re-runs the revisor with an extra OBSERVED note.
+
+```bash
+emit() {
+  printf '%s\\n' "$1"
+  exit 0
+}
+
+if [ "$META_FP_ARTIFACT_TYPE" != "skill" ]; then
+  # Non-skill artifact: gate is a no-op. Continue to quality-floor.
+  exit 0
+fi
+
+if [ "$META_FP_NEW_CHARS" -lt "$META_FP_PREV_CHARS" ]; then
+  # Path A — strict shrink. Continue.
+  exit 0
+fi
+
+if [ "$META_FP_SPLIT_PRESENT" = "true" ]; then
+  # Path B — split into sibling. Continue.
+  exit 0
+fi
+
+# Gate FAIL — grew without splitting.
+delta="${META_FP_CHARS_DELTA:-0}"
+emit '{"verdict":"REJECT_AND_RETRY","reason":"shrink-or-split: new ('"$META_FP_NEW_CHARS"') >= prev ('"$META_FP_PREV_CHARS"') without split (artifact_type=skill)","iteration":'"$META_FP_ITERATION"',"chars_delta":'"$delta"',"wall_elapsed_s":'"${META_FP_WALL_ELAPSED_S:-0}"',"cap_hit":false,"artifact_type":"'"$META_FP_ARTIFACT_TYPE"'","formula_version":"1"}'
+```
 """
 
 [[steps]]
 id = "quality-floor-gate"
-title = "Quality floor: revision wins ONLY if APPROVING per critical-review"
+title = "Quality floor: revision wins ONLY if APPROVING per critical-review (UNIVERSAL)"
 needs = ["shrink-or-split-gate"]
 description = """
-**STUB — Phase 1.** Behaviour lands in Phase 8d.
+Universal — fires on every artifact type. Per as-bb5 §Quality floor:
+\"A revision wins the gate only if it is shorter AND still APPROVING
+per critical-review. Prevents trivial-deletion gaming.\" Without this
+gate, a creator could pass the shrink check by deleting random
+content.
 
-Intended behaviour (gate logic from
-`gates/iteration-must-be-approving.toml`):
+For non-skill artifacts the shrink half is N/A, but the APPROVING
+half still fires — quality floor is universal.
 
-  1. If `META_FP_REVIEW_VERDICT == \"APPROVING\"`:
-       Gate PASS. Continue to verdict-emit.
-  2. Else:
-       Gate FAIL. emit `{\"verdict\":\"REJECT_AND_RETRY\",
-       \"reason\":\"quality_floor: critical-review verdict
-       <VERDICT> != APPROVING\"}` and exit 0.
+```bash
+emit() {
+  printf '%s\\n' "$1"
+  exit 0
+}
 
-Per as-bb5 §Quality floor: \"A revision wins the gate only if it is
-shorter AND still APPROVING per critical-review. Prevents
-trivial-deletion gaming.\" Without this gate, a creator could pass
-the shrink check by deleting random content.
+if [ "$META_FP_REVIEW_VERDICT" != "APPROVING" ]; then
+  delta="${META_FP_CHARS_DELTA:-0}"
+  emit '{"verdict":"REJECT_AND_RETRY","reason":"quality_floor: critical-review verdict '"$META_FP_REVIEW_VERDICT"' != APPROVING","iteration":'"$META_FP_ITERATION"',"chars_delta":'"$delta"',"wall_elapsed_s":'"${META_FP_WALL_ELAPSED_S:-0}"',"cap_hit":false,"artifact_type":"'"$META_FP_ARTIFACT_TYPE"'","formula_version":"1"}'
+fi
+```
 """
 
 [[steps]]
 id = "verdict-emit"
-title = "Emit ACCEPT_REVISION or SPLIT_INTO_SIBLING verdict"
+title = "Emit ACCEPT_REVISION or SPLIT_INTO_SIBLING verdict (UNIVERSAL)"
 needs = ["quality-floor-gate"]
 description = """
-**STUB — Phase 1.** Behaviour lands in Phase 8d.
+Universal — fires on every artifact type. This is the default-accept
+path; reached only when all preceding gates passed. The skill consumes
+the verdict, updates its loop state (artifact + char-count), and
+either continues or terminates per the verdict string.
 
-Intended behaviour:
+```bash
+emit() {
+  printf '%s\\n' "$1"
+  exit 0
+}
 
-  1. If `META_FP_SPLIT_PRESENT == \"true\"`:
-       emit `{\"verdict\":\"SPLIT_INTO_SIBLING\",
-       \"reason\":\"accepted: split into sibling artifact\",
-       \"iteration\":<N>,\"chars_delta\":<delta>,\"cap_hit\":false}`
-       and exit 0.
-  2. Else (strict shrink path):
-       emit `{\"verdict\":\"ACCEPT_REVISION\",
-       \"reason\":\"accepted: shrunk by <delta> chars\",
-       \"iteration\":<N>,\"chars_delta\":<delta>,\"cap_hit\":false}`
-       and exit 0.
+delta="${META_FP_CHARS_DELTA:-0}"
+elapsed="${META_FP_WALL_ELAPSED_S:-0}"
 
-The skill consumes the verdict, updates its loop state (artifact +
-char-count), and either continues or terminates per the verdict
-string.
+if [ "$META_FP_SPLIT_PRESENT" = "true" ]; then
+  emit '{"verdict":"SPLIT_INTO_SIBLING","reason":"accepted: split into sibling artifact","iteration":'"$META_FP_ITERATION"',"chars_delta":'"$delta"',"wall_elapsed_s":'"$elapsed"',"cap_hit":false,"artifact_type":"'"$META_FP_ARTIFACT_TYPE"'","formula_version":"1"}'
+fi
+
+emit '{"verdict":"ACCEPT_REVISION","reason":"accepted: passed all gates","iteration":'"$META_FP_ITERATION"',"chars_delta":'"$delta"',"wall_elapsed_s":'"$elapsed"',"cap_hit":false,"artifact_type":"'"$META_FP_ARTIFACT_TYPE"'","formula_version":"1"}'
+```
 """
