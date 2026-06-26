@@ -1,0 +1,86 @@
+description = """
+Parent orchestrator for the experiment-monitoring lifecycle.
+
+**STATUS: Phase 1 scaffold.** This formula declares the lifecycle shape
+(parent orchestrator that never runs to completion — instead emits
+sub-formulas via orders). Step bodies land in subsequent phases.
+
+## Lifecycle shape
+
+An experiment-lifecycle instance is poured once per experiment, at
+drop-off, by the `on-experiment-dropoff` order. It serves as the
+**identity anchor** — the lifecycle wisp's bead id is the experiment
+bead id; child orders find it by that id; pickup and escalation close
+the loop against the same id.
+
+The formula itself is degenerate-by-design: a single `envelope-check`
+gate that verifies dispatch-side invariants (target server set, clerk
+route set, heartbeat interval bounded), then yields to the cooldown-
+driven `watchdog-adaptive-check` order which drives the actual
+monitoring. The lifecycle is **never the polling driver**; the order
+is. The lifecycle exists so that:
+
+  1. Drop-off → pickup is a single bead trajectory observable via
+     `gc convoy status`.
+  2. `metadata.experiment_lifecycle_wisp` on the experiment bead points
+     back to a wisp the clerk can reference.
+  3. Escalation, respawn, and pickup all close against a single
+     trajectory id instead of inferring lifecycle state from the
+     experiment bead alone.
+
+## Composition with sister formulas
+
+| Stage | Driver | Notes |
+|---|---|---|
+| Drop-off | `experiment-acknowledge` (via `on-experiment-dropoff` order) | Stamps `last_heartbeat`, registers initial `next_check_at`, pours this lifecycle wisp. |
+| Steady-state polling | `experiment-check-on-it` (via `watchdog-adaptive-check` order, cooldown trigger) | One pass per fire; rewrites `next_check_at` per HYBRID cadence; classifies green/yellow/red. |
+| Red-state escalation | `escalate-stuck-experiment` (via `on-experiment-health-red` order, event trigger) | Phase 4. Mayor mail emitter. |
+| Session-dead | `experiment-respawn` (via `on-experiment-session-dead` order, event trigger) | Phase 5. Gated by `metadata.respawn_allowed`. |
+| Completion | `experiment-pickup` (via `on-experiment-done` order, event trigger) | Wakes source polecat (or successor) with results, closes lifecycle wisp, closes experiment bead. |
+
+## Why parent orchestrator (not a single mega-formula)
+
+The first brief (he-6lz0 source) modelled the entire pipeline as a
+single stateful state machine. The §3 redesign decomposes that into
+event-driven sub-formulas because gascity's primitive is the
+single-pass formula; a state machine that loops violates
+`[[dispatcher-policy-no-infinite-loop]]`. Each order fire is
+single-pass and the cooldown trigger schedules the next fire from
+bead state.
+
+See `he-6lz0-redesign-brief.md` §3 for the full mapping.
+"""
+formula = "experiment-lifecycle"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[vars]
+[vars.binding_prefix]
+description = "Import binding prefix when ops/ is consumed via another pack's [imports.ops]."
+default = ""
+
+[[steps]]
+id = "envelope-check"
+title = "Verify dispatch-side experiment invariants"
+description = """
+**STUB — Phase 1.** Behaviour lands in the experiment-lifecycle
+implementation phase.
+
+Intended behaviour (per `he-6lz0-redesign-brief.md` §3.1):
+
+  1. Read experiment bead metadata.
+  2. Defer to standalone gate formulas:
+     - `experiment-must-have-target` — `metadata.gc.run_target` set.
+     - `experiment-must-have-clerk-route` — clerk route resolvable.
+     - heartbeat-bounds — `heartbeat_interval` within sane range.
+  3. On any gate fail: mail clerk-surface with REJECTED, drop the
+     lifecycle wisp without scheduling the watchdog.
+  4. On all pass: stamp `metadata.envelope_check_at`, mark the
+     lifecycle wisp registered, exit (cooldown order takes over).
+
+The defense-in-depth pair lives in `experiment-acknowledge.envelope-
+check` (dispatch-side) and `experiment-lifecycle.envelope-check`
+(polecat-side, here) — same gates, two entry points.
+"""

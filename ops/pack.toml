@@ -1,0 +1,25 @@
+# Operations pack — substrate primitives for long-running work in Gas Town.
+#
+# Sibling to `gastown/` (city/rig coordination) and `mathematics/` (research
+# tooling). Owns operational/infra primitives that aren't coordination logic
+# and aren't research content:
+#
+#   - experiment-lifecycle (drop-off → adaptive cadence → pickup)
+#   - cross-host heartbeat plumbing
+#   - dispatch-reliability instrumentation
+#   - restoration drills
+#
+# Design lineage: `he-6lz0-redesign-brief.md` §3.2 (orders + formulas
+# decomposition for cron-wakeup experiment monitoring). Taylor verdict A
+# 2026-06-25. See README.md for the contract and intended consumers.
+#
+# Imports `gascity` to reuse base formula primitives (mol-*-base extensions,
+# convoy helpers). Mirrors `gastown/`'s import shape.
+
+[pack]
+name = "ops"
+version = "0.1.0"
+schema = 2
+
+[imports.gc]
+source = "../gascity"

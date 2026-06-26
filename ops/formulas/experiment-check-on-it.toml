@@ -1,0 +1,115 @@
+description = """
+One-pass adaptive cadence check on a running experiment.
+
+**STATUS: Phase 1 scaffold.** Step bodies are description-only; the
+HYBRID cadence implementation lands in Phase 2.
+
+## Trigger
+
+Fired by the `watchdog-adaptive-check` order (cooldown trigger, dynamic
+interval read from `metadata.next_check_at` on the experiment bead).
+**Single-pass**: each fire reads state, classifies, writes the next
+`next_check_at`, and exits. No inner loop. Cooldown is the
+gascity-blessed way to schedule the next fire; this satisfies
+`[[dispatcher-policy-no-infinite-loop]]`.
+
+## Mode-classifier (HYBRID per brief §4.2)
+
+  HEALTHY  ← (now - last_heartbeat) <  H_floor
+  CONFIRM  ← H_floor ≤ (now - last_heartbeat) < H_floor × K_grace
+  RED      ← (now - last_heartbeat) ≥ H_floor × K_grace
+
+State transitions:
+
+  HEALTHY → HEALTHY  : exponential backoff from current position,
+                       capped at C_max. Each successful heartbeat
+                       resets position to `max(current, current-1)`
+                       (preserves history; doesn't snap to floor).
+  HEALTHY → CONFIRM  : next_check_at = now + C_dense (default 30s).
+  CONFIRM → HEALTHY  : return to HEALTHY at unchanged position.
+  CONFIRM → CONFIRM  : next_check_at = now + C_dense.
+  CONFIRM → RED      : emit `on-experiment-health-red` event, then
+                       transition to sparse polling (escalation owns
+                       RED, not the watchdog).
+  RED     → HEALTHY  : on heartbeat resume; reset to position 0.
+  RED     → RED      : continue sparse polling at C_max.
+
+## Cross-references
+
+- `he-6lz0-redesign-brief.md` §4.2 (HYBRID + safety floor)
+- `he-6lz0-redesign-brief.md` §4.3 (savings analysis vs fixed cadence)
+- `[[dispatcher-policy-no-infinite-loop]]` — cooldown trigger; one
+  pass per fire; state in bead metadata.
+- `[[reference-bd-backup-subcommand]]` — bd writes are durable.
+"""
+formula = "experiment-check-on-it"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[vars]
+[vars.binding_prefix]
+description = "Import binding prefix when ops/ is consumed via another pack's [imports.ops]."
+default = ""
+
+[[steps]]
+id = "read-experiment-state"
+title = "Read experiment bead + cadence parameters"
+description = """
+**STUB — Phase 1.** Behaviour lands in Phase 2.
+
+Intended behaviour:
+
+  1. Read `$GC_BEAD_ID` metadata.
+  2. Resolve cadence parameters with README defaults:
+     - H_floor = metadata.heartbeat_interval         ?? 5m
+     - K_grace = metadata.heartbeat_grace            ?? 3 × H_floor
+     - C_dense = metadata.confirming_poll_interval   ?? 30s
+     - C_max   = metadata.healthy_max_interval       ?? 1h
+     - base    = metadata.healthy_backoff_base       ?? 2
+  3. Read current `last_heartbeat`, `health`, `next_check_at`.
+  4. Compute `age = now() - last_heartbeat`.
+
+No writes in this step.
+"""
+
+[[steps]]
+id = "classify"
+title = "Classify state (HEALTHY / CONFIRM / RED)"
+needs = ["read-experiment-state"]
+description = """
+**STUB — Phase 1.** Behaviour lands in Phase 2.
+
+Intended behaviour: per the mode-classifier table in the formula
+description, compute the new `health` value and the new
+`next_check_at` from `age`, prior `health`, and prior cadence
+position.
+
+Encode cadence position implicitly: derive from
+`(now - last_heartbeat) / H_floor` rather than maintaining a separate
+counter, to keep the bead surface small.
+
+Emit one of:
+  - GREEN → continue
+  - YELLOW (CONFIRMING) → continue
+  - RED → continue, schedule on-experiment-health-red event
+"""
+
+[[steps]]
+id = "write-next-check"
+title = "Write next_check_at and updated health"
+needs = ["classify"]
+description = """
+**STUB — Phase 1.** Behaviour lands in Phase 2.
+
+Intended behaviour:
+
+  1. `gc bd update $GC_BEAD_ID` with:
+     - `next_check_at = <computed>`
+     - `health        = <new-state>`
+  2. If new health is RED and prior health was not RED: emit event
+     `experiment-health-red` (triggers `on-experiment-health-red`
+     order → `escalate-stuck-experiment` Phase 4).
+  3. `gc runtime drain-ack`; exit 0.
+"""

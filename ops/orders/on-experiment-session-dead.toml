@@ -1,0 +1,24 @@
+# Event-trigger order — fire experiment-respawn when an experiment's
+# owner session dies and respawn is opted-in.
+#
+# Default `respawn_allowed = false` — opt-in only. This protects
+# against unsafe auto-respawn of long-running compute jobs where
+# losing artifact context matters. See experiment-respawn.toml for
+# the decision matrix.
+#
+# STATUS: Phase 1 scaffold stub — fires Phase 5 formula.
+
+[order]
+description = "Decide whether to respawn an experiment whose session died."
+scope = "rig"
+formula = "experiment-respawn"
+trigger = "event"
+pool = "polecat"
+
+[trigger_event]
+on = "session.heartbeat_stale"
+predicate = '''
+  metadata.experiment == true
+  && metadata.respawn_allowed == true
+  && status == "in_progress"
+'''

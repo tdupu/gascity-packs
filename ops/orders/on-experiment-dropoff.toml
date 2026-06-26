@@ -1,0 +1,27 @@
+# Event-trigger order — fire experiment-acknowledge on drop-off.
+#
+# Drop-off shape (per he-6lz0-redesign-brief.md §3.1):
+# A polecat creates an experiment bead with metadata.experiment=true
+# and status=ready and assigns it to the ops pool. This order detects
+# that transition and pours experiment-acknowledge as the entry of the
+# monitoring pipeline.
+#
+# STATUS: Phase 1 scaffold. Predicate + pool wiring lands in Phase 1
+# implementation cycle alongside the formula stubs they trigger.
+
+[order]
+description = "Acknowledge an experiment drop-off and pour its lifecycle wisp."
+scope = "rig"
+formula = "experiment-acknowledge"
+trigger = "event"
+pool = "polecat"
+
+[trigger_event]
+# Watch for new experiment beads landing ready. Predicate evaluated
+# server-side on bead state-change events.
+on = "bead.status_change"
+predicate = '''
+  status == "ready"
+  && metadata.experiment == true
+  && metadata.acknowledged_at == null
+'''
