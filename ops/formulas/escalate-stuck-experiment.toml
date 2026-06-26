@@ -1,0 +1,70 @@
+description = """
+Emit a Mayor escalation mail for an experiment that has transitioned
+to RED.
+
+**STATUS: Phase 1 scaffold stub — full behaviour lands in Phase 4.**
+
+## Trigger
+
+Fired by the `on-experiment-health-red` order (event trigger on
+`metadata.health` transition to `red` on an experiment bead). One
+fire per RED transition; subsequent RED-stable checks do not
+re-fire this formula (the order's event-trigger predicate filters
+on the transition).
+
+## Cross-references
+
+- `he-6lz0-redesign-brief.md` §3.1 (Mayor escalation mapping)
+- `he-6lz0-redesign-brief.md` §9.2 (ongoing Mayor cost — ~0-5
+  min/day expected)
+- `[[mayor-farm-out-doctrine]]` — Mayor sees only escalations, not
+  routine state.
+"""
+formula = "escalate-stuck-experiment"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[vars]
+[vars.binding_prefix]
+description = "Import binding prefix when ops/ is consumed via another pack's [imports.ops]."
+default = ""
+
+[[steps]]
+id = "compose-escalation"
+title = "Compose escalation mail for Mayor"
+description = """
+**STUB — Phase 1.** Behaviour lands in Phase 4.
+
+Intended behaviour:
+
+  1. Read experiment bead via `$GC_BEAD_ID`.
+  2. Compute escalation tier from `now - last_heartbeat`:
+     - tier-1 (60min stale)  : info
+     - tier-2 (2h stale)     : action-needed
+     - tier-3 (>2h stale)    : critical
+  3. Compose Mayor mail with:
+     - bead id, title
+     - last_heartbeat, age, tier
+     - source_polecat (alive? dead?)
+     - artifacts (so far)
+     - recommended action menu (extend grace / unclaim / kill)
+"""
+
+[[steps]]
+id = "send-escalation"
+title = "Mail Mayor (+ clerk surface for trace)"
+needs = ["compose-escalation"]
+description = """
+**STUB — Phase 1.** Behaviour lands in Phase 4.
+
+Intended behaviour:
+
+  1. `gc mail send mayor/` with subject `EXPERIMENT-RED: <bead-id>`
+     and the composed body.
+  2. CC clerk-surface for traceability.
+  3. Stamp `metadata.escalated_at` on experiment bead so the
+     watchdog skips re-escalation on subsequent RED checks.
+  4. `gc runtime drain-ack`; exit 0.
+"""

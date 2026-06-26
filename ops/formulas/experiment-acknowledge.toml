@@ -1,0 +1,109 @@
+description = """
+Acknowledge an experiment drop-off — the entry formula of the
+experiment-monitoring pipeline.
+
+**STATUS: Phase 1 scaffold.** Step bodies are description-only; the
+runnable logic lands in subsequent phases. The shape, gates, and
+metadata contract are normative now so downstream formulas can target
+them.
+
+## Trigger
+
+Fired by the `on-experiment-dropoff` order (event trigger on
+`bead.metadata.experiment == true && status == ready`). One fire per
+experiment drop-off; failure leaves the experiment bead intact and
+emits a clerk-surface mail.
+
+## Contract
+
+  IN:  bead with `metadata.experiment = true`,
+       `metadata.source_polecat`, optional cadence overrides.
+  OUT: same bead with:
+       - `metadata.last_heartbeat` = drop-off timestamp
+       - `metadata.next_check_at`  = drop-off + heartbeat_interval
+       - `metadata.health`         = green
+       - `metadata.experiment_lifecycle_wisp` = lifecycle wisp id
+       and a `experiment-lifecycle` wisp poured.
+
+## Cross-references
+
+- `he-6lz0-redesign-brief.md` §3.1 (drop-off mapping)
+- `he-6lz0-redesign-brief.md` §4.2 (cadence parameter defaults)
+- `[[dispatcher-policy-no-infinite-loop]]` — single-pass, cooldown
+  trigger schedules subsequent fires.
+"""
+formula = "experiment-acknowledge"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[vars]
+[vars.binding_prefix]
+description = "Import binding prefix when ops/ is consumed via another pack's [imports.ops]."
+default = ""
+
+[vars.default_heartbeat_interval]
+description = "Fallback H_floor when bead metadata omits heartbeat_interval. Per brief §4.2: 5m."
+default = "5m"
+
+[[steps]]
+id = "envelope-check"
+title = "Validate drop-off envelope (dispatch-side gates)"
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Read experiment bead via `$GC_BEAD_ID`.
+  2. Run gate formulas:
+     - `experiment-must-have-target`
+     - `experiment-must-have-clerk-route`
+  3. Validate `metadata.heartbeat_interval` parses as a duration and
+     is within `[10s, 1h]`.
+  4. On any failure: mail the clerk-surface address with REJECTED
+     and the gate name; `gc runtime drain-ack`; exit non-zero. No
+     subsequent steps run.
+  5. On all pass: continue.
+"""
+
+[[steps]]
+id = "stamp-initial-state"
+title = "Stamp last_heartbeat / next_check_at / health"
+needs = ["envelope-check"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Compute `T0 = now()` (ISO-8601).
+  2. Resolve `H = metadata.heartbeat_interval ?? {{default_heartbeat_interval}}`.
+  3. `gc bd update $GC_BEAD_ID` with:
+     - `last_heartbeat = T0`
+     - `next_check_at  = T0 + H`
+     - `health         = green`
+
+Cadence bookkeeping fields (`healthy_max_interval`, `heartbeat_grace`,
+`confirming_poll_interval`, `healthy_backoff_base`) take defaults from
+README contract if absent; do **not** write them — the
+check-on-it formula reads `metadata.X ?? default` on each fire so
+that defaults can change in the README without rewriting beads.
+"""
+
+[[steps]]
+id = "pour-lifecycle"
+title = "Pour the experiment-lifecycle parent wisp"
+needs = ["stamp-initial-state"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Pour `experiment-lifecycle` against the experiment bead.
+  2. Capture the wisp id; write `metadata.experiment_lifecycle_wisp`
+     to the experiment bead.
+  3. Mail back to drop-off polecat (or its session-id endpoint, if
+     present) with TICKET: `<wisp-id>` so the polecat can attribute
+     the ticket and exit its session slot.
+  4. `gc runtime drain-ack`; exit 0.
+"""

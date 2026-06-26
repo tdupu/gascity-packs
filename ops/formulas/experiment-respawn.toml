@@ -1,0 +1,84 @@
+description = """
+Decision-matrix-driven unclaim + repool of an experiment whose
+session is dead.
+
+**STATUS: Phase 1 scaffold stub — full behaviour lands in Phase 5.**
+
+## Trigger
+
+Fired by the `on-experiment-session-dead` order (event trigger on
+`session.heartbeat_stale && metadata.respawn_allowed == true`).
+Default `respawn_allowed = false` — experiments are NOT
+auto-respawnable; the source polecat or Mayor opts in by setting
+this metadata at drop-off.
+
+## Decision matrix (first brief §6)
+
+Applied per check. Phase 5 lands the table verbatim. Sketch:
+
+| Signal | Outcome |
+|---|---|
+| polecat session dead AND respawn_allowed=true AND artifacts present | hand artifacts to successor; unclaim source-polecat assignment; repool |
+| polecat session dead AND respawn_allowed=false | escalate to Mayor with ORPHANED_EXPERIMENT |
+| polecat session dead AND no artifacts | escalate; auto-respawn is unsafe |
+| polecat session alive | no-op (this order's predicate shouldn't fire) |
+
+## Mayor-veto gate
+
+Even with `respawn_allowed=true`, Mayor can veto by mailing
+`EXPERIMENT-VETO-RESPAWN: <bead-id>` ahead of session death. Phase 5
+checks for veto mails before respawning.
+
+## Cross-references
+
+- `he-6lz0-redesign-brief.md` §3.1 (self-healing unclaim mapping)
+- First brief §6 (decision matrix, verbatim source)
+- `[[polecat-self-resolve-discipline]]` — auto-respawn is the
+  exception, not the default; explicit opt-in only.
+"""
+formula = "experiment-respawn"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[vars]
+[vars.binding_prefix]
+description = "Import binding prefix when ops/ is consumed via another pack's [imports.ops]."
+default = ""
+
+[[steps]]
+id = "decide-action"
+title = "Apply decision matrix to (session-state, artifacts, veto)"
+description = """
+**STUB — Phase 1.** Decision matrix evaluation lands in Phase 5.
+
+Intended behaviour:
+
+  1. Read `metadata.respawn_allowed`, `metadata.source_polecat`,
+     `metadata.artifacts`.
+  2. Check Mayor veto mail for this bead id.
+  3. Lookup matrix row; emit one of:
+     - RESPAWN  → unclaim + repool path
+     - VETO     → escalate-stuck-experiment with respawn-vetoed tier
+     - ESCALATE → escalate-stuck-experiment with orphaned tier
+     - NO-OP    → log and exit (predicate-false case)
+"""
+
+[[steps]]
+id = "respawn-or-escalate"
+title = "Execute the matrix decision"
+needs = ["decide-action"]
+description = """
+**STUB — Phase 1.** Behaviour lands in Phase 5.
+
+Intended behaviour:
+
+  - RESPAWN: `gc bd update $GC_BEAD_ID --assignee=""` (unclaim);
+    set `metadata.pickup_successor = ""` (clear); set
+    `metadata.respawn_count += 1`; emit `experiment-repool` event so
+    pool reconciler picks the bead.
+  - VETO / ESCALATE: pour `escalate-stuck-experiment` with the
+    appropriate tier override.
+  - NO-OP: log; `gc runtime drain-ack`; exit 0.
+"""

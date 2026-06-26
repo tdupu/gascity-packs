@@ -1,0 +1,103 @@
+description = """
+Hand a finished experiment back to its source polecat (or successor)
+and close the lifecycle.
+
+**STATUS: Phase 1 scaffold.** Step bodies are description-only; the
+runnable logic lands in subsequent phases.
+
+## Trigger
+
+Fired by the `on-experiment-done` order (event trigger on
+`bead.status == closed && metadata.experiment == true`). The
+source polecat marks the experiment bead `status=closed` from inside
+the experiment (it's the polecat's bead; it owns closure); this order
+catches the transition and pours pickup.
+
+## Contract
+
+  IN:  experiment bead in status=closed with
+       `metadata.experiment = true`,
+       `metadata.source_polecat`,
+       `metadata.experiment_lifecycle_wisp`,
+       `metadata.artifacts` (optional list of file paths or refs).
+  OUT: source-polecat session woken with PICKUP message,
+       lifecycle wisp closed,
+       no metadata writes to the experiment bead (it's already
+       closed by the source polecat — pickup is callback only).
+
+## Why we don't close the bead here
+
+The source polecat owns the experiment bead's closure (it knows
+the result, can attach artifacts, can decide rerun/retry). Pickup is
+**callback only**: wake the polecat, hand back the artifact list,
+close the lifecycle wisp. This avoids the dual-closer race that
+breaks `[[polecat-self-resolve-discipline]]`.
+
+## Cross-references
+
+- `he-6lz0-redesign-brief.md` §5.1 (drop-off / pickup metaphor)
+- `he-6lz0-redesign-brief.md` §5.3 (clerk-as-daemon-formula shape)
+"""
+formula = "experiment-pickup"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[vars]
+[vars.binding_prefix]
+description = "Import binding prefix when ops/ is consumed via another pack's [imports.ops]."
+default = ""
+
+[[steps]]
+id = "resolve-pickup-target"
+title = "Find live destination for the pickup notification"
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Read `metadata.source_polecat` from the experiment bead.
+  2. Check session liveness via `gc session` lookup.
+  3. If the source polecat session is alive → that's the pickup
+     target.
+  4. If dead → look up `metadata.pickup_successor` (set by
+     experiment-respawn if a successor was assigned during Phase 5).
+  5. If still no live target → mail Mayor with ORPHANED_PICKUP and
+     the bead id; `gc runtime drain-ack`; exit non-zero. (Phase 4
+     escalation handles this class.)
+"""
+
+[[steps]]
+id = "deliver-pickup"
+title = "Wake the destination session with PICKUP"
+needs = ["resolve-pickup-target"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. `gc session nudge $TARGET` with a PICKUP message:
+     - bead id
+     - artifact list (from `metadata.artifacts`)
+     - lifecycle wisp id (for traceback)
+  2. Use nudge, not mail — the message is ephemeral; durable record
+     is the closed experiment bead and the closed lifecycle wisp.
+"""
+
+[[steps]]
+id = "close-lifecycle-wisp"
+title = "Close the experiment-lifecycle parent wisp"
+needs = ["deliver-pickup"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Read `metadata.experiment_lifecycle_wisp` from the experiment
+     bead.
+  2. `gc bd close <lifecycle-wisp-id> --reason "Pickup delivered"`.
+  3. Do **not** close the experiment bead — it was already closed
+     by the source polecat (that's how this order fired).
+  4. `gc runtime drain-ack`; exit 0.
+"""

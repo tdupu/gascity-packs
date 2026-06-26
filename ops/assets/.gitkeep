@@ -1,0 +1,4 @@
+# Placeholder — `assets/` will hold helper scripts (cadence math, ISO
+# timestamp arithmetic, heartbeat-tunnel session bootstrap) referenced
+# from formula `[steps.<id>.run]` blocks in Phases 2 / 6. Empty in
+# Phase 1.

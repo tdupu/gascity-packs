@@ -1,0 +1,61 @@
+description = """
+Gate formula — reject an experiment without a target server.
+
+**STATUS: Phase 1 scaffold.** Gate logic lands in Phase 1 of the
+implementation cycle (small, can land alongside other Phase 1 stubs);
+description-only here.
+
+## Purpose
+
+Dispatch-side defense against drop-off of experiments without an
+explicit compute target. Pairs with
+`experiment-must-have-clerk-route.toml` per
+`[[gate-keep-architecture]]`'s X-policy + X-gate + improve-X trinity.
+
+## Contract
+
+  CHECK: `metadata.gc.run_target` is set and non-empty.
+  ON FAIL: gate emits REJECT with the literal key name; the parent
+           formula (`experiment-acknowledge.envelope-check` or
+           `experiment-lifecycle.envelope-check`) translates that to
+           a clerk-surface mail and drops the lifecycle.
+
+## Composition
+
+Reused by:
+  - `experiment-acknowledge.envelope-check` (drop-off side)
+  - `experiment-lifecycle.envelope-check` (polecat-side defense-in-depth)
+  - future: `experiment-rerun-on-config-change` (per brief §3.3 rationale
+    for standalone gate formulas)
+
+## Cross-references
+
+- `he-6lz0-redesign-brief.md` §3.1 (server-target enforcement
+  mapping) — both dispatch and polecat-side checks named explicitly.
+- `he-6lz0-redesign-brief.md` §3.3 (standalone vs inline gate choice
+  — chose standalone).
+- `[[gate-keep-architecture]]` trinity.
+"""
+formula = "experiment-must-have-target"
+version = 1
+kind = "gate"
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[[steps]]
+id = "check"
+title = "Assert metadata.gc.run_target is set"
+description = """
+**STUB — Phase 1.** Logic lands in Phase 1 implementation cycle.
+
+Intended behaviour:
+
+  1. Read `metadata.gc.run_target` from the experiment bead.
+  2. If unset or empty: exit code 1 with stderr:
+     `GATE-REJECT: experiment-must-have-target`.
+  3. Else: exit 0.
+
+The gate is single-pass; no metadata writes. Parent formula owns
+the consequence (mail clerk-surface, drop wisp, etc.).
+"""
