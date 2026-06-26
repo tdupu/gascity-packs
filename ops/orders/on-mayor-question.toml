@@ -1,0 +1,45 @@
+# Event-trigger order — fire mol-mayor-q-brief when the Mayor (or any
+# non-Taylor agent) surfaces a Taylor-decidable question.
+#
+# Codifies [[grills-here-briefs-there]] + [[mayor-no-direct-grilling]]:
+# Mayor's questions to Taylor never run synchronously — they land as
+# briefs via the clerk-surfaced stack. This order is the auto-trigger
+# end of that policy.
+#
+# Trigger shape:
+#
+# An upstream emitter (Mayor `gc mail send` to a Taylor-facing address,
+# OR a `gc sling` envelope tagged for Taylor adjudication) creates a
+# question-bead with metadata.mayor_question=true, captures the
+# verbatim question text into metadata.mayor_question_text, records the
+# source (mail-id or sling envelope bead-id) into
+# metadata.mayor_question_source_id, and flips status to ready. The
+# emitter is responsible for the capture; this order picks up the bead
+# and pours mol-mayor-q-brief into the polecat pool.
+#
+# The brief_path == null clause is one-shot: re-firing on an already-
+# deposited question-bead is the formula's `envelope-check` gate's
+# responsibility to refuse, not the order's. Belt-and-brace it here so
+# a partial-failure recovery doesn't double-deposit.
+#
+# STATUS: Phase 1 scaffold. Predicate + pool wiring lands in subsequent
+# phases alongside the formula stubs they trigger. The predicate shape
+# is normative now so the upstream emitter (Mayor mail / sling) targets
+# this contract.
+
+[order]
+description = "Pour mol-mayor-q-brief on a question-bead landing ready."
+scope = "rig"
+formula = "mol-mayor-q-brief"
+trigger = "event"
+pool = "polecat"
+
+[trigger_event]
+# Watch for new mayor-question beads landing ready. Predicate evaluated
+# server-side on bead state-change events.
+on = "bead.status_change"
+predicate = '''
+  status == "ready"
+  && metadata.mayor_question == true
+  && metadata.brief_path == null
+'''

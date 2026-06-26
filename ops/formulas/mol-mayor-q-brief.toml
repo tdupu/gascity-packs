@@ -1,0 +1,567 @@
+description = """
+Codify the `mayor-questions-as-briefs` policy as a Gas City formula.
+
+Mayor never asks Taylor a question in real-time — every question to
+Taylor goes through the brief stack with the clerk owning Taylor-facing
+dialogue. This formula is the auto-trigger handler: when the Mayor (or
+any non-Taylor agent) mentions a Taylor-decidable question in mail or a
+sling envelope, the `on-mayor-question` order pours this formula to
+compose the question into a brief, deposit it on the stack, and notify
+the clerk to surface it.
+
+**STATUS: Phase 1 scaffold.** Step bodies are description-only; runnable
+logic lands in subsequent phases. The shape, gates, contract, and
+deposit-naming convention are normative now so callers (Mayor mail
+emission, sling envelope construction) and consumers (clerk readers,
+no-brainer-cycle classifier) can target a stable contract.
+
+## Coexistence with the existing brief pipeline (LOAD-BEARING)
+
+Per [[codification-preserves-brief-pipeline]]: this formula ADDS a
+codified entry-point for mayor-questions. The existing brief-pipeline
+watchdog stays operational. After landing, mayor-questions detected by
+the order route through this formula; questions still surfaced manually
+by other paths continue through the legacy flow without change.
+
+The formula CALLS the named skills ([[present-it]], [[coordinate-review]])
+and the existing brief-stack convention; it does NOT duplicate their
+logic. Skills remain the implementation; the formula is the workflow
+recipe.
+
+## Why mayor-questions go through the brief stack (not real-time grill)
+
+Per [[grills-here-briefs-there]] + [[mayor-no-direct-grilling]]:
+
+- Real-time grilling burns Taylor's attention on context-loading and
+  back-and-forth, even when the decision is short.
+- The brief stack lets Taylor batch-process decisions when ready, with
+  full context pre-loaded by the brief.
+- The clerk owns Taylor-facing dialogue — the Mayor never holds the
+  pen on a Taylor question directly.
+
+This formula enforces the policy mechanically: when the Mayor surfaces
+a Taylor-decidable question, it lands as a brief, not as a synchronous
+prompt.
+
+## The mayor-question-as-brief pipeline in one sentence
+
+INPUT (Mayor mail OR sling envelope mentioning a Taylor-decidable
+question) → IDENTIFY question → FRAME as decision-class → GATHER
+context → COMPOSE 10-section brief → DEPOSIT to `.beads/briefs/` →
+NOTIFY clerk to surface. Self-rejects if the question cannot be
+isolated or framed as a discrete decision.
+
+## Trigger
+
+Fired by the `on-mayor-question` order (event trigger on Mayor mail or
+sling envelopes carrying a Taylor-decidable question marker). One fire
+per question-bead; failure leaves the question intact (no brief
+deposited) and emits a Mayor-surface mail explaining the refusal.
+
+The order writes a question-bead with the envelope payload and the
+detected question text. This formula reads that bead.
+
+## Contract
+
+  IN:  question-bead with
+       `metadata.mayor_question = true`,
+       `metadata.mayor_question_source` ∈ {mail, sling},
+       `metadata.mayor_question_source_id = <source bead-id or mail-id>`,
+       `metadata.mayor_question_text = <verbatim question text>`,
+       optional `metadata.mayor_question_topic_hint = <short slug>`
+       (used in deposit filename when present; otherwise derived).
+  OUT: question-bead with
+       `metadata.brief_path = <abs path to deposited brief>`,
+       `metadata.brief_status` ∈ {deposited, blocked},
+       `metadata.brief_decision_class` ∈ {merge, delete, defer,
+         investigate, route, scope-cut, escalate, other},
+       `metadata.brief_topic = <slug used in filename>`,
+       `metadata.brief_clerk_notified_at = <ISO-8601>` (when
+         status=deposited),
+       status transitioned per outcome (deposited → status=open,
+       awaiting clerk surface; blocked → status=open with
+       `metadata.brief_prep_blocked_on = <reason>`).
+       Deposited brief lives at the configured `{{brief_stack_path}}`
+       (typically `<rig-root>/.beads/briefs/mayor-q-<topic>-brief.md`).
+
+## Decision classes (frame-as-decision-class step output)
+
+Per [[present-it]] §10 verdict vocabulary, every mayor-question must
+resolve to ONE of these decision classes before composing the brief.
+This guarantees Taylor's brief always has a discrete adjudication
+target.
+
+| Class          | Shape                                                       |
+|----------------|-------------------------------------------------------------|
+| `merge`        | Merge a branch / accept a PR / commit a change.             |
+| `delete`       | Delete a branch / drop a bead / remove a file.              |
+| `defer`        | Defer to an existing tracker / postpone a decision.         |
+| `investigate`  | Schedule investigation / spawn discovery work.              |
+| `route`        | Choose a destination (rig, polecat, formula, skill).        |
+| `scope-cut`    | Narrow scope of in-flight work / drop a requirement.        |
+| `escalate`     | Cross-rig escalation / Mayor-to-Mayor surface.              |
+| `other`        | None of the above — must include 1-line justification in §10.|
+
+If the framed question does not fit one of these classes (e.g. a true
+open-ended brainstorm), the formula refuses and surfaces back to the
+Mayor with `metadata.brief_prep_blocked_on = "not-decidable: <reason>"`
+so the Mayor can refine the question or escalate via
+`[[mayor-farm-out-doctrine]]` instead.
+
+## Defense-in-depth gates
+
+Gates run BEFORE any work; refusals leave the question-bead intact and
+emit a Mayor-surface mail. Mirrors the
+`experiment-acknowledge.envelope-check` pattern (gates first, action
+second; never act on a stale envelope).
+
+1. `mayor-question-must-have-text` — question-bead carries non-empty
+   `metadata.mayor_question_text` and a recognized
+   `mayor_question_source`. Phase 1 stub; gate lands as a sibling TOML
+   in a follow-up phase.
+2. `mayor-question-must-not-already-have-brief` — refuse if
+   `metadata.brief_path` is already set (the order's predicate already
+   filters this; gate is belt-and-braces for re-fires after partial
+   failure).
+
+## Self-rejection conditions (refuse to deposit)
+
+If ANY hold at the deposit step, STOP and surface to Mayor instead of
+depositing (set `metadata.brief_prep_blocked_on = <reason>`):
+
+  1. The question cannot be framed into one of the decision classes
+     above (open-ended brainstorm; multi-question envelope; question
+     references a non-existent artifact).
+  2. The deposit path collides with an existing brief whose decision
+     is still pending (same topic-slug, status != closed).
+  3. The composed brief lacks §5 evidence for a question that depends
+     on test outcomes (rare — most mayor-questions are mechanical
+     adjudication; flagged here so a future
+     `mayor-q-with-test-dependency` shape isn't silently lossy).
+
+## Hard rules
+
+  - **NO presenting to Taylor.** That's the clerk's job per
+    [[mayor-no-direct-grilling]]. Return the deposit path + decision
+    class; the clerk surfaces.
+  - **NO `bd close` on the question-bead.** The clerk closes the
+    question-bead when Taylor's verdict lands.
+  - **NO commits or pushes.** Brief deposits are local-only artifact
+    writes. The brief itself is in the rig's `.beads/briefs/`, not
+    pushed anywhere by this formula.
+  - **NO direct mail to Taylor.** All Taylor-facing notification flows
+    through the clerk surface, not from this formula.
+  - **NO meta-sequencing.** Per [[no-meta-sequencing-briefs]], each
+    brief is single-artifact (one question, one decision); the formula
+    does NOT chain briefs or impose install-order across questions.
+  - **Credential discipline** per [[never-echo-credentials]] — the
+    deposited brief writes paths, bead IDs, SHAs, file names — never
+    tokens.
+
+## Decisions log (audit trail)
+
+This formula's outputs are themselves part of the audit trail. The
+brief at `{{brief_stack_path}}` carries deposited-by + session metadata
+in its frontmatter; the clerk records Taylor's verdict in the
+clerk-owned `decisions.jsonl` (not written here). The no-brainer
+cycle's classifier inspects deposited briefs AFTER this formula
+returns; this formula does NOT pre-classify (cleanly separates
+deposit-vs-classify per [[gate-keep-architecture]]).
+
+## Composition
+
+  - [[present-it]] — provides the 10-section brief structure used in
+    the `compose-brief` step.
+  - [[coordinate-review]] — optional FP-loop external gate; invoked
+    from `external-review-gate` only when the question depends on
+    contested evidence (e.g. test interpretation). Most
+    mayor-questions are direct enough to skip the FP-loop.
+  - [[brief-prep]] — sibling formula `mol-brief-prep` codifies the
+    full brief-prep pipeline; this formula reuses its composition
+    surface but is a narrower entry-point (mayor-question-specific).
+  - [[catch-no-brainer]] — pre-classifies the deposited brief AFTER
+    this formula returns; not invoked from within. If the classifier
+    flags the brief as a no-brainer, the `no-brainer-cycle` formula
+    takes over.
+  - `gate-sweep` (core pack) — runs every 30s; if the deposit step
+    stamps a gate on the question-bead (e.g. `brief:deposited`),
+    gate-sweep reaps it. No direct call — purely coordinative.
+
+Per Taylor's IIA verdict (2026-06-25) — see clerk relay — this formula
+is shape n=6 of [[gascity-orders-and-formulas-decomposition-pattern]]
+(prior: n=1 brief-pipeline; n=2 experiment-monitoring; n=3
+no-brainer-cycle; n=4 codification-pattern-confirmed; n=5 brief-prep).
+All share the same shape: formula = workflow logic; order = trigger;
+gate = pre-flight defense.
+
+## Cross-references
+
+  - [[grills-here-briefs-there]] (source policy: Mayor briefs, clerk
+    grills)
+  - [[mayor-no-direct-grilling]] (source policy: Mayor never grills
+    Taylor directly)
+  - [[brief-pipeline-workflow]] (integration target: existing watchdog
+    stays operational; this formula adds an auto-trigger entry-point)
+  - [[no-meta-sequencing-briefs]] (anti-pattern guard: one question →
+    one brief, no install-order chains)
+  - [[codification-preserves-brief-pipeline]] (Guardrail 1: codification
+    ADDS, existing flow continues)
+  - [[mayor-farm-out-doctrine]] (alignment: Mayor coordinates; clerk
+    surfaces; Taylor decides; this formula is the Mayor's farm-out
+    channel for Taylor-decidable questions)
+  - [[present-it]] (10-section brief structure)
+  - [[coordinate-review]] (FP-loop external gate; optional here)
+  - [[brief-prep]] (sibling formula `mol-brief-prep`; shape n=5)
+  - [[catch-no-brainer]] (post-deposit classifier; not called from
+    here)
+  - sibling beads: as-bzu (ops/ pack Phase 1 scaffold; this formula
+    depends on it landing first), as-y369 (mol-brief-prep formula;
+    same Phase 1 scaffold pattern), as-4i8 (no-brainer-cycle formula;
+    composes downstream).
+"""
+formula = "mol-mayor-q-brief"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[vars]
+[vars.binding_prefix]
+description = "Import binding prefix when ops/ is consumed via another pack's [imports.ops]."
+default = ""
+
+[vars.brief_stack_path]
+description = "Path (relative to rig root) where deposited briefs land. Mirrors [[project_brief_stack_workflow]] convention; matches mol-brief-prep default."
+default = ".beads/briefs"
+
+[vars.clerk_route]
+description = "Mail address / session identifier of the clerk that surfaces briefs to Taylor. Resolved per rig from city.toml or env."
+default = "clerk"
+
+[vars.topic_slug_max_len]
+description = "Maximum character length of the derived topic slug used in the brief filename. Keeps filenames bounded when the Mayor's question text is long."
+default = "48"
+
+[vars.coordinate_review_cap]
+description = "Maximum FP-loop rounds for the optional external-review-gate step before declaring review-failed. Matches mol-brief-prep default."
+default = "4"
+
+[[steps]]
+id = "envelope-check"
+title = "Validate question-bead envelope (defense-in-depth gates)"
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Read question-bead via `$GC_BEAD_ID`.
+  2. Run gate formulas (Phase 1 stub; gates land as sibling TOMLs in a
+     follow-up phase):
+     - `mayor-question-must-have-text`
+     - `mayor-question-must-not-already-have-brief`
+  3. On gate failure:
+     - Stamp `metadata.brief_prep_blocked_on = <gate name>` on the
+       question-bead.
+     - Mail Mayor with REFUSED + question-bead-id + gate name.
+     - `gc runtime drain-ack`; exit non-zero.
+  4. On pass: continue.
+
+Per [[gate-keep-architecture]]'s X-policy + X-gate + improve-X trinity:
+the policy is "every mayor-question carries discrete question text and
+isn't a re-fire", the gate is the named pair above, and the improve-X
+path is this step's refusal mail to Mayor (so the next-emission can
+fix the envelope shape).
+
+This step does NOT yet inspect the question text itself — that's
+`identify-question`. Envelope-check covers only the input contract.
+"""
+
+[[steps]]
+id = "identify-question"
+title = "Parse the envelope, isolate the verbatim Taylor-decidable question"
+needs = ["envelope-check"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Read `metadata.mayor_question_text` (verbatim, as the order
+     captured it) and `metadata.mayor_question_source_id`.
+  2. Open the source artifact:
+     - If source = `mail`: `gc mail read <id>` and treat the body as
+       the surrounding context.
+     - If source = `sling`: `gc bd show <id>` and treat the envelope
+       and bead description as context.
+  3. Verify the question text is a single discrete question. If the
+     envelope mentions multiple Taylor-decidable questions, FAIL
+     CLOSED — set
+     `metadata.brief_prep_blocked_on = "multi-question-envelope: <count>"`
+     and refuse. One mayor-question-bead → one brief — per
+     [[no-meta-sequencing-briefs]].
+  4. Derive `metadata.brief_topic`:
+     - If `metadata.mayor_question_topic_hint` is set, use it directly
+       (truncate to `{{topic_slug_max_len}}` chars, lowercase, kebab).
+     - Else extract a slug from the verbatim question text (first
+       noun phrase or named artifact reference; same truncation +
+       casing).
+  5. Stash the resolved handles into env-var-passable state
+     (`MAYOR_Q_TEXT`, `MAYOR_Q_SOURCE_REF`, `MAYOR_Q_TOPIC`) so
+     subsequent steps read them without re-resolving. Phase 1 stub;
+     Phase 2 pins the env-var contract.
+
+The verbatim question text is the authoritative input downstream; the
+formula never paraphrases it before deposit (the clerk needs the
+Mayor's literal words to confirm the framing with Taylor).
+"""
+
+[[steps]]
+id = "frame-decision-class"
+title = "Categorize the question as one of the 8 decision classes"
+needs = ["identify-question"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour, per the Decision classes table in this formula's
+description:
+
+  1. Inspect `MAYOR_Q_TEXT` and `MAYOR_Q_SOURCE_REF` context.
+  2. Categorize as exactly ONE of:
+     {`merge`, `delete`, `defer`, `investigate`, `route`, `scope-cut`,
+      `escalate`, `other`}.
+  3. If `other`: require a 1-line justification field captured into
+     `metadata.brief_decision_class_other_reason`; this surfaces in
+     §10 of the deposited brief.
+  4. If the question genuinely does not fit ANY class (e.g. true
+     open-ended brainstorm, multi-decision request, vague request for
+     opinions):
+     - Stamp `metadata.brief_prep_blocked_on = "not-decidable: <reason>"`.
+     - Mail Mayor with REFUSED + question-bead-id + reason. The Mayor
+       either refines the question or routes it via
+       [[mayor-farm-out-doctrine]] (cross-rig escalation, brainstorm
+       skill, etc.).
+     - `gc runtime drain-ack`; exit non-zero.
+  5. Write `metadata.brief_decision_class = <chosen>` on the
+     question-bead.
+
+The decision-class is the brief's §10 spine — every brief surfaces a
+discrete adjudication target. Refusing here (instead of forcing a
+class) keeps Taylor's brief stack honest: only briefs Taylor can
+actually decide land on the stack.
+
+This step is purely a metadata write — no skill calls, no external
+resolution. The next step (`gather-context`) is the expensive one.
+"""
+
+[[steps]]
+id = "gather-context"
+title = "Pull the surrounding evidence the brief will cite in §1–§9"
+needs = ["frame-decision-class"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour, per [[present-it]] §1–§9 (everything but §10
+verdict, which the decision-class fixes):
+
+  1. Read `MAYOR_Q_SOURCE_REF` and the question-bead's
+     `metadata.mayor_question_source_id`. Resolve to canonical
+     artifacts:
+     - `bd show <id>` for any referenced beads.
+     - `git log` / `git show` for any referenced SHAs.
+     - `gh issue view` / `gh pr view` for any referenced GH refs.
+  2. Per decision-class, pre-load the artifacts the brief will cite:
+     - `merge` / `delete`: branch state, commits, files touched,
+       upstream tracker.
+     - `defer`: existing tracker bead, prior briefs covering the
+       same artifact.
+     - `investigate`: surface-area survey (files / beads / docs that
+       would inform the investigation).
+     - `route`: target candidates with capacity / skill match notes.
+     - `scope-cut`: scope diff (what's IN vs OUT) + rationale.
+     - `escalate`: cross-rig context + prior cross-rig escalations
+       on the topic.
+     - `other`: free-form gather; document the gather strategy in
+       brief §7 (Investigation needed).
+  3. Run any read-only tests the artifact REQUIRES for §5 evidence.
+     Most mayor-questions are mechanical adjudication and §5 = "N/A:
+     question is non-test-dependent" is the common case. When tests
+     ARE needed:
+     - Resolve runner via `{{binding_prefix}}brief-test-resolve` (same
+       contract as mol-brief-prep) when project-specific.
+     - Run with timeout; capture file + command + literal pass/fail.
+     - Save structured results to a temp file referenced via
+       `MAYOR_Q_TEST_RESULTS_PATH` env var.
+  4. Compute `unlock_count` per [[review-order-by-unlock-count]] — the
+     number of downstream beads currently blocked on Taylor's verdict
+     for this question. Briefs with high unlock-count surface ahead
+     of lower-priority briefs.
+  5. Stash the gathered evidence into a temp directory pointed to via
+     `MAYOR_Q_EVIDENCE_DIR`. Phase 1 stub; Phase 2 pins the directory
+     layout contract.
+
+Gather is read-only — no commits, no metadata writes on adjacent
+beads, no pushes. Composes with
+[[check-docs-before-designing-workarounds]]: verify each cited artifact
+exists in its authoritative source before the brief cites it.
+"""
+
+[[steps]]
+id = "compose-brief"
+title = "Draft the 10-section brief (verbatim question + decision-class verdict)"
+needs = ["gather-context"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour, per [[present-it]] 10-section structure:
+
+  1. Compose the 10 sections:
+     - §1 What — restate the verbatim question (`MAYOR_Q_TEXT`) and
+       cite the source (`MAYOR_Q_SOURCE_REF`); 1 paragraph.
+     - §2 Where in the code — file paths + line numbers for any
+       artifact the question references.
+     - §3 Math/theory — only when the question touches mathematical
+       content; "N/A — non-math question" is a valid line.
+     - §4 Assumptions — what the Mayor's framing assumes about the
+       system. Surface implicit assumptions that Taylor may want to
+       challenge before deciding.
+     - §5 Test evidence — VERBATIM from `MAYOR_Q_TEST_RESULTS_PATH`
+       when tests were run; else "N/A: question is non-test-dependent
+       — mechanical adjudication".
+     - §6 Authorship + dates — `git log` extraction for any
+       referenced commits; bd metadata for any referenced beads; gh
+       API for any referenced PRs/issues.
+     - §7 Investigation needed — what's unclear; file follow-up beads
+       in subsequent steps with
+       `metadata.surfaced_by_brief = <brief-file>`.
+     - §8 Dependencies — what the question's answer depends on (prior
+       Taylor verdicts, in-flight beads, external policy) and what
+       depends on the answer (computed `unlock_count` from gather).
+     - §9 Risks — at least one entry; "None surfaced" requires an
+       explicit 1-line reason. Mayor-questions often carry hidden
+       risk in the framing itself — surface it.
+     - §10 Decision options + recommended verdict — list the options
+       under `metadata.brief_decision_class`, the Mayor's
+       recommendation (if any), and the brief's own recommendation
+       with rationale. Taylor's verdict goes here when it lands.
+
+  2. Frontmatter (per [[project_brief_stack_workflow]]):
+
+       ---
+       artifact: mayor-question-<bead-id>
+       question_text: |
+         <verbatim mayor question — multi-line YAML literal>
+       question_source: <mail|sling>:<source-id>
+       decision_class: <one of 8>
+       status: pending-clerk-surface
+       deposited_at: <ISO-8601 now>
+       deposited_by: mol-mayor-q-brief (session <GC_SESSION_ID>)
+       unlock_count: <int>
+       ---
+
+  3. Body = §1–§10 in that order, markdown.
+
+  4. Phase 1 stub; Phase 2 pins the section serializer and
+     frontmatter writer.
+
+The brief never paraphrases the Mayor's question text — that's the
+clerk's authoritative input when surfacing to Taylor. Composes with
+[[present-it]] for structure; this formula is the workflow that fills
+it for the mayor-question shape.
+"""
+
+[[steps]]
+id = "external-review-gate"
+title = "Optional FP-loop external review (skipped for most mayor-questions)"
+needs = ["compose-brief"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Inspect the framed `metadata.brief_decision_class`:
+     - `merge`, `delete`, `defer`, `route`, `scope-cut`, `escalate`:
+       SKIP this step. These are mechanical adjudications; the brief
+       deposits as-is.
+     - `investigate`, `other`: RUN [[coordinate-review]] up to
+       `{{coordinate_review_cap}}` rounds. The reviewer persona is
+       "mayor-question framer alert to hidden multi-question
+       structure and decision-class drift".
+  2. On `coordinate-review` APPROVING: continue to `deposit-to-stack`.
+  3. On `coordinate-review` FAILED-TO-CONVERGE within cap:
+     - Stamp `metadata.brief_prep_blocked_on = "review-failed: <round-count>"`.
+     - Mail Mayor with REFUSED + question-bead-id + review summary.
+     - `gc runtime drain-ack`; exit non-zero.
+
+Most mayor-questions are direct enough to skip the FP-loop. The gate
+exists to catch the cases where the Mayor's framing hides multiple
+questions or drifts from the chosen decision-class — those benefit
+from adversarial review before landing on Taylor's stack.
+
+Per [[as-h7r]] META-FP framework: the FP-loop here uses the same
+shrink-OR-split + quality-floor + cap pattern as mol-brief-prep's
+external-review-gate; this is a narrower instantiation.
+"""
+
+[[steps]]
+id = "deposit-to-stack"
+title = "Write the brief to `.beads/briefs/mayor-q-<topic>-brief.md` and stamp metadata"
+needs = ["external-review-gate"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Resolve deposit path:
+     `{{brief_stack_path}}/mayor-q-<MAYOR_Q_TOPIC>-brief.md`
+     (relative to rig root).
+  2. Check for collision:
+     - If a brief already exists at the path with `status` ∈
+       {`pending-clerk-surface`, `pending-taylor-decision`}, STOP and
+       refuse:
+         - Stamp
+           `metadata.brief_prep_blocked_on = "collision: existing brief at <path>"`.
+         - Mail Mayor with REFUSED + question-bead-id + collision
+           path. The Mayor merges questions or supersedes the prior
+           brief explicitly — this formula does NOT auto-merge.
+         - `gc runtime drain-ack`; exit non-zero.
+     - If a brief exists with `status == closed` (Taylor already
+       decided), continue (new question on same topic is allowed —
+       Taylor's prior verdict is part of §6/§8 context).
+  3. Write the composed brief to the deposit path (atomically — temp
+     file + rename).
+  4. Stamp on the question-bead:
+     - `metadata.brief_path = <deposit-path>`
+     - `metadata.brief_status = "deposited"`
+
+  This step is a local-only artifact write per the Hard rules. No
+  commits, no pushes, no `bd close`.
+"""
+
+[[steps]]
+id = "notify-clerk"
+title = "Notify the clerk that a new brief is on the stack and ready to surface"
+needs = ["deposit-to-stack"]
+description = """
+**STUB — Phase 1.** Behaviour lands in subsequent phases.
+
+Intended behaviour:
+
+  1. Resolve clerk endpoint from `{{clerk_route}}` (per-rig override
+     via city.toml or env-var).
+  2. Send a single nudge to the clerk:
+     `gc session nudge {{clerk_route}} \"BRIEF DEPOSITED: mayor-question \
+       $GC_BEAD_ID decision_class=<class> topic=<MAYOR_Q_TOPIC>\"`.
+     The clerk's `present-brief` skill takes over from here.
+  3. Stamp `metadata.brief_clerk_notified_at = <ISO-8601 now>` on the
+     question-bead.
+  4. `gc runtime drain-ack`; exit 0. This formula is gone; the
+     question-bead is now owned by the clerk path.
+
+Per [[mayor-no-direct-grilling]]: this is the ONLY notification this
+formula emits Taylor-ward, and it goes through the clerk, never
+directly to Taylor. The clerk owns the surface (timing, framing,
+follow-up grilling if needed).
+
+Nudge, not mail, per polecat communication rules: the question-bead's
+durable state (`brief_path`, `brief_status`, `decision_class`) is the
+authoritative record. The nudge is just the wake-up.
+"""
