@@ -1,0 +1,58 @@
+description = """
+Gate formula — reject an experiment whose clerk callback route is
+unresolvable.
+
+**STATUS: Phase 1 scaffold.** Gate logic lands in Phase 1 of the
+implementation cycle; description-only here.
+
+## Purpose
+
+Drop-off-side validation: if pickup can never be delivered (no
+`source_polecat`, no surface address, no successor lineage), reject
+the experiment up front. Better to refuse drop-off than to monitor
+something nobody can be told finished.
+
+## Contract
+
+  CHECK: `metadata.source_polecat` is set AND the resolved address
+         (binding-prefix-aware) maps to a known agent surface.
+  ON FAIL: gate emits REJECT; parent formula mails clerk-surface
+           with the offending key (source_polecat / surface
+           lookup).
+
+## Composition
+
+Reused by:
+  - `experiment-acknowledge.envelope-check` (drop-off side)
+  - `experiment-lifecycle.envelope-check` (polecat-side defense-in-depth)
+
+## Cross-references
+
+- `he-6lz0-redesign-brief.md` §3.3 (gate inlining choice)
+- `he-6lz0-redesign-brief.md` §5.1 (drop-off / pickup metaphor)
+- `[[gate-keep-architecture]]` trinity.
+"""
+formula = "experiment-must-have-clerk-route"
+version = 1
+kind = "gate"
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[[steps]]
+id = "check"
+title = "Assert clerk callback route resolves"
+description = """
+**STUB — Phase 1.** Logic lands in Phase 1 implementation cycle.
+
+Intended behaviour:
+
+  1. Read `metadata.source_polecat` from the experiment bead.
+  2. If unset or empty: exit 1 with stderr
+     `GATE-REJECT: experiment-must-have-clerk-route (source_polecat unset)`.
+  3. Resolve through binding-prefix lookup; check the agent surface
+     is registered (via `gc agent list --json` or equivalent).
+  4. If unresolvable: exit 1 with stderr
+     `GATE-REJECT: experiment-must-have-clerk-route (surface unresolved: <addr>)`.
+  5. Else: exit 0.
+"""

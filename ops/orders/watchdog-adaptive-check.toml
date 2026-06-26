@@ -1,0 +1,33 @@
+# Cooldown-trigger order — fire experiment-check-on-it per HYBRID
+# adaptive cadence.
+#
+# Cadence state lives in `metadata.next_check_at` on the experiment
+# bead. This order is STATELESS across fires — the cooldown trigger
+# reads next_check_at, schedules a fire of experiment-check-on-it,
+# which writes the next next_check_at. Single-pass; no inner loop;
+# satisfies [[dispatcher-policy-no-infinite-loop]].
+#
+# STATUS: Phase 1 scaffold. Cooldown-from-bead-metadata wiring lands
+# in Phase 2 alongside the HYBRID cadence implementation in
+# experiment-check-on-it.
+
+[order]
+description = "Adaptive-cadence health check for running experiments."
+scope = "rig"
+formula = "experiment-check-on-it"
+trigger = "cooldown"
+pool = "polecat"
+
+[trigger_cooldown]
+# Dynamic per-experiment interval — reads from the experiment bead's
+# metadata, NOT from a fixed `interval =` here. The cooldown engine
+# polls the next_check_at index and fires when due. Phase 2 wires the
+# exact field-source descriptor.
+source = "metadata.next_check_at"
+# Bead filter: only experiments. Multiple experiments → multiple
+# independent cooldown timers, one per bead.
+predicate = '''
+  metadata.experiment == true
+  && status == "in_progress"
+  && metadata.next_check_at != null
+'''

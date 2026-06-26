@@ -1,0 +1,23 @@
+# Event-trigger order — fire experiment-pickup on completion.
+#
+# The source polecat closes the experiment bead (it owns closure; see
+# experiment-pickup.toml description for why pickup is callback-only).
+# This order catches that transition and pours pickup so the source
+# polecat (or successor) gets woken with results.
+#
+# STATUS: Phase 1 scaffold.
+
+[order]
+description = "Pickup callback when an experiment finishes."
+scope = "rig"
+formula = "experiment-pickup"
+trigger = "event"
+pool = "polecat"
+
+[trigger_event]
+on = "bead.status_change"
+predicate = '''
+  status == "closed"
+  && metadata.experiment == true
+  && metadata.experiment_lifecycle_wisp != null
+'''

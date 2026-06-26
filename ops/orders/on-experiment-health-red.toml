@@ -1,0 +1,25 @@
+# Event-trigger order — fire escalate-stuck-experiment on RED
+# transition.
+#
+# Fires once per RED transition (not on RED-stable subsequent checks
+# — predicate filters by transition, not state). escalate-stuck-
+# experiment is responsible for marking metadata.escalated_at so
+# subsequent fires are skipped at the formula level too (belt and
+# suspenders).
+#
+# STATUS: Phase 1 scaffold stub — fires Phase 4 formula.
+
+[order]
+description = "Mayor escalation when an experiment's health transitions to RED."
+scope = "rig"
+formula = "escalate-stuck-experiment"
+trigger = "event"
+pool = "polecat"
+
+[trigger_event]
+on = "bead.metadata_change"
+predicate = '''
+  metadata.experiment == true
+  && metadata.health == "red"
+  && previous.metadata.health != "red"
+'''

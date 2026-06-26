@@ -1,0 +1,5 @@
+# Placeholder — `agents/` will hold the experiment-clerk role definition
+# if the clerk-as-daemon-formula shape (he-6lz0 §5.3 option E4c) gets
+# upgraded to a literal agent role. Current decision: ship as
+# long-running formula instance owned by the rig; upgrade-trigger lives
+# in §5.3 of the redesign brief.
