@@ -4,11 +4,5 @@ version = "0.1.0"
 schema = 2
 description = "Taylor-local mathematical work pack, including the brief pipeline formulas, orders, and gate policy registry."
 
-[imports.gastown]
-source = "../gastown"
-
-[imports.superpowers]
-source = "../superpowers"
-
 [providers.codex]
 base = "builtin:codex"
