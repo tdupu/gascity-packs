@@ -1,0 +1,9 @@
+[order]
+description = "Manually classify one no-brainer candidate under the shortcut policy"
+scope = "city"
+formula = "no-brainer-classify"
+trigger = "manual"
+pool = "dog"
+timeout = "60s"
+idempotent = true
+

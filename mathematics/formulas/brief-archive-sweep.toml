@@ -1,0 +1,60 @@
+description = """
+Sweep old rejected or decided brief artifacts into archive state.
+"""
+formula = "brief-archive-sweep"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[catalog]
+name = "brief-archive-sweep"
+description = "Keep rejected and decided brief artifacts tidy without deleting records."
+
+[vars]
+[vars.artifact_root]
+description = "Brief pipeline artifact root."
+default = ".beads/briefs"
+
+[vars.operator_target]
+description = "Run target for archive sweep."
+default = "gc.run-operator"
+
+[[steps]]
+id = "scan-archive-candidates"
+title = "Scan archive candidates"
+metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
+description = """
+Scan `{{artifact_root}}/.pile/.rejected`, `{{artifact_root}}/decisions`, and
+`{{artifact_root}}/.staging` for items whose decision/rejection records are
+complete and safe to move under `{{artifact_root}}/archive`.
+"""
+
+[[steps]]
+id = "archive-candidates"
+title = "Archive completed candidates"
+needs = ["scan-archive-candidates"]
+metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
+description = """
+Move completed candidates into archive directories. Do not delete decision
+records, stack manifest entries, or breadcrumbs.
+"""
+
+[[steps]]
+id = "record-sweep"
+title = "Record archive sweep"
+needs = ["archive-candidates"]
+metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
+description = """
+Record how many candidates were archived and any skipped directories that need
+manual attention.
+"""
+
+[steps.check]
+max_attempts = 1
+
+[steps.check.check]
+mode = "exec"
+path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-archive-sweep-record-required.sh"
+timeout = "1m"
+

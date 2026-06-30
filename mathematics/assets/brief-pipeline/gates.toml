@@ -1,0 +1,210 @@
+[registry]
+name = "brief-pipeline-gates"
+version = 1
+source = "agent-skills/docs/brief-bundle plus he-xkq3 gate registry"
+default_profile = "standard"
+fail_closed = true
+evidence_heading = "Gate Evidence"
+
+[[gates]]
+id = "G1"
+name = "test-evidence"
+kind = "mechanical"
+required = true
+evidence_key = "G1 Test-evidence"
+policy = "test-evidence-required.md"
+description = "Any claim about tests must include the exact command, scope, result, and date, or an explicit N/A with surface-check evidence."
+
+[[gates]]
+id = "G2"
+name = "good-test"
+kind = "review"
+required = true
+evidence_key = "G2 Good-test"
+policy = "is-good-test/SKILL.md"
+description = "A reviewer must judge whether the evidence is a meaningful test of the claimed behavior."
+
+[[gates]]
+id = "G3"
+name = "shell-scripts-testable"
+kind = "mechanical"
+required = true
+evidence_key = "G3 Shell-scripts-testable"
+description = "Shell-script changes must name runnable validation or explicitly state why no script surface is touched."
+
+[[gates]]
+id = "G4"
+name = "critical-review"
+kind = "review"
+required = true
+evidence_key = "G4 Critical-review"
+policy = "critical-review/SKILL.md"
+description = "A critical review pass must look for correctness risks, policy misses, and missing evidence."
+
+[[gates]]
+id = "G5"
+name = "server-touching-exclusion"
+kind = "stop"
+required = true
+evidence_key = "G5 Server-touching"
+description = "Server-touching work cannot pass through the shortcut path without explicit Taylor authorization."
+
+[[gates]]
+id = "G5b"
+name = "user-skill-touching-exclusion"
+kind = "stop"
+required = true
+evidence_key = "G5b User-skill-touching"
+description = "User skill changes cannot pass through shortcut automation without explicit Taylor authorization."
+
+[[gates]]
+id = "G6"
+name = "latex-gate"
+kind = "manual"
+required = true
+evidence_key = "G6 LaTeX-gate"
+policy = "latex-gate-policy.md"
+description = "LaTeX-bearing work needs the LaTeX gate outcome or an explicit no-LaTeX surface check."
+
+[[gates]]
+id = "G7"
+name = "artifacts-staging"
+kind = "mechanical"
+required = true
+evidence_key = "G7 Artifacts-staging"
+description = "Artifacts must be staged under the brief run directory and referenced from the brief."
+
+[[gates]]
+id = "G8"
+name = "brief-record-bookkeeping"
+kind = "mechanical"
+required = true
+evidence_key = "G8 Brief-record"
+description = "The pile, stack, manifest, and decision/archive records must remain consistent."
+
+[[gates]]
+id = "G9"
+name = "no-brainer-filter"
+kind = "review"
+required = true
+evidence_key = "G9 No-brainer-filter"
+policy = "no-brainer-brief-filter.md"
+description = "Shortcut classification must be explicit and cannot override stop gates or Taylor-only decisions."
+
+[[gates]]
+id = "G10"
+name = "improve-readme"
+kind = "mechanical"
+required = true
+evidence_key = "G10 Improve-README"
+policy = "improve-readme-every-iteration.md"
+description = "Each qualifying iteration must show the README improvement or explain why no README surface exists."
+
+[[gates]]
+id = "G11"
+name = "breadcrumb"
+kind = "mechanical"
+required = true
+evidence_key = "G11 Breadcrumb"
+policy = "experiment-breadcrumbs.md"
+description = "Experiment or deferred work must leave a durable breadcrumb to the source, artifacts, and next owner."
+
+[[gates]]
+id = "G12"
+name = "auto-merge-kill-switch"
+kind = "stop"
+required = true
+evidence_key = "G12 Auto-merge-kill-switch"
+description = "Automation must fail closed unless the local kill switch explicitly permits the shortcut."
+
+[[gates]]
+id = "G13"
+name = "stale-claim"
+kind = "mechanical"
+required = true
+evidence_key = "G13 Stale-claim"
+description = "Briefs must not rely on stale claims; claim freshness or revalidation must be recorded."
+
+[[gates]]
+id = "G14"
+name = "test-execution-silent"
+kind = "mechanical"
+required = true
+evidence_key = "G14 Test-execution-silent"
+policy = "test-execution-request-brief-type.md"
+description = "Risky or high-cost test execution must be requested explicitly instead of silently run."
+
+[[gates]]
+id = "G15"
+name = "improve-readme-silent"
+kind = "mechanical"
+required = true
+evidence_key = "G15 Improve-README-silent"
+description = "A missing README improvement cannot be silent; the brief must record applied or N/A evidence."
+
+[[gates]]
+id = "G16"
+name = "master-current-for-test-evidence"
+kind = "mechanical"
+required = true
+evidence_key = "G16 Master-current"
+description = "Test evidence that depends on main/master state must record the base ref used."
+
+[profiles.standard]
+gates = [
+  "G1",
+  "G2",
+  "G3",
+  "G4",
+  "G5",
+  "G5b",
+  "G6",
+  "G7",
+  "G8",
+  "G9",
+  "G10",
+  "G11",
+  "G12",
+  "G13",
+  "G14",
+  "G15",
+  "G16",
+]
+
+[profiles.no_brainer]
+gates = [
+  "G1",
+  "G5",
+  "G5b",
+  "G7",
+  "G8",
+  "G9",
+  "G12",
+  "G13",
+  "G14",
+  "G16",
+]
+
+[profiles.test_execution]
+gates = [
+  "G1",
+  "G2",
+  "G4",
+  "G8",
+  "G13",
+  "G14",
+  "G16",
+]
+
+[profiles.experiment]
+gates = [
+  "G1",
+  "G2",
+  "G4",
+  "G7",
+  "G8",
+  "G11",
+  "G13",
+  "G16",
+]
+

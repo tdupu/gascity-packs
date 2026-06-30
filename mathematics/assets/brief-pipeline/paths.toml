@@ -1,0 +1,18 @@
+[paths]
+root = ".beads/briefs"
+pile = ".beads/briefs/.pile"
+rejected = ".beads/briefs/.pile/.rejected"
+stack = ".beads/briefs/stack"
+archive = ".beads/briefs/archive"
+decisions = ".beads/briefs/decisions"
+manifest = ".beads/briefs/stack/manifest.jsonl"
+staging = ".beads/briefs/.staging"
+lock = ".beads/briefs/.shuffle.lock"
+kill_switch = ".beads/briefs/ALLOW_NO_BRAINER_AUTO_EXECUTE"
+
+[filenames]
+brief = "brief.md"
+evidence = "evidence.toml"
+decision = "decision.toml"
+breadcrumb = "breadcrumb.toml"
+

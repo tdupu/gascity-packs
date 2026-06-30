@@ -1,0 +1,20 @@
+[watchdog]
+low_water = 2
+high_water = 5
+max_new_briefs_per_run = 3
+cooldown = "30m"
+
+[shuffle]
+max_promotions_per_run = 1
+lock_timeout = "10m"
+fail_closed = true
+
+[no_brainer]
+enabled = false
+require_kill_switch = true
+max_auto_exec_per_run = 1
+
+[archive]
+decision_retention = "168h"
+rejected_retention = "168h"
+
