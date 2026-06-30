@@ -1,0 +1,10 @@
+[order]
+description = "Check whether the brief stack needs refill work"
+scope = "city"
+formula = "brief-watchdog-refill"
+trigger = "cooldown"
+interval = "30m"
+pool = "dog"
+timeout = "60s"
+idempotent = true
+

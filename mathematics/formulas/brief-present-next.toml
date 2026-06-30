@@ -1,0 +1,64 @@
+description = """
+Present the next stack brief to Taylor for a decision.
+
+This formula keeps final judgment explicit. It never treats a formal gate pass
+as Taylor approval.
+"""
+formula = "brief-present-next"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[catalog]
+name = "brief-present-next"
+description = "Select and present the next stack brief using manifest order."
+
+[vars]
+[vars.artifact_root]
+description = "Brief pipeline artifact root."
+default = ".beads/briefs"
+
+[vars.presenter_target]
+description = "Run target for presenting the brief."
+default = "gc.review-synthesizer"
+
+[[steps]]
+id = "select-next"
+title = "Select the next brief from the stack"
+metadata = { "gc.run_target" = "{{presenter_target}}", "gc.brief.root" = "{{artifact_root}}", "gc.brief.manifest" = "{{artifact_root}}/stack/manifest.jsonl" }
+description = """
+Read `{{artifact_root}}/stack/manifest.jsonl` and select the next brief by the
+unlock-count queue policy. Skip archived decisions. Do not reorder the manifest.
+"""
+
+[steps.check]
+max_attempts = 1
+
+[steps.check.check]
+mode = "exec"
+path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-manifest-current.sh"
+timeout = "1m"
+
+[[steps]]
+id = "present"
+title = "Present the brief to Taylor"
+needs = ["select-next"]
+metadata = { "gc.run_target" = "{{presenter_target}}", "gc.brief.root" = "{{artifact_root}}" }
+description = """
+Use `grill-and-present` and `present-it` from the brief bundle. Present the
+brief, its gate evidence, and the exact required decision. Do not collapse
+open questions into recommendations; Taylor is the final judge.
+"""
+
+[[steps]]
+id = "record-presentation"
+title = "Record presentation metadata"
+needs = ["present"]
+metadata = { "gc.run_target" = "{{presenter_target}}", "gc.brief.root" = "{{artifact_root}}" }
+description = """
+Record which stack brief was presented, when it was presented, and where the
+decision should be written. The next step is a separate `brief-record-decision`
+run with Taylor's explicit decision.
+"""
+

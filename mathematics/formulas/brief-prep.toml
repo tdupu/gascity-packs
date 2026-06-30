@@ -1,0 +1,133 @@
+description = """
+Prepare a policy-gated brief from source work.
+
+This is the producer side of the brief-bundle workflow. It turns a bead,
+artifact, or user request into a staged brief, attaches the required gate
+evidence, runs review-oriented preparation, and submits the brief to the pile.
+The shuffler is responsible for promotion into the stack.
+"""
+formula = "brief-prep"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[catalog]
+name = "brief-prep"
+description = "Draft a brief-bundle brief, attach policy gate evidence, and submit it to the pile."
+
+[vars]
+[vars.source]
+description = "Source bead id, artifact path, or request that the brief is about."
+required = true
+
+[vars.brief_slug]
+description = "Stable slug for the brief run."
+required = true
+pattern = "^[A-Za-z0-9._-]+$"
+
+[vars.brief_type]
+description = "Brief type. test-execution and experiment activate stricter evidence expectations."
+default = "standard"
+enum = ["standard", "test-execution", "experiment", "no-brainer", "decision"]
+
+[vars.artifact_root]
+description = "Brief pipeline artifact root relative to the city or rig root."
+default = ".beads/briefs"
+
+[vars.prep_target]
+description = "Run target for deterministic brief setup and bookkeeping."
+default = "gc.run-operator"
+
+[vars.review_target]
+description = "Run target for judgment-bearing brief review."
+default = "gc.review-synthesizer"
+
+[[steps]]
+id = "initialize-staging"
+title = "Initialize brief staging"
+metadata = { "gc.run_target" = "{{prep_target}}", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.source" = "{{source}}", "gc.brief.type" = "{{brief_type}}", "gc.brief.path" = "{{artifact_root}}/.staging/{{brief_slug}}/brief.md" }
+description = """
+Create or reuse `{{artifact_root}}/.staging/{{brief_slug}}/`.
+
+Record the source `{{source}}`, the brief type `{{brief_type}}`, and the
+expected brief path in the staging directory. Do not write directly into the
+stack. Producers only stage and submit to `.pile`; the shuffler is the single
+writer that promotes stack entries and appends `manifest.jsonl`.
+"""
+
+[[steps]]
+id = "draft-brief"
+title = "Draft the brief"
+needs = ["initialize-staging"]
+metadata = { "gc.run_target" = "{{review_target}}", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.source" = "{{source}}", "gc.brief.type" = "{{brief_type}}", "gc.brief.path" = "{{artifact_root}}/.staging/{{brief_slug}}/brief.md" }
+description = """
+Use the `brief-prep` skill from `agent-skills/docs/brief-bundle`.
+
+Write `{{artifact_root}}/.staging/{{brief_slug}}/brief.md`. The brief must have
+a `Gate Evidence` section with one explicit entry for every gate in
+`assets/brief-pipeline/gates.toml`. Use `PASS`, `FAIL`, `BLOCKED`, or `N/A`.
+Every `N/A` must cite the surface check that makes it not applicable.
+
+Required source: `{{source}}`
+Brief type: `{{brief_type}}`
+"""
+
+[[steps]]
+id = "attach-test-evidence"
+title = "Attach required test evidence"
+needs = ["draft-brief"]
+metadata = { "gc.run_target" = "{{review_target}}", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.path" = "{{artifact_root}}/.staging/{{brief_slug}}/brief.md", "gc.brief.gate_profile" = "{{brief_type}}" }
+description = """
+Apply `test-evidence-required.md` and `test-execution-request-brief-type.md`.
+
+The brief must include the exact commands run, the scope, the result, and the
+date. If no tests apply, record `G1 Test-evidence: N/A` with the surface check
+that proves there was no testable surface.
+"""
+
+[steps.check]
+max_attempts = 3
+
+[steps.check.check]
+mode = "exec"
+path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-test-evidence-required.sh"
+timeout = "2m"
+
+[[steps]]
+id = "coordinate-review"
+title = "Coordinate review evidence"
+needs = ["attach-test-evidence"]
+metadata = { "gc.run_target" = "{{review_target}}", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.path" = "{{artifact_root}}/.staging/{{brief_slug}}/brief.md" }
+description = """
+Use `coordinate-review`, `critical-review`, `is-good-test`, and
+`is-good-experiment` as applicable.
+
+Update the `Gate Evidence` section for G2, G4, G6, G9, and any experiment- or
+test-execution-specific gates. Do not mark a judgment gate as passed without
+the reviewer output in the brief or in a staged artifact referenced by the
+brief.
+"""
+
+[[steps]]
+id = "submit-to-pile"
+title = "Submit the brief to the pile"
+needs = ["coordinate-review"]
+metadata = { "gc.run_target" = "{{prep_target}}", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.path" = "{{artifact_root}}/.pile/{{brief_slug}}.md", "gc.brief.staged_path" = "{{artifact_root}}/.staging/{{brief_slug}}/brief.md" }
+description = """
+Move the completed staged brief into `{{artifact_root}}/.pile/{{brief_slug}}.md`
+using an atomic rename or copy-and-rename. Keep staged artifacts in
+`{{artifact_root}}/.staging/{{brief_slug}}/` until the decision/archive step.
+
+Do not edit `{{artifact_root}}/stack/manifest.jsonl`; only `brief-shuffle`
+owns stack promotion and manifest appends.
+"""
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-pile-entry-required.sh"
+timeout = "2m"
+
