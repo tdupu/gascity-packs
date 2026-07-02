@@ -152,6 +152,24 @@ test_polecat_startup_uses_standard_hook_claim() {
         fail "polecat propulsion fragment must not regress to an unclaimed hook/work-query choice"
 }
 
+test_mayor_startup_sweeps_rig_ledgers() {
+    local propulsion mayor_block
+    propulsion="$GASTOWN/template-fragments/propulsion.template.md"
+    mayor_block=$(sed -n '/define "propulsion-mayor"/,/^{{ end }}$/p' "$propulsion")
+    [[ -n "$mayor_block" ]] || fail "could not extract propulsion-mayor block"
+
+    # The engine-injected work probes resolve against the HQ ledger only.
+    # Without an explicit per-rig sweep, rig-ledger beads assigned to the
+    # mayor are invisible at every session start (gsp-92n: a P1 sat unseen
+    # for ~6 days).
+    grep -F '.beads/routes.jsonl' <<<"$mayor_block" >/dev/null ||
+        fail "mayor startup must bound its rig-ledger sweep by routes.jsonl"
+    grep -F -- '--rig "$rig" --assignee="$id" --status=open,in_progress' <<<"$mayor_block" >/dev/null ||
+        fail "mayor startup must probe each rig ledger for assigned open/in-progress work"
+    grep -F 'select(.path != ".")' <<<"$mayor_block" >/dev/null ||
+        fail "mayor rig sweep must skip the HQ route already covered by the HQ probes"
+}
+
 test_review_leg_contract_forbids_synthetic_mutation() {
     local formula prompt
     formula="$GASTOWN/formulas/mol-review-leg.toml"
@@ -220,6 +238,7 @@ test_shutdown_dance_contracts_are_executable
 test_shutdown_dance_lifecycle_and_audit_contracts
 test_composition_is_documented
 test_polecat_startup_uses_standard_hook_claim
+test_mayor_startup_sweeps_rig_ledgers
 test_review_leg_contract_forbids_synthetic_mutation
 test_refinery_direct_merge_is_worktree_safe_and_fail_closed
 
