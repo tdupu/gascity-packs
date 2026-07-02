@@ -23,9 +23,17 @@ instructs otherwise.
 ## Escalation
 
 If you are blocked mid-process and cannot make progress without human input,
-file an escalation bead immediately using `mathematics/assets/scripts/escalate.sh`.
-See `mathematics/template-fragments/escalation-protocol.md` for the full
-escalation protocol, priority bar, and when to escalate vs. retry.
+file an escalation bead immediately using the helper at its canonical absolute
+location `/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/escalate.sh`.
+
+TODO(Phase 2): absolute path required — your work dir is not the pack root, so
+a pack-relative path cannot be resolved reliably; replace with a pack-root
+mechanism when one exists (plan Global Constraints carve-out). If the script is
+absent, escalate manually with `bd create --type=task --priority=<N>
+--description "<detail>" "<title>"` followed by `bd label add <bead-id> human`.
+
+See `/Users/tdupuy/repos/gascity-packs/mathematics/template-fragments/escalation-protocol.md`
+for the full escalation protocol, priority bar, and when to escalate vs. retry.
 
 ## Quality Bar
 

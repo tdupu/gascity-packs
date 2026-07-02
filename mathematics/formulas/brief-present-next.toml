@@ -53,7 +53,8 @@ max_attempts = 1
 
 [steps.check.check]
 mode = "exec"
-path = "../assets/scripts/brief-drain-manifest.sh"
+# TODO(Phase 2): absolute path required — gc resolves relative check paths against the work dir and rejects ../ traversal; replace when a pack-root mechanism exists (plan Global Constraints carve-out).
+path = "/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/brief-drain-manifest.sh"
 timeout = "1m"
 
 [[steps]]
