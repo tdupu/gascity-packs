@@ -1,0 +1,26 @@
+# Event-trigger order — file a brief-record after refinery closes a
+# needs-decision bead.
+#
+# The gastown refinery merges branches and closes work beads but never
+# initiates the brief pipeline. This order watches for bead.closed events
+# and fires on-merge-brief-record so that any bead carrying the
+# `needs-decision` label gets a brief-record bead and enters the brief-prep
+# pipeline. Beads without that label are skipped by the formula (no-op).
+#
+# Why rig-scoped: work beads are rig-local; bead.closed events carry the
+# closing rig's context. A city-scoped order would fire once globally and
+# lose rig routing for the downstream formula dispatch.
+#
+# Implementation note: [[patches.agent]] in pack.toml cannot target agents
+# owned by a different pack (only pack-local agents can be patched at
+# pack-level per pack-spec §2.6). Mathematics does not own gastown.refinery,
+# so this order approach is the correct fallback as specified in task-2-brief.
+
+[order]
+description = "After a bead is closed, create a brief-record if it carries the needs-decision label."
+scope = "rig"
+formula = "on-merge-brief-record"
+trigger = "event"
+on = "bead.closed"
+pool = "dog"
+timeout = "90s"
