@@ -156,18 +156,21 @@ Your patrol wisps are ephemeral molecules on the **town ledger**
 (`th-wisp-*`), poured and assigned with `gc bd`. Find them the same way you
 pour them — with `gc bd`, never bare `bd`. Bare `bd` resolves to the rig
 ledger from your CWD and never sees your wisps, so every restart would pour a
-fresh one while the prior wisp leaks. Wisp roots are `issue_type=molecule`;
-never filter `--type=wisp` (not a valid bd type — the query errors and matches
-nothing).
+fresh one while the prior wisp leaks. Wisps are also ephemeral: `bd list`
+NEVER returns ephemeral beads (no --include-ephemeral flag; --all does not
+reveal them), so reconcile with `bd query 'ephemeral=true ...'` and filter
+assignee + `issue_type=="molecule"` (wisp roots) in jq. Never filter
+`--type=wisp` (not a valid bd type — the query errors and matches nothing).
 
 ```bash
 # Step 1: Reconcile your patrol wisps to exactly one (town ledger, via gc bd).
 # Collect every open/in_progress patrol wisp assigned to you, keep one, and
-# burn the surplus so restarts never accumulate duplicates. Wisp roots are
-# molecules — filter --type=molecule, never --type=wisp.
+# burn the surplus so restarts never accumulate duplicates. Wisps are
+# ephemeral — bd list never returns them; use bd query + jq (wisp roots are
+# issue_type=molecule).
 WISP_IDS=$(
-  gc bd list --assignee="$GC_AGENT" --status=in_progress --type=molecule --limit=0 --json | jq -r '.[].id'
-  gc bd list --assignee="$GC_AGENT" --status=open --type=molecule --limit=0 --json | jq -r '.[].id'
+  gc bd query --json 'ephemeral=true AND status=in_progress' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[].id'
+  gc bd query --json 'ephemeral=true AND status=open' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[].id'
 )
 WISP=$(printf '%s\n' $WISP_IDS | sed -n '1p')           # keep one (prefers in_progress)
 for extra in $(printf '%s\n' $WISP_IDS | sed '1d'); do  # burn any surplus
@@ -203,14 +206,14 @@ If `next-iteration` already ran, do not pour again; run `gc hook`.
 ```bash
 CURRENT_WISP=${GC_BEAD_ID:-}
 if [ -z "$CURRENT_WISP" ]; then
-  CURRENT_WISP=$(gc bd list --assignee="$GC_AGENT" --status=in_progress --type=molecule --limit=1 --json | jq -r '.[0].id // empty')
+  CURRENT_WISP=$(gc bd query --json 'ephemeral=true AND status=in_progress' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[0].id // empty')
 fi
 # Reconcile queued (open) patrol wisps to exactly one. A prior cycle may have
 # poured a next wisp without burning, or a restart may have raced — keep the
-# first and burn the surplus so wisps never accumulate. Wisp roots are
-# molecules (never --type=wisp, which is not a valid bd type and matches
-# nothing).
-OPEN_WISPS=$(gc bd list --assignee="$GC_AGENT" --status=open --type=molecule --limit=0 --json | jq -r '.[].id')
+# first and burn the surplus so wisps never accumulate. Wisps are ephemeral —
+# bd list never returns them; use bd query + jq (wisp roots are
+# issue_type=molecule, never --type=wisp).
+OPEN_WISPS=$(gc bd query --json 'ephemeral=true AND status=open' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[].id')
 ASSIGNED_WISP=$(printf '%s\n' $OPEN_WISPS | sed -n '1p')
 for extra in $(printf '%s\n' $OPEN_WISPS | sed '1d'); do
   gc bd mol burn "$extra" --force
