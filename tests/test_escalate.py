@@ -320,6 +320,17 @@ def test_notification_title_with_double_quote(tmp_path: Path) -> None:
     )
     calls = _read_log(log)
     assert "osascript" in calls, "osascript shim was not called"
+    # Verify the sanitizer stripped the double quotes
+    osascript_line = next(
+        (line for line in calls.splitlines() if "osascript" in line), None
+    )
+    assert osascript_line is not None, "osascript line not found in log"
+    assert "Say hello" in osascript_line, (
+        f"sanitized title 'Say hello' not found in osascript call; got:\n{osascript_line}"
+    )
+    assert 'Say "hello"' not in osascript_line, (
+        f"unsanitized title 'Say \"hello\"' must not appear in osascript call; got:\n{osascript_line}"
+    )
 
 
 # ---------------------------------------------------------------------------
