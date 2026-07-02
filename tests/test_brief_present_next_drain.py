@@ -364,10 +364,17 @@ def _make_no_jq_bin(tmp_path: Path) -> Path:
         "touch": "/usr/bin/touch",
         "sort": "/usr/bin/sort",
         "awk": "/usr/bin/awk",
+        "mktemp": "/usr/bin/mktemp",
     }
     for name, src in needed.items():
         if os.path.isfile(src):
             (fake_bin / name).symlink_to(src)
+        else:
+            # Fall back to PATH lookup so the shim works regardless of location.
+            import shutil as _shutil
+            found = _shutil.which(name)
+            if found:
+                (fake_bin / name).symlink_to(found)
     return fake_bin
 
 
@@ -581,9 +588,19 @@ def test_formula_read_manifest_uses_drain_script() -> None:
     pytest.fail("read-manifest step not found")
 
 
-def test_formula_check_path_no_hardcoded_user_path() -> None:
-    """No step check path may contain a hard-coded /Users/... prefix."""
-    text = FORMULA_PATH.read_text(encoding="utf-8")
-    assert "/Users/" not in text, (
-        "formula must not contain hard-coded /Users/... paths"
-    )
+def test_formula_read_manifest_check_is_absolute() -> None:
+    """C1 (Phase 1): gc rejects relative ../ check paths (path-traversal guard),
+    so the read-manifest check must use the absolute repo-source path. This
+    replaces the former no-hardcoded-/Users/ assertion, which contradicted the
+    gc containment behavior. Replace with a pack-root mechanism in Phase 2.
+    """
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    for step in data.get("steps", []):
+        if step["id"] == "read-manifest":
+            path = step.get("check", {}).get("check", {}).get("path", "")
+            assert path.startswith("/"), (
+                f"read-manifest check path must be absolute (gc rejects ../); got: {path!r}"
+            )
+            assert not path.startswith("../"), "check path must not be relative"
+            return
+    pytest.fail("read-manifest step not found")

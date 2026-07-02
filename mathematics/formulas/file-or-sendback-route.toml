@@ -2,6 +2,12 @@ description = """
 Post-decision file-or-sendback gate: log the routing choice for a decided
 brief and fire the downstream work (Taylor 2026-06-30, event-driven model).
 
+Division of labor (two brief.decided consumers): this formula handles FOLLOW-UP
+BRIEFING routing only (FILE re-brief a successor vs SEND-BACK archive). The
+sibling formula brief-decision-dispatch ACTS on the decision (reassign source
+bead / follow-up bead / defer). They do not overlap: this formula never
+reassigns or merges.
+
 This is the consumer + logger of the brief-decided bell. It does NOT decide
 on its own when a decision emission already exists: the refinery (or any
 caller) runs the lean-investigation formula and writes the FILE/SEND-BACK
@@ -80,6 +86,11 @@ entry to `{{artifact_root}}/decisions/file-or-sendback.jsonl`.
      successor detection: check the decision record and archived brief for
      a follow-up reference, then check the source bead (`bd show`) for
      open dependents, `follow_up` metadata, or child beads that are ready.
+     EXCLUDE beads created by brief-decision-dispatch: its [rejected]/[revise]
+     follow-up beads carry a `brief_slug` metadata key. A candidate whose
+     `brief_slug` metadata is set is a dispatch artifact, not a genuine
+     successor — skip it so the two brief.decided consumers do not double-route
+     the same follow-up.
    - Otherwise SEND-BACK: the adjudication is self-contained and the brief
      archives. Default to SEND-BACK when uncertain — but record WHY, and
      never SEND-BACK a decision whose record names a follow-up bead.
@@ -103,7 +114,8 @@ max_attempts = 2
 
 [steps.check.check]
 mode = "exec"
-path = "../assets/scripts/checks/brief-file-or-sendback-log-required.sh"
+# TODO(Phase 2): absolute path required — gc resolves relative check paths against the work dir and rejects ../ traversal; replace when a pack-root mechanism exists (plan Global Constraints carve-out).
+path = "/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/checks/brief-file-or-sendback-log-required.sh"
 timeout = "1m"
 
 [[steps]]

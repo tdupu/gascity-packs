@@ -4,18 +4,25 @@ When you are blocked mid-process and cannot make progress without human input,
 file an escalation bead immediately rather than spinning or halting silently.
 Stalled work wastes running compute and may block a downstream chain.
 
-Use the escalation helper script:
+Use the escalation helper script at its canonical absolute location:
 
 ```
-mathematics/assets/scripts/escalate.sh \
+/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/escalate.sh \
   --title "<concise summary of the block>" \
   --body  "<detail: what you tried, what you need>" \
   --priority <N>
 ```
 
-The script lives at `mathematics/assets/scripts/escalate.sh` (pack-relative).
-It creates a bead, flags it with the `human` label, and for P0/P1 immediately
-sends a mail to the human overseer and fires a macOS notification.
+TODO(Phase 2): absolute path required — an agent's work dir is not the pack
+root, so a pack-relative path cannot be resolved reliably. Replace with a
+pack-root mechanism when one exists (plan Global Constraints carve-out).
+
+The script creates a bead, flags it with the `human` label, and for P0/P1
+immediately sends a mail to the human overseer and fires a macOS notification.
+
+If the script is absent, escalate manually: `bd create --type=task
+--priority=<N> --description "<detail>" "<title>"`, then
+`bd label add <bead-id> human`.
 
 ### Priority bar
 
