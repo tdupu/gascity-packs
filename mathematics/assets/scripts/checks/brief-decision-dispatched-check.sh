@@ -9,9 +9,12 @@
 # exit 0  -> every processed slug has a SUCCESS line in the ledger
 # exit 1  -> one or more processed slugs lack a success line (retry)
 #
-# A SUCCESS line carries "dispatched_at". A failed-dispatch diagnostic line
-# carries "pending_retry":true and NO "dispatched_at" (C3c): it must NOT
-# satisfy this check, so the failed slug is retried on the next wake.
+# A SUCCESS line carries "dispatched_at". This includes both normal success
+# lines and TERMINAL "undispatchable" lines (action=undispatchable) — both
+# carry "dispatched_at" so the slug is treated as settled. A failed-dispatch
+# diagnostic line carries "pending_retry":true and NO "dispatched_at" (C3c):
+# it must NOT satisfy this check, so the failed slug is retried on the next
+# wake (up to the 3-retry limit enforced by the dispatch step itself).
 #
 # Inputs (env):
 #   BRIEF_ROOT            brief pipeline artifact root (default: .beads/briefs)
