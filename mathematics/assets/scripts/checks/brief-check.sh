@@ -154,6 +154,11 @@ check_decision_record() {
   fi
   require_file "$path"
   require_text "$path" '^decision[[:space:]]*=' "decision record must set decision"
+  # C2: pin source_bead so the approve dispatch path can never silently no-op.
+  # The write-decision step always emits a source_bead line (possibly empty for
+  # a legacy brief with no manifest source), so require the KEY to be present.
+  require_text "$path" '^source_bead[[:space:]]*=' \
+    "decision record must set source_bead (brief-decision-dispatch keys routing on it)"
 }
 
 check_watchdog_record() {

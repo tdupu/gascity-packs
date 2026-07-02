@@ -77,6 +77,18 @@ def make_ledger_entry(slug: str, decision: str = "approve") -> dict:
     }
 
 
+def make_failed_entry(slug: str, decision: str = "approve") -> dict:
+    """A failed-dispatch diagnostic line (C3c): pending_retry, no dispatched_at."""
+    return {
+        "brief_slug": slug,
+        "decision": decision,
+        "source_bead": "",
+        "action": f"{decision} failed for {slug}",
+        "pending_retry": True,
+        "failed_at": "2026-07-01T00:00:00Z",
+    }
+
+
 # ---------------------------------------------------------------------------
 # order TOML contract
 # ---------------------------------------------------------------------------
@@ -179,7 +191,39 @@ def test_formula_approve_reassigns_to_refinery() -> None:
     text = _step_text(data, "dispatch-decisions")
     assert "refinery" in text, "dispatch step must mention refinery for approve path"
     assert "target" in text, "dispatch step must set target metadata"
-    assert "branch" in text, "dispatch step must set branch metadata"
+    assert "branch" in text, "dispatch step must reference branch metadata"
+
+
+def test_formula_approve_uses_current_bd_idioms() -> None:
+    """C3a: approve path must use `bd update --set-metadata` and
+    `bd update --assignee`, not the nonexistent set-metadata/reassign verbs."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "dispatch-decisions")
+    assert "bd update" in text, "approve path must use `bd update`"
+    assert "--assignee refinery" in text, "approve path must reassign via --assignee refinery"
+    assert "--set-metadata target=" in text, "approve path must set target via --set-metadata"
+    # No stale idioms.
+    assert "bd set-metadata" not in text, "must not use the nonexistent `bd set-metadata`"
+    assert "bd reassign" not in text, "must not use the nonexistent `bd reassign`"
+
+
+def test_formula_approve_does_not_guess_branch() -> None:
+    """C3b: approve must reuse existing branch metadata, never fabricate
+    `polecat/<source_bead>`."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "dispatch-decisions")
+    assert 'polecat/${source_bead}' not in text, "must not fabricate a branch name"
+    assert "gc bd show" in text, "approve must read existing bead metadata first"
+
+
+def test_formula_failed_dispatch_is_retryable() -> None:
+    """C3c: failed dispatches append a pending_retry diagnostic (no
+    dispatched_at) so the scan keeps the slug pending."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "dispatch-decisions")
+    assert "pending_retry" in text, "failed dispatch must record pending_retry marker"
+    scan = _step_text(data, "scan-undispatched")
+    assert "dispatched_at" in scan, "scan must gate on the success marker dispatched_at"
 
 
 def test_formula_reject_creates_followup() -> None:
@@ -253,6 +297,25 @@ def test_check_fails_when_slug_not_in_ledger(tmp_path: Path) -> None:
 def test_check_passes_when_slug_in_ledger(tmp_path: Path) -> None:
     """Pending slug present in ledger → check passes."""
     write_ledger(tmp_path, [make_ledger_entry("my-slug")])
+    result = run_dispatch_check(tmp_path, pending_slugs="my-slug")
+    assert result.returncode == 0, result.stderr
+
+
+def test_check_fails_on_only_pending_retry_line(tmp_path: Path) -> None:
+    """C3c: a failed-approve diagnostic (pending_retry, no dispatched_at) must
+    NOT satisfy the check — the slug is still pending and must be retried."""
+    write_ledger(tmp_path, [make_failed_entry("my-slug")])
+    result = run_dispatch_check(tmp_path, pending_slugs="my-slug")
+    assert result.returncode != 0, "pending_retry line must not count as dispatched"
+    assert "my-slug" in result.stderr
+
+
+def test_check_passes_when_success_line_follows_failure(tmp_path: Path) -> None:
+    """A later success line (after a retry) satisfies the check."""
+    write_ledger(
+        tmp_path,
+        [make_failed_entry("my-slug"), make_ledger_entry("my-slug")],
+    )
     result = run_dispatch_check(tmp_path, pending_slugs="my-slug")
     assert result.returncode == 0, result.stderr
 

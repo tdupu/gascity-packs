@@ -5,6 +5,7 @@ decision = "approve"
 reason = "fix verified; follow-up test work queued"
 decided_by = "Taylor"
 timestamp = "2026-07-01T21:00:00Z"
+source_bead = "he-abc1"
 
 # Lean-investigation emission (route_* keys) — written by the
 # lean-investigation formula (gsp-cst) or the refinery (gsp-itx).
