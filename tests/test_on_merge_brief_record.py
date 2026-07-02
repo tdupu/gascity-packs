@@ -216,3 +216,41 @@ def test_order_and_formula_names_are_consistent() -> None:
     order_data = tomllib.loads(ORDER_PATH.read_text(encoding="utf-8"))
     formula_data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
     assert order_data["order"]["formula"] == formula_data["formula"]
+
+
+# ---------------------------------------------------------------------------
+# C4 — trigger-bead rework: durable scan, no phantom event vars
+# ---------------------------------------------------------------------------
+
+
+def test_formula_has_no_phantom_event_machinery() -> None:
+    """C4: GC_TRIGGER_BEAD_ID, `gc events --since-cursor`, and the
+    `{{vars.CLOSED_ID}}` stanza are all wrong and must be gone."""
+    text = FORMULA_PATH.read_text(encoding="utf-8")
+    assert "GC_TRIGGER_BEAD_ID" not in text
+    assert "since-cursor" not in text
+    assert "{{vars.CLOSED_ID}}" not in text
+    assert "mol sling" not in text, "must not reference the nonexistent `mol sling`"
+
+
+def test_formula_identify_step_is_a_durable_scan() -> None:
+    """C4: identify step lists recently closed needs-decision beads."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "identify-closed-bead")
+    assert "bd list" in text
+    assert "--status closed" in text
+    assert "needs-decision" in text
+
+
+def test_formula_dedupes_existing_brief_records() -> None:
+    """C4: coalescing — skip beads that already have a brief-record."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "check-needs-decision-label")
+    assert "[brief-record]" in text, "dedup must key on the brief-record title prefix"
+
+
+def test_formula_brief_prep_uses_mol_pour() -> None:
+    """I4a: primary intake idiom is `bd mol pour`, not `mol sling`."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "touch-brief-prep-pipeline")
+    assert "bd mol pour" in text
