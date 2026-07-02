@@ -205,6 +205,29 @@ check_archive_sweep_record() {
   mkdir -p "$ROOT/archive"
 }
 
+check_file_or_sendback_log() {
+  log="$ROOT/decisions/file-or-sendback.jsonl"
+  require_file "$log"
+  check_jsonl "$log"
+  if command -v jq >/dev/null 2>&1; then
+    last="$(tail -n 1 "$log")"
+    [ -n "$last" ] || fail "empty route log: $log"
+    printf '%s\n' "$last" | jq -e '
+      (.bead_id | type == "string")
+      and (.brief_slug | type == "string" and length > 0)
+      and (.decision | type == "string" and length > 0)
+      and (.choice == "FILE" or .choice == "SEND-BACK")
+      and (.reason | type == "string" and length > 0)
+      and (.timestamp | type == "string" and length > 0)
+      and (.agent_id | type == "string" and length > 0)
+      and (if .choice == "FILE"
+           then (.target_bead_id | type == "string" and length > 0)
+           else true end)
+    ' >/dev/null 2>&1 ||
+      fail "route log last entry missing required keys or invalid choice: $log"
+  fi
+}
+
 case "$COMMAND" in
   test-evidence) check_test_evidence ;;
   mechanical-gates) check_mechanical_gates ;;
@@ -220,6 +243,7 @@ case "$COMMAND" in
   no-brainer-safety) check_no_brainer_safety ;;
   no-brainer-execute-safety) check_no_brainer_execute_safety ;;
   archive-sweep-record) check_archive_sweep_record ;;
+  file-or-sendback-log) check_file_or_sendback_log ;;
   *) fail "unknown check: $COMMAND" ;;
 esac
 

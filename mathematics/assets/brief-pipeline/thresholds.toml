@@ -18,3 +18,10 @@ max_auto_exec_per_run = 1
 decision_retention = "168h"
 rejected_retention = "168h"
 
+[stack_low]
+# Ring brief.stack_low when ANY combo signal (approved / total /
+# unlock_pos) over stack/*.md drops to <= threshold. Checked by
+# assets/scripts/checks/brief-stack-low-check.sh (STACK_LOW_THRESHOLD
+# env overrides; this entry is the canonical documented value).
+threshold = 1
+

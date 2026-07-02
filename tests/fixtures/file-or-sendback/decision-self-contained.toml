@@ -1,0 +1,7 @@
+# Fixture: decided brief with NO emission and no follow-up reference.
+# Expected routing under the inline fallback rules: SEND-BACK (archive).
+brief_slug = "skill-cleanup-brief"
+decision = "reject"
+reason = "stale scratch cleanup; nothing further to do"
+decided_by = "Taylor"
+timestamp = "2026-07-01T21:05:00Z"
