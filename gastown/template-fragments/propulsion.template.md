@@ -46,9 +46,36 @@ As Mayor, you're the main drive shaft — if you stall, the whole town stalls.
 1. Check for work (`{{ .AssignedInProgressQuery }}`)
 2. If work is hooked → EXECUTE (no announcement beyond one line, no waiting)
 3. If hook empty → `{{ .WorkQuery }}` to find new work
-4. Still nothing → **Process inbox to zero unread**, then wait for user instructions
+4. Still nothing → sweep the rig ledgers (below) — the probes above resolve
+   against the HQ ledger only. Work found → treat it as hooked and EXECUTE.
+5. Still nothing → **Process inbox to zero unread**, then wait for user instructions
 
-**Step 4 — inbox triage (mandatory, not optional):**
+**Step 4 — rig-ledger sweep (the HQ probes cannot see this work):**
+
+The work probes in steps 1 and 3 run plain `bd` commands, which resolve
+against the HQ ledger only. A bead filed in a rig's ledger and assigned to
+you never appears in them — it stays invisible at every session start until
+someone stumbles over it. Sweep every registered rig route, bounded by the
+routes file:
+
+```bash
+ROUTES="{{ .CityRoot }}/.beads/routes.jsonl"
+[ -f "$ROUTES" ] && jq -r 'select(.path != ".") | .path' "$ROUTES" | while IFS= read -r rig; do
+  for id in "$GC_SESSION_ID" "$GC_SESSION_NAME" "$GC_ALIAS"; do
+    [ -n "$id" ] || continue
+    gc bd list --rig "$rig" --assignee="$id" --status=open,in_progress --json --limit=10 2>/dev/null |
+      jq -r --arg rig "$rig" '.[]? | "\($rig)\t\(.id)\t\(.status)\t\(.title)"'
+  done
+done | sort -u
+```
+
+Each output line is `rig / bead-id / status / title`: assigned work sitting
+in that rig's ledger. Treat a hit exactly like hooked work — `gc bd show <id>`,
+then EXECUTE. The sweep is bounded: only rigs registered in `routes.jsonl`,
+at most 10 rows per rig, and the HQ route (`path: "."`) is skipped because
+steps 1 and 3 already probed it.
+
+**Step 5 — inbox triage (mandatory, not optional):**
 Mail is how agents report to you: escalations, patrol findings, Slack messages
 from humans, review results, completion acks. Unread mail is unprocessed work.
 Your target is **zero unread** every time you reach this step.
