@@ -103,7 +103,7 @@ max_attempts = 2
 
 [steps.check.check]
 mode = "exec"
-path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-file-or-sendback-log-required.sh"
+path = "../assets/scripts/checks/brief-file-or-sendback-log-required.sh"
 timeout = "1m"
 
 [[steps]]
@@ -146,7 +146,7 @@ work, gsp-i9j): after routing, measure the ripe stack and ring the
 stack-low bell if any combo signal is at or below threshold.
 
     if out=$(BRIEF_ROOT={{artifact_root}} \\
-        /Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-stack-low-check.sh); then
+        mathematics/assets/scripts/checks/brief-stack-low-check.sh); then
       gc event emit brief.stack_low \\
         --subject brief-stack \\
         --message "brief stack low after routing" \\
