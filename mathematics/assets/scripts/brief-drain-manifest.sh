@@ -13,7 +13,7 @@
 #
 # Environment:
 #   BRIEF_ROOT   Root of the brief pipeline artifact tree. Default: .beads/briefs
-#   OUT_DIR      Directory to write output files into. Default: same as BRIEF_ROOT
+#   OUT_DIR      Directory to write output files into. Default: $BRIEF_ROOT/.drain-run
 #
 # Requires: sort, awk (POSIX); jq optional (used when available for validation).
 set -eu
@@ -39,7 +39,7 @@ if [ ! -f "$MANIFEST" ]; then
 fi
 
 # Use a temporary file to hold sorted pending entries: "<unlock_count> <slug> <profile>"
-TMP_PENDING="${TMPDIR:-/tmp}/bdm-pending-$$"
+TMP_PENDING="$(mktemp "${TMPDIR:-/tmp}/bdm-pending.XXXXXX")"
 trap 'rm -f "$TMP_PENDING"' EXIT
 
 while IFS= read -r line || [ -n "$line" ]; do
@@ -95,7 +95,10 @@ done < "$MANIFEST"
 
 [ -f "$TMP_PENDING" ] || touch "$TMP_PENDING"
 
-# Sort ascending by unlock_count (first field), then stable by insertion order.
+# Sort ascending by unlock_count (first field). NOTE: this is NOT insertion-order
+# stable — POSIX sort, as a last resort, compares whole lines, so ties among
+# equal unlock_count values order lexically (by slug then profile), not by the
+# order they appeared in the manifest.
 sort -k1,1n "$TMP_PENDING" | while IFS=' ' read -r _uc slug profile; do
   [ -z "$slug" ] && continue
   case "$profile" in

@@ -62,13 +62,24 @@ esac
 
 bd_create() {
   if [ -n "$RIG" ]; then
-    bd create --type=task --priority="$PNUM" --description "$BODY" "$TITLE" -C "$RIG"
+    bd create --type=task --priority="$PNUM" --description "$BODY" "$TITLE" -C "$RIG" --json
   else
-    bd create --type=task --priority="$PNUM" --description "$BODY" "$TITLE"
+    bd create --type=task --priority="$PNUM" --description "$BODY" "$TITLE" --json
   fi
 }
 
-BEAD_ID="$(bd_create | tr -d '[:space:]')"
+# Parse the bead id out of `bd create --json`. Prefer jq; fall back to a sed
+# extraction of the "id" field so the script works without jq installed.
+extract_id() {
+  if command -v jq >/dev/null 2>&1; then
+    jq -r '.id // empty' 2>/dev/null
+  else
+    sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1
+  fi
+}
+
+BEAD_ID="$(bd_create | extract_id | tr -d '[:space:]')"
+[ -n "$BEAD_ID" ] || die "bd create did not return an id"
 
 # Flag the bead as needing human attention
 if [ -n "$RIG" ]; then
