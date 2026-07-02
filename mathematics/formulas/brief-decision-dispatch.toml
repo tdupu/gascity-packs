@@ -133,11 +133,19 @@ dispatch_slug() {
       if [ -n "$source_bead" ]; then
         # Set branch to polecat/<source_bead> (the polecat convention).
         branch="polecat/${source_bead}"
-        gc bd set-metadata "$source_bead" branch="$branch" 2>/dev/null || true
-        gc bd set-metadata "$source_bead" target="$DEFAULT_BRANCH" 2>/dev/null || true
+        meta_ok=true
+        gc bd set-metadata "$source_bead" branch="$branch" 2>/dev/null || meta_ok=false
+        gc bd set-metadata "$source_bead" target="$DEFAULT_BRANCH" 2>/dev/null || meta_ok=false
         # Reassign to refinery (the owning rig's refinery pool handles pickup).
-        gc bd reassign "$source_bead" --to refinery 2>/dev/null || true
-        action_taken="reassigned $source_bead to refinery (branch=$branch target=$DEFAULT_BRANCH)"
+        reassign_ok=true
+        gc bd reassign "$source_bead" --to refinery 2>/dev/null || reassign_ok=false
+        if $meta_ok && $reassign_ok; then
+          action_taken="reassigned-to-refinery (branch=$branch target=$DEFAULT_BRANCH)"
+        elif $reassign_ok; then
+          action_taken="reassigned-to-refinery (branch=$branch target=$DEFAULT_BRANCH; metadata-set-failed)"
+        else
+          action_taken="reassign-failed (branch=$branch target=$DEFAULT_BRANCH; meta_ok=$meta_ok)"
+        fi
       else
         action_taken="approve dispatch skipped: no source_bead in record"
       fi
