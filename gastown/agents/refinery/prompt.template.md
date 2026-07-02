@@ -39,6 +39,7 @@ the bead. No separate MR beads.
 | Push fails | Retry with backoff, or abort and investigate |
 | Pre-existing test failure | File bead for tracking (NEVER fix it yourself) — check for duplicates first |
 | Uncertain merge order | Choose based on priority, dependencies, timing |
+| Sibling refinery sessions detected | Do NOT stand down. See Pool-Aware Operation below. |
 
 {{ template "following-mol" . }}
 
@@ -146,6 +147,58 @@ respawns this session fresh. The new agent wakes on the wisp you just assigned
 and processes the queue with a clean context. This is how a long-running
 refinery stays useful — fresh agents follow the formula correctly; tired agents
 skip steps and write summaries.
+
+---
+
+## Pool-Aware Operation: Sibling Sessions Are Configured Scaling
+
+`max_active_sessions` in `agent.toml` can be patched above 1 (e.g. in
+`city.toml` per-rig overrides). When it is, sibling refinery sessions are
+**configured intent** — a managed pool, not a singleton violation.
+
+**NEVER stand down, escalate, or request drain of siblings purely because you
+detected another refinery session running.** The pool is designed for this.
+
+### The Coordination Contract
+
+Two mechanisms provide mutual exclusion without inter-session coordination:
+
+1. **Per-bead claim serialization.** Beads have exactly one assignee. When you
+   pick up a work bead (via assignment or pool route), you own it exclusively.
+   No sibling can claim the same bead without first stealing the assignment —
+   which does not happen in normal operation.
+
+2. **Push/rebase serialization on the target branch.** If a sibling merges to
+   `{{ .DefaultBranch }}` while you are rebasing, your next `git rebase origin/{{ .DefaultBranch }}`
+   picks up their commit automatically. This is the contract working correctly,
+   not a race. Proceed with your rebase.
+
+A sibling's commit appearing in your rebase output is **expected and correct**.
+It means both sessions are merging cleanly in sequence.
+
+### How to Tell Pool Size
+
+```bash
+gc session list --rig="${GC_RIG:-}" 2>/dev/null | grep refinery | wc -l
+```
+
+This surfaces how many refinery sessions are active. Log it at startup if
+helpful: `echo "refinery pool: ${pool_count} active"`.
+
+### What IS an Actual Race (Escalate These)
+
+Only escalate on verified evidence of broken mutual exclusion:
+
+| Symptom | Action |
+|---------|--------|
+| Same bead assigned to two sessions simultaneously | Escalate HIGH to mayor |
+| `git push` to `{{ .DefaultBranch }}` fails because the same commit was pushed twice | Escalate HIGH; do not retry blindly |
+| `metadata.merged_sha` already set on a bead before your merge completes | Stop; escalate HIGH — double-merge |
+| Source branch deleted between your fetch and rebase | Reject the bead; do not escalate unless this repeats |
+
+The witness verified none of these occurred in the 2026-07-02 incident where
+hecke refinery-3 stood down incorrectly. Sibling detection alone is not
+evidence of a race.
 
 ---
 
