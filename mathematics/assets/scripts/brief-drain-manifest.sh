@@ -20,7 +20,7 @@ set -eu
 
 BRIEF_ROOT="${BRIEF_ROOT:-.beads/briefs}"
 MANIFEST="$BRIEF_ROOT/stack/manifest.jsonl"
-OUT_DIR="${OUT_DIR:-$BRIEF_ROOT}"
+OUT_DIR="${OUT_DIR:-${BRIEF_ROOT}/.drain-run}"
 
 fail() {
   printf 'brief-drain-manifest: %s\n' "$*" >&2
@@ -87,7 +87,7 @@ while IFS= read -r line || [ -n "$line" ]; do
 
   # Skip already-decided or archived entries.
   case "$status" in
-    decided|archived|"decided"|"archived") continue ;;
+    decided|archived) continue ;;
   esac
 
   printf '%s %s %s\n' "$unlock_count" "$slug" "$gate_profile" >> "$TMP_PENDING"
