@@ -24,11 +24,11 @@ SCRIPT = REPO_ROOT / "mathematics" / "assets" / "scripts" / "escalate.sh"
 
 _FAKE_BD = """\
 #!/bin/sh
-# Fake bd: log every invocation to $SHIM_LOG and emit a synthetic bead ID
-# on "bd create".
+# Fake bd: log every invocation to $SHIM_LOG and emit realistic `bd create
+# --json` output (a JSON object with an "id" field) on "bd create".
 echo "bd $*" >> "${SHIM_LOG:-/dev/stderr}"
 if [ "$1" = "create" ]; then
-  echo "bd-test-001"
+  printf '{"id": "bd-test-001", "type": "task", "title": "escalation"}\\n'
 fi
 exit 0
 """

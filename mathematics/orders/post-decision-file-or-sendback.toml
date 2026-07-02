@@ -1,5 +1,11 @@
 # Event-trigger order — the post-decision bell-catcher.
 #
+# DIVISION OF LABOR (two brief.decided consumers): this order handles FOLLOW-UP
+# BRIEFING routing only — it decides FILE (re-brief a successor) vs SEND-BACK
+# (archive). The sibling order brief-decision-dispatch ACTS on the decision
+# (reassign/follow-up-bead/defer). The two do not overlap: file-or-sendback
+# never reassigns or merges, dispatch never routes briefing.
+#
 # `brief.decided` is rung by brief-record-decision (emit-decided-event
 # step) whenever a brief decision is recorded, and by the refinery after
 # merge-time decisions once the refinery-role expansion lands (gsp-itx).
