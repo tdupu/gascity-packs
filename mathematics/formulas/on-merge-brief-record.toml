@@ -33,7 +33,7 @@ many closes, one wake, no duplicates.
 
 ```bash
 # Recently closed beads carrying the needs-decision label.
-SINCE="$(date -u -v-7d '+%Y-%m-%d' 2>/dev/null || date -u -d '7 days ago' '+%Y-%m-%d' 2>/dev/null || echo '1970-01-01')"
+SINCE="$(date -u -v-30d '+%Y-%m-%d' 2>/dev/null || date -u -d '30 days ago' '+%Y-%m-%d' 2>/dev/null || echo '1970-01-01')"
 CLOSED_IDS=$(bd list --status closed --label needs-decision \\
   --closed-after "$SINCE" --json 2>/dev/null | jq -r '.[].id // empty')
 ```
@@ -117,7 +117,7 @@ full recent set — not just "the one that fired" — is what coalesces multiple
 closes behind one wake without duplicating brief-records.
 
 ```bash
-SINCE="$(date -u -v-7d '+%Y-%m-%d' 2>/dev/null || date -u -d '7 days ago' '+%Y-%m-%d' 2>/dev/null || echo '1970-01-01')"
+SINCE="$(date -u -v-30d '+%Y-%m-%d' 2>/dev/null || date -u -d '30 days ago' '+%Y-%m-%d' 2>/dev/null || echo '1970-01-01')"
 CLOSED_IDS=$(bd list --status closed --label needs-decision \\
   --closed-after "$SINCE" --json 2>/dev/null | jq -r '.[].id // empty')
 if [ -z "$CLOSED_IDS" ]; then
@@ -128,6 +128,10 @@ echo "CLOSED_IDS=$CLOSED_IDS"
 ```
 
 Record CLOSED_IDS for downstream steps.
+
+**Manual catch-up for outages longer than 30 days:** run the scan once
+with `SINCE=1970-01-01` substituted into the command above to recover any
+closes that fell outside the rolling window.
 """
 
 [[steps]]

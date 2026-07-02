@@ -85,7 +85,7 @@ reader brief-drain-manifest.sh keys on `slug`, `gate_profile`, and
 - `source` — the source bead id (brief-record-decision copies this into the
   decision record's `source_bead`; the whole approve dispatch depends on it)
 - `unlock_count` — integer, drain sort key
-- `created` — RFC3339 promote time
+- `created_at` — RFC3339 promote time
 - `gate_profile` — e.g. `no_brainer` or a full-brief profile
 
 The `status` key is NOT written here; brief-record-decision adds it later

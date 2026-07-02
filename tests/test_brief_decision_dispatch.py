@@ -396,6 +396,93 @@ def test_scan_skips_already_dispatched_slugs(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# N1: terminalization of undispatchable decisions
+# ---------------------------------------------------------------------------
+
+
+def make_terminal_entry(slug: str, reason: str = "missing-source-bead") -> dict:
+    """A TERMINAL undispatchable line: carries dispatched_at so scan/check treat it settled."""
+    return {
+        "brief_slug": slug,
+        "action": "undispatchable",
+        "undispatchable_reason": reason,
+        "escalate_note": "",
+        "dispatched_at": "2026-07-01T00:00:00Z",
+    }
+
+
+def test_formula_terminalization_prose_present() -> None:
+    """N1(a): dispatch-decisions step must describe terminalization of undispatchable slugs."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "dispatch-decisions")
+    assert "undispatchable" in text, (
+        "dispatch step must describe terminal undispatchable action"
+    )
+    assert "terminalize" in text.lower() or "terminal" in text.lower(), (
+        "dispatch step must describe terminalizing permanently failing decisions"
+    )
+    assert "pending_retry" in text, "dispatch step must still track retry count"
+    assert ">= 3" in text or "3" in text, (
+        "dispatch step must state the 3-retry limit before terminalization"
+    )
+
+
+def test_formula_missing_source_bead_terminalized_immediately() -> None:
+    """N1(a): approve with missing source_bead must be terminalized on first encounter."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "dispatch-decisions")
+    assert "missing-source-bead" in text, (
+        "dispatch step must name the missing-source-bead special-case termination reason"
+    )
+
+
+def test_formula_escalate_sh_invoked_on_terminal() -> None:
+    """N1(a): escalate.sh must be invoked with --title, --body, --priority 2 on terminal."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "dispatch-decisions")
+    assert "escalate.sh" in text, "dispatch step must reference escalate.sh"
+    assert "--priority 2" in text, "escalation priority must be 2 (accumulates, no ping)"
+    assert "[undispatchable]" in text, "escalation title must carry [undispatchable] tag"
+
+
+def test_formula_escalate_sh_absence_does_not_block_terminalization() -> None:
+    """N1(a): terminalization must proceed even when escalate.sh is absent."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "dispatch-decisions")
+    # The prose must describe a fallback path when the helper is absent.
+    assert "absent" in text or "not depend on the helper" in text or "if [ -x" in text, (
+        "dispatch step must handle missing escalate.sh without blocking terminalisation"
+    )
+
+
+def test_check_passes_for_terminal_undispatchable_line(tmp_path: Path) -> None:
+    """N1(b): the check script must PASS when the latest line for a slug is a
+    terminal undispatchable line (carries dispatched_at, action=undispatchable)."""
+    write_ledger(tmp_path, [make_terminal_entry("stuck-slug", "missing-source-bead")])
+    result = run_dispatch_check(tmp_path, pending_slugs="stuck-slug")
+    assert result.returncode == 0, (
+        f"check must pass for a terminal undispatchable line (has dispatched_at):\n{result.stderr}"
+    )
+
+
+def test_check_passes_for_terminal_after_retries(tmp_path: Path) -> None:
+    """N1(b): terminal line after 3 pending_retry lines must pass the check."""
+    write_ledger(
+        tmp_path,
+        [
+            make_failed_entry("retry-slug"),
+            make_failed_entry("retry-slug"),
+            make_failed_entry("retry-slug"),
+            make_terminal_entry("retry-slug", "retry-limit-reached after 3 failures: approve failed"),
+        ],
+    )
+    result = run_dispatch_check(tmp_path, pending_slugs="retry-slug")
+    assert result.returncode == 0, (
+        f"check must pass once a terminal line is present after retries:\n{result.stderr}"
+    )
+
+
+# ---------------------------------------------------------------------------
 # no expand+check combination (methodology-pack constraint)
 # ---------------------------------------------------------------------------
 

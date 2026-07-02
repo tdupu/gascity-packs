@@ -135,18 +135,75 @@ pending, so the next wake retries it. Failed approves therefore never count as
 "dispatched" and are retried until they succeed. defer/reject/revise
 completions are always success lines.
 
+**Terminalization (unbounded-loop guard):** a decision that can never
+dispatch must not loop forever. Before dispatching any slug, count its
+existing `pending_retry` lines in the ledger. Two special cases apply:
+
+1. **Missing source_bead (approve only):** if the decision is `approve` and
+   `source_bead` is empty/missing, it can NEVER succeed. Terminalize
+   immediately on FIRST encounter — no 3-retry grace — with reason
+   `missing-source-bead`.
+2. **Retry limit reached:** if a slug already has >= 3 `pending_retry` lines
+   (from prior failed wakes), do NOT retry again. Terminalize it.
+
+Terminalizing a slug means: append a TERMINAL ledger line carrying
+`dispatched_at` (so the scan and check treat it as settled) with
+`action` = `undispatchable` and the last failure reason, then invoke the
+escalation helper so Taylor is notified:
+```
+/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/escalate.sh \
+  --title "[undispatchable] brief decision <slug>" \
+  --body "<reason>" --priority 2
+```
+(P2 = accumulates, no immediate ping — appropriate for a dispatch that
+silently keeps failing.) If `escalate.sh` is absent, note it in the ledger
+line and continue — terminalization must not depend on the helper.
+
 Process each slug in PENDING_SLUGS:
 
 ```bash
 ROOT="{{artifact_root}}"
 LEDGER="$ROOT/decisions-dispatched.jsonl"
 DEFAULT_BRANCH="${GC_DEFAULT_BRANCH:-{{default_branch}}}"
+ESCALATE="/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/escalate.sh"
 
 # A slug is dispatched only when a SUCCESS line (has dispatched_at) names it.
 is_dispatched() {
   [ -f "$LEDGER" ] || return 1
   grep "\"brief_slug\":[[:space:]]*\"$1\"" "$LEDGER" 2>/dev/null \
     | grep -q '"dispatched_at"'
+}
+
+# Count pending_retry lines in the ledger for a given slug.
+pending_retry_count() {
+  [ -f "$LEDGER" ] || { echo 0; return; }
+  grep "\"brief_slug\":[[:space:]]*\"$1\"" "$LEDGER" 2>/dev/null \
+    | grep -c '"pending_retry"' || true
+}
+
+# Terminalize a slug: write a SUCCESS-shaped ledger line with action=undispatchable
+# so the scan and check treat it as settled, then escalate to Taylor (P2).
+terminalize_slug() {
+  slug="$1"
+  reason="$2"
+  ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')"
+  escalate_note=""
+  if [ -x "$ESCALATE" ]; then
+    "$ESCALATE" \
+      --title "[undispatchable] brief decision $slug" \
+      --body "$reason" \
+      --priority 2 2>/dev/null || true
+  else
+    escalate_note=" (escalate.sh absent)"
+  fi
+  printf '%s\n' "$(jq -n \
+    --arg slug "$slug" \
+    --arg reason "$reason" \
+    --arg ts "$ts" \
+    --arg note "$escalate_note" \
+    '{brief_slug: $slug, action: "undispatchable", undispatchable_reason: $reason, escalate_note: $note, dispatched_at: $ts}')" \
+    >> "$LEDGER"
+  echo "TERMINAL $slug: $reason$escalate_note"
 }
 
 dispatch_slug() {
@@ -165,6 +222,24 @@ dispatch_slug() {
   reason="$(grep '^reason[[:space:]]*=' "$rec" | head -n1 | sed 's/.*=[[:space:]]*//' | tr -d '"')"
   source_bead="$(grep '^source_bead\b[[:space:]]*=' "$rec" | head -n1 | sed 's/.*=[[:space:]]*//' | tr -d '"')"
 
+  # Terminalization guard (unbounded-loop prevention):
+  # Special case: approve with missing/empty source_bead can NEVER succeed —
+  # terminalize immediately on first encounter, no 3-retry grace.
+  if [ "$decision" = "approve" ] && [ -z "$source_bead" ]; then
+    terminalize_slug "$slug" "missing-source-bead"
+    return
+  fi
+  # General case: >= 3 prior pending_retry lines → retry limit reached.
+  retries="$(pending_retry_count "$slug")"
+  if [ "$retries" -ge 3 ]; then
+    last_reason="$(grep "\"brief_slug\":[[:space:]]*\"$slug\"" "$LEDGER" 2>/dev/null \
+      | grep '"pending_retry"' | tail -n1 \
+      | grep -o '"action":"[^"]*"' | sed 's/"action":"//;s/"//' 2>/dev/null \
+      || echo "unknown after $retries retries")"
+    terminalize_slug "$slug" "retry-limit-reached after $retries failures: $last_reason"
+    return
+  fi
+
   action_taken=""
   follow_up_bead=""
   outcome="success"   # flip to "failure" to write a pending_retry line
@@ -175,39 +250,35 @@ dispatch_slug() {
       # wrote the real branch metadata (with cycle suffix). Read the bead's
       # existing metadata, fill target only if missing, reuse the existing
       # branch, then reassign to refinery via the current bd idioms.
-      if [ -z "$source_bead" ]; then
+      # source_bead is guaranteed non-empty by the terminalize guard above.
+      meta_json="$(gc bd show "$source_bead" --json 2>/dev/null || true)"
+      existing_branch=""
+      existing_target=""
+      if [ -n "$meta_json" ] && command -v jq >/dev/null 2>&1; then
+        existing_branch="$(printf '%s' "$meta_json" | jq -r '.[0].metadata.branch // empty' 2>/dev/null)"
+        existing_target="$(printf '%s' "$meta_json" | jq -r '.[0].metadata.target // empty' 2>/dev/null)"
+      fi
+      if [ -z "$existing_branch" ]; then
+        # No branch metadata — do NOT guess and do NOT reassign. Record
+        # failure so the next wake retries once polecat's branch lands.
         outcome="failure"
-        action_taken="approve failed: no source_bead in decision record"
+        action_taken="approve failed: source_bead $source_bead has no branch metadata; not reassigning"
       else
-        meta_json="$(gc bd show "$source_bead" --json 2>/dev/null || true)"
-        existing_branch=""
-        existing_target=""
-        if [ -n "$meta_json" ] && command -v jq >/dev/null 2>&1; then
-          existing_branch="$(printf '%s' "$meta_json" | jq -r '.[0].metadata.branch // empty' 2>/dev/null)"
-          existing_target="$(printf '%s' "$meta_json" | jq -r '.[0].metadata.target // empty' 2>/dev/null)"
-        fi
-        if [ -z "$existing_branch" ]; then
-          # No branch metadata — do NOT guess and do NOT reassign. Record
-          # failure so the next wake retries once polecat's branch lands.
-          outcome="failure"
-          action_taken="approve failed: source_bead $source_bead has no branch metadata; not reassigning"
+        ok=true
+        # Only fill target if the bead is missing it; never clobber.
+        if [ -z "$existing_target" ]; then
+          gc bd update "$source_bead" --set-metadata target="$DEFAULT_BRANCH" 2>/dev/null || ok=false
+          set_target="$DEFAULT_BRANCH"
         else
-          ok=true
-          # Only fill target if the bead is missing it; never clobber.
-          if [ -z "$existing_target" ]; then
-            gc bd update "$source_bead" --set-metadata target="$DEFAULT_BRANCH" 2>/dev/null || ok=false
-            set_target="$DEFAULT_BRANCH"
-          else
-            set_target="$existing_target"
-          fi
-          # Reassign to the owning rig's refinery session (merge queue pickup).
-          gc bd update "$source_bead" --assignee refinery 2>/dev/null || ok=false
-          if $ok; then
-            action_taken="reassigned-to-refinery (branch=$existing_branch target=$set_target)"
-          else
-            outcome="failure"
-            action_taken="approve failed: bd update error (branch=$existing_branch target=$set_target)"
-          fi
+          set_target="$existing_target"
+        fi
+        # Reassign to the owning rig's refinery session (merge queue pickup).
+        gc bd update "$source_bead" --assignee refinery 2>/dev/null || ok=false
+        if $ok; then
+          action_taken="reassigned-to-refinery (branch=$existing_branch target=$set_target)"
+        else
+          outcome="failure"
+          action_taken="approve failed: bd update error (branch=$existing_branch target=$set_target)"
         fi
       fi
       ;;
