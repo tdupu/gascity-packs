@@ -148,7 +148,10 @@ def test_p0_flags_bead_as_human(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.stderr
     calls = _read_log(log)
-    assert "bd label add" in calls and "human" in calls
+    assert any(
+        "bd label add" in line and "bd-test-001" in line and "human" in line
+        for line in calls.splitlines()
+    ), f"expected 'bd label add bd-test-001 human' line; got:\n{calls}"
 
 
 def test_p0_sends_mail(tmp_path: Path) -> None:
@@ -224,7 +227,10 @@ def test_p2_flags_bead_as_human(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.stderr
     calls = _read_log(log)
-    assert "bd label add" in calls and "human" in calls
+    assert any(
+        "bd label add" in line and "bd-test-001" in line and "human" in line
+        for line in calls.splitlines()
+    ), f"expected 'bd label add bd-test-001 human' line; got:\n{calls}"
 
 
 def test_p2_does_not_send_mail(tmp_path: Path) -> None:
@@ -286,6 +292,34 @@ def test_rig_flag_accepted(tmp_path: Path) -> None:
         env, tmp_path,
     )
     assert result.returncode == 0, result.stderr
+    calls = _read_log(log)
+    assert any(
+        "bd create" in line and "my-rig" in line
+        for line in calls.splitlines()
+    ), f"expected 'bd create' line forwarding rig 'my-rig'; got:\n{calls}"
+    assert any(
+        "bd label add" in line and "my-rig" in line
+        for line in calls.splitlines()
+    ), f"expected 'bd label add' line forwarding rig 'my-rig'; got:\n{calls}"
+
+
+# ---------------------------------------------------------------------------
+# osascript injection safety
+# ---------------------------------------------------------------------------
+
+
+def test_notification_title_with_double_quote(tmp_path: Path) -> None:
+    """A title containing a double quote must not break the osascript invocation."""
+    log, env = _make_shim_env(tmp_path)
+    result = _run_escalate(
+        ["--title", 'Say "hello"', "--body", "b", "--priority", "0"],
+        env, tmp_path,
+    )
+    assert result.returncode == 0, (
+        f"script exited non-zero with a quoted title; stderr:\n{result.stderr}"
+    )
+    calls = _read_log(log)
+    assert "osascript" in calls, "osascript shim was not called"
 
 
 # ---------------------------------------------------------------------------
