@@ -315,6 +315,115 @@ def test_drain_mixed_manifest_fixture(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# drain script: default OUT_DIR resolves to .drain-run/ under BRIEF_ROOT
+# ---------------------------------------------------------------------------
+
+
+def test_drain_default_out_dir_is_drain_run(tmp_path: Path) -> None:
+    """When OUT_DIR is not set, output files land in <BRIEF_ROOT>/.drain-run/."""
+    write_manifest(tmp_path, [
+        make_entry("pending", gate_profile="standard", unlock_count=1),
+    ])
+    # Run without passing out_dir so the script uses its default
+    env = {
+        "PATH": "/usr/bin:/bin",
+        "BRIEF_ROOT": ".beads/briefs",
+    }
+    result = subprocess.run(
+        [str(DRAIN_SCRIPT)],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    drain_run = tmp_path / ".beads" / "briefs" / ".drain-run"
+    assert (drain_run / "no-brainer-slugs.txt").exists(), (
+        f".drain-run/no-brainer-slugs.txt not found; OUT_DIR default may be wrong\n{result.stderr}"
+    )
+    assert (drain_run / "full-brief-slugs.txt").exists(), (
+        ".drain-run/full-brief-slugs.txt not found"
+    )
+    assert read_slugs(drain_run / "full-brief-slugs.txt") == ["pending"]
+
+
+# ---------------------------------------------------------------------------
+# drain script: awk fallback parity (no jq in PATH)
+# ---------------------------------------------------------------------------
+
+
+def _make_no_jq_bin(tmp_path: Path) -> Path:
+    """Build a minimal bin dir with the tools brief-drain-manifest.sh needs but NO jq."""
+    import os
+    fake_bin = tmp_path / "_bin_no_jq"
+    fake_bin.mkdir()
+    needed = {
+        "sh": "/bin/sh",
+        "mkdir": "/bin/mkdir",
+        "rm": "/bin/rm",
+        "touch": "/usr/bin/touch",
+        "sort": "/usr/bin/sort",
+        "awk": "/usr/bin/awk",
+    }
+    for name, src in needed.items():
+        if os.path.isfile(src):
+            (fake_bin / name).symlink_to(src)
+    return fake_bin
+
+
+def test_drain_awk_fallback_parity_with_jq(tmp_path: Path) -> None:
+    """
+    awk fallback (no jq in PATH) must produce the same drain order and grouping
+    as the jq-path integration test (test_drain_mixed_manifest_fixture).
+
+    Expected:
+      no-brainer-slugs: [nb-low, nb-high]
+      full-brief-slugs: [full-one, full-two]
+    """
+    entries = [
+        make_entry("full-two", gate_profile="standard", unlock_count=4),
+        make_entry("nb-high", gate_profile="no_brainer", unlock_count=3),
+        make_entry("decided-one", gate_profile="standard", unlock_count=1, status="decided"),
+        make_entry("nb-low", gate_profile="no_brainer", unlock_count=1),
+        make_entry("full-one", gate_profile="standard", unlock_count=2),
+        make_entry("archived-nb", gate_profile="no_brainer", unlock_count=0, status="archived"),
+    ]
+    write_manifest(tmp_path, entries)
+
+    fake_bin = _make_no_jq_bin(tmp_path)
+    out = tmp_path / "out"
+    out.mkdir()
+
+    result = subprocess.run(
+        [str(fake_bin / "sh"), str(DRAIN_SCRIPT)],
+        cwd=tmp_path,
+        env={
+            "PATH": str(fake_bin),
+            "BRIEF_ROOT": ".beads/briefs",
+            "OUT_DIR": str(out),
+        },
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, f"awk-fallback run failed:\n{result.stderr}"
+
+    nb_slugs = read_slugs(out / "no-brainer-slugs.txt")
+    full_slugs = read_slugs(out / "full-brief-slugs.txt")
+
+    # No decided/archived entries appear
+    assert "decided-one" not in nb_slugs + full_slugs
+    assert "archived-nb" not in nb_slugs + full_slugs
+
+    # Identical to jq-path expected output (parity check)
+    assert nb_slugs == ["nb-low", "nb-high"], (
+        f"awk fallback no-brainer order differs from jq: {nb_slugs}"
+    )
+    assert full_slugs == ["full-one", "full-two"], (
+        f"awk fallback full-brief order differs from jq: {full_slugs}"
+    )
+
+
+# ---------------------------------------------------------------------------
 # order TOML contract
 # ---------------------------------------------------------------------------
 
@@ -414,8 +523,8 @@ def test_formula_record_presentations_needs_both_present_steps() -> None:
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
     steps = {s["id"]: s for s in data.get("steps", [])}
     needs = steps["record-presentations"].get("needs", [])
-    assert "consolidate-no-brainers" in needs or "present-full-briefs" in needs, (
-        "record-presentations must need at least one presentation step"
+    assert "consolidate-no-brainers" in needs and "present-full-briefs" in needs, (
+        "record-presentations must need both presentation steps"
     )
 
 
