@@ -93,8 +93,8 @@ ${BODY}"
 
   gc mail send human -s "$SUBJECT" -m "$MAIL_BODY"
 
-  _SAFE_TITLE="$(printf '%s' "$TITLE"   | tr -d '"' | sed 's/\\//g')"
-  _SAFE_BEAD="$(printf '%s' "$BEAD_ID" | tr -d '"' | sed 's/\\//g')"
+  _SAFE_TITLE="$(printf '%s' "$TITLE"   | tr -d '"\\\n')"
+  _SAFE_BEAD="$(printf '%s' "$BEAD_ID" | tr -d '"\\\n')"
   osascript -e "display notification \"${_SAFE_TITLE}\" with title \"[P${PNUM}] Escalation\" subtitle \"Bead: ${_SAFE_BEAD}\""
 
   echo "escalate: P${PNUM} ping sent (mail + notification)"
