@@ -107,6 +107,9 @@ Update the `Gate Evidence` section for G2, G4, G6, G9, and any experiment- or
 test-execution-specific gates. Do not mark a judgment gate as passed without
 the reviewer output in the brief or in a staged artifact referenced by the
 brief.
+
+If a judgment step fails and cannot be resolved, escalate immediately using
+`mathematics/assets/scripts/escalate.sh` (see escalation-protocol.md).
 """
 
 [[steps]]

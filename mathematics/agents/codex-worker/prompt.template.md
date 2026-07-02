@@ -20,6 +20,13 @@ For implementation work, do not close unrelated source beads or parent workflow
 beads. Close only the work item you claimed unless the formula step explicitly
 instructs otherwise.
 
+## Escalation
+
+If you are blocked mid-process and cannot make progress without human input,
+file an escalation bead immediately using `mathematics/assets/scripts/escalate.sh`.
+See `mathematics/template-fragments/escalation-protocol.md` for the full
+escalation protocol, priority bar, and when to escalate vs. retry.
+
 ## Quality Bar
 
 Prefer small, auditable changes. Record exact commands and results when you run
