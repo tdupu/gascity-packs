@@ -1,5 +1,5 @@
 [order]
-description = "Manually present the next stack brief to Taylor"
+description = "Manually drain all pending stack briefs: no-brainers as one-line items, full briefs via grill-and-present"
 scope = "city"
 formula = "brief-present-next"
 trigger = "manual"
