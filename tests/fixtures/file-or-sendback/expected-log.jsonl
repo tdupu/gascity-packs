@@ -1,0 +1,2 @@
+{"bead_id":"he-abc1","brief_slug":"he-abc1-fix","decision":"approve","choice":"FILE","target_bead_id":"he-abc2","reason":"successor he-abc2 (follow-up tests) is open and ready","confidence":"high","source":"lean-investigation","timestamp":"2026-07-01T21:04:11Z","agent_id":"gascity-packs/gastown.furiosa"}
+{"bead_id":"","brief_slug":"skill-cleanup-brief","decision":"reject","choice":"SEND-BACK","reason":"self-contained rejection; no follow-up bead referenced","source":"inline-fallback","timestamp":"2026-07-01T21:09:42Z","agent_id":"gascity-packs/gastown.furiosa"}
