@@ -1,0 +1,39 @@
+# Event-trigger order — dispatch the approval=merge back edge after a brief
+# decision is recorded.
+#
+# DIVISION OF LABOR (two brief.decided consumers): this order (dispatch) ACTS
+# on the decision — reassign the source bead on approve, create a follow-up
+# bead on reject/revise, mark-only on defer. The sibling order
+# post-decision-file-or-sendback handles FOLLOW-UP BRIEFING routing only (it
+# decides whether a successor gets re-briefed or the brief archives). The two
+# do not overlap: dispatch never routes briefing, file-or-sendback never
+# reassigns or merges.
+#
+# `brief.decided` is emitted by brief-record-decision's `emit-decided-event`
+# step (and by the refinery after merge-time decisions once gsp-itx lands).
+# This order catches the bell and pours brief-decision-dispatch, which reads
+# the undispatched decision records on disk and acts:
+#   approve  → set branch + target metadata, reassign source bead to refinery
+#   reject   → create a follow-up bead with the rejection reason
+#   revise   → create a follow-up bead with the revision feedback
+#   defer    → mark dispatched, no further action
+#
+# The formula is idempotent: it compares decision/*.toml slugs against
+# .beads/briefs/decisions-dispatched.jsonl and skips already-dispatched
+# entries. Coalesced or repeated events are therefore safe.
+#
+# If gc event emit is unavailable in a given environment, the condition
+# fallback is to compare decisions/*.toml against the dispatch ledger
+# directly in the check script (brief-decisions-undispatched.sh). The
+# event trigger is preferred since brief-record-decision already rings
+# brief.decided, giving near-zero latency dispatch.
+
+[order]
+description = "Dispatch approve/reject/revise/defer actions after a brief decision is recorded."
+scope = "city"
+formula = "brief-decision-dispatch"
+trigger = "event"
+on = "brief.decided"
+pool = "polecat"
+timeout = "120s"
+idempotent = true

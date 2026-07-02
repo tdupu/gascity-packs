@@ -1,18 +1,23 @@
 description = """
-Present the next stack brief to Taylor for a decision.
+Drain all pending stack briefs in one session.
 
-This formula keeps final judgment explicit. It never treats a formal gate pass
-as Taylor approval.
+This formula implements the accumulate-and-drain UX (HQ decision gt-3x2d):
+one manual run presents every pending brief in the manifest queue. No-brainer-
+classified briefs are collapsed into one-line items in a single consolidated
+block. Full briefs are presented via the existing grill-and-present / present-it
+rendering steps. A presentation record is written per brief.
+
+Gate semantics, shuffle, and decision recording are unchanged.
 """
 formula = "brief-present-next"
-version = 1
+version = 2
 
 [requires]
 formula_compiler = ">=2.0.0"
 
 [catalog]
 name = "brief-present-next"
-description = "Select and present the next stack brief using manifest order."
+description = "Drain all pending stack briefs: no-brainers as one-line items, full briefs via grill-and-present/present-it."
 
 [vars]
 [vars.artifact_root]
@@ -24,12 +29,23 @@ description = "Run target for presenting the brief."
 default = "gc.review-synthesizer"
 
 [[steps]]
-id = "select-next"
-title = "Select the next brief from the stack"
+id = "read-manifest"
+title = "Read manifest and partition pending briefs"
 metadata = { "gc.run_target" = "{{presenter_target}}", "gc.brief.root" = "{{artifact_root}}", "gc.brief.manifest" = "{{artifact_root}}/stack/manifest.jsonl" }
 description = """
-Read `{{artifact_root}}/stack/manifest.jsonl` and select the next brief by the
-unlock-count queue policy. Skip archived decisions. Do not reorder the manifest.
+Run `assets/scripts/brief-drain-manifest.sh` against
+`{{artifact_root}}/stack/manifest.jsonl`.
+
+The script reads all manifest entries, filters out entries with
+`status: decided` or `status: archived`, sorts the remaining entries by
+`unlock_count` ascending, and writes two output files into a working
+directory under `{{artifact_root}}/.drain-run/`:
+
+- `no-brainer-slugs.txt` — one slug per line (gate_profile = no_brainer)
+- `full-brief-slugs.txt` — one slug per line (all other profiles)
+
+If both output files are empty there are no pending briefs; stop cleanly
+without error. Do not reorder the manifest.
 """
 
 [steps.check]
@@ -37,28 +53,65 @@ max_attempts = 1
 
 [steps.check.check]
 mode = "exec"
-path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-manifest-current.sh"
+# TODO(Phase 2): absolute path required — gc resolves relative check paths against the work dir and rejects ../ traversal; replace when a pack-root mechanism exists (plan Global Constraints carve-out).
+path = "/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/brief-drain-manifest.sh"
 timeout = "1m"
 
 [[steps]]
-id = "present"
-title = "Present the brief to Taylor"
-needs = ["select-next"]
+id = "consolidate-no-brainers"
+title = "Present no-brainer classified briefs as one-line items"
+needs = ["read-manifest"]
 metadata = { "gc.run_target" = "{{presenter_target}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
-Use `grill-and-present` and `present-it` from the brief bundle. Present the
-brief, its gate evidence, and the exact required decision. Do not collapse
-open questions into recommendations; Taylor is the final judge.
+Read `{{artifact_root}}/.drain-run/no-brainer-slugs.txt`. For each slug in
+the file (in the listed order), emit a single one-line summary item in a
+consolidated table or list presented to Taylor. The format must include:
+
+- slug
+- brief title (from the stack brief file)
+- gate_profile: no_brainer
+- unlock_count
+
+Present all no-brainer entries in one consolidated block — do not open a
+full grill-and-present or present-it session for these. If the file is empty,
+emit a brief note that there are no no-brainer classified briefs pending.
 """
 
 [[steps]]
-id = "record-presentation"
-title = "Record presentation metadata"
-needs = ["present"]
+id = "present-full-briefs"
+title = "Present full briefs via grill-and-present / present-it"
+needs = ["read-manifest"]
 metadata = { "gc.run_target" = "{{presenter_target}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
-Record which stack brief was presented, when it was presented, and where the
-decision should be written. The next step is a separate `brief-record-decision`
-run with Taylor's explicit decision.
+Read `{{artifact_root}}/.drain-run/full-brief-slugs.txt`. For each slug in
+the file (in the listed order, ascending unlock_count):
+
+1. Load `{{artifact_root}}/stack/<slug>.md`.
+2. Use `grill-and-present` and `present-it` from the brief bundle to present
+   the brief, its gate evidence, and the exact required decision.
+3. Do not collapse open questions into recommendations; Taylor is the final
+   judge on each.
+
+Present each full brief sequentially. If the file is empty, emit a brief note
+that there are no full briefs pending.
 """
 
+[[steps]]
+id = "record-presentations"
+title = "Record per-brief presentation metadata"
+needs = ["consolidate-no-brainers", "present-full-briefs"]
+metadata = { "gc.run_target" = "{{presenter_target}}", "gc.brief.root" = "{{artifact_root}}" }
+description = """
+For each slug that was presented in this session (both no-brainer and full
+brief slugs), write a presentation record in
+`{{artifact_root}}/presentations/<slug>-presented.toml` containing:
+
+- brief_slug
+- presented_at (ISO-8601 timestamp)
+- session_type: "no-brainer-consolidated" or "full"
+- manifest_path: `{{artifact_root}}/stack/manifest.jsonl`
+
+Each brief gets its own record (per-brief). The next step for Taylor to act
+on any brief is a separate `brief-record-decision` run with an explicit
+decision for each slug.
+"""
