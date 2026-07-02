@@ -1,0 +1,211 @@
+description = """
+Post-merge brief-record duty: inspect the most-recently closed bead and,
+if it carries the `needs-decision` label, create a brief-record bead and
+touch the brief-prep pipeline.
+
+Fired by the `on-merge-brief-record` order (event trigger on `bead.closed`).
+
+## Decision logic (verbatim per task-2-brief §2)
+
+After a successful merge of bead X:
+  (a) X is already closed by the refinery (existing behavior — no action).
+  (b) IF X carries the `needs-decision` label:
+      - Create a brief-record bead titled `[brief-record] <X-id> <X-title>`
+        with `metadata.source_bead = X-id`.
+      - Touch the brief-prep pipeline by creating a brief-prep work bead
+        using the brief-prep formula's intake convention:
+          source  = X-id   (the just-closed bead)
+          brief_slug = `brief-<X-id>` (stable slug derived from source bead)
+          brief_type = "decision"
+  (c) IF X is unlabeled (no `needs-decision`): do nothing extra.
+
+## Agent instructions
+
+**Step 0 — identify triggering bead**
+
+The `bead.closed` event's subject is the bead id. Resolve it:
+```bash
+CLOSED_ID=$(gc events --since-cursor --type=bead.closed --json | \\
+  jq -r '.[-1].subject // empty')
+if [ -z "$CLOSED_ID" ]; then
+  echo "no bead.closed subject found; nothing to do"
+  exit 0
+fi
+```
+
+Or, if the controller surfaces the trigger event id as GC_TRIGGER_BEAD_ID:
+```bash
+CLOSED_ID=${GC_TRIGGER_BEAD_ID:-}
+```
+
+**Step 1 — label check**
+
+Read the closed bead and check for the `needs-decision` label:
+```bash
+LABELS=$(gc bd show "$CLOSED_ID" --json | jq -r '.[0].labels[]?' 2>/dev/null)
+if ! echo "$LABELS" | grep -qx "needs-decision"; then
+  echo "bead $CLOSED_ID has no needs-decision label; skipping brief-record"
+  exit 0
+fi
+```
+
+**Step 2 — create brief-record bead (only if needs-decision)**
+
+```bash
+TITLE=$(gc bd show "$CLOSED_ID" --json | jq -r '.[0].title // ""')
+BRIEF_RECORD=$(gc bd create \\
+  --type=task \\
+  --title="[brief-record] $CLOSED_ID $TITLE" \\
+  --set-metadata source_bead="$CLOSED_ID" \\
+  --json | jq -r '.id')
+echo "created brief-record bead: $BRIEF_RECORD"
+```
+
+**Step 3 — touch the brief-prep pipeline**
+
+Use the brief-prep formula's intake convention (source, brief_slug, brief_type):
+```bash
+SLUG="brief-${CLOSED_ID}"
+gc bd mol sling brief-prep \\
+  --var source="$CLOSED_ID" \\
+  --var brief_slug="$SLUG" \\
+  --var brief_type="decision" \\
+  --json
+```
+
+If `gc bd mol sling` is unavailable, create the work bead directly:
+```bash
+gc bd create \\
+  --type=task \\
+  --title="[brief-prep] $SLUG" \\
+  --set-metadata gc.brief.source="$CLOSED_ID" \\
+  --set-metadata gc.brief.slug="$SLUG" \\
+  --set-metadata gc.brief.type="decision"
+```
+"""
+formula = "on-merge-brief-record"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[catalog]
+name = "on-merge-brief-record"
+description = "Post-merge hook: create a brief-record and enter brief-prep when a closed bead carries needs-decision."
+
+[vars]
+[vars.prep_target]
+description = "Run target for brief-prep bookkeeping steps."
+default = "gc.run-operator"
+
+[vars.artifact_root]
+description = "Brief pipeline artifact root relative to the city or rig root."
+default = ".beads/briefs"
+
+[[steps]]
+id = "identify-closed-bead"
+title = "Identify the triggering closed bead"
+metadata = { "gc.run_target" = "{{prep_target}}" }
+description = """
+Identify the bead that just closed and triggered this formula.
+
+Resolve the closed bead id from the event cursor. The controller sets
+GC_TRIGGER_BEAD_ID when this formula is fired via an event-trigger order
+pointing at `bead.closed`. Fall back to the most recent bead.closed event
+subject if the env var is absent.
+
+```bash
+CLOSED_ID=${GC_TRIGGER_BEAD_ID:-}
+if [ -z "$CLOSED_ID" ]; then
+  CLOSED_ID=$(gc events --since-cursor --type=bead.closed --json | \\
+    jq -r '.[-1].subject // empty' 2>/dev/null)
+fi
+if [ -z "$CLOSED_ID" ]; then
+  echo "no closed bead id found; exiting cleanly"
+  exit 0
+fi
+echo "CLOSED_ID=$CLOSED_ID"
+```
+
+Record CLOSED_ID for downstream steps.
+"""
+
+[[steps]]
+id = "check-needs-decision-label"
+title = "Check for needs-decision label"
+needs = ["identify-closed-bead"]
+metadata = { "gc.run_target" = "{{prep_target}}" }
+description = """
+Read the closed bead's labels. If it does not carry `needs-decision`, exit
+cleanly — no brief-record work is needed (task-2-brief §2(c)).
+
+```bash
+LABELS=$(gc bd show "$CLOSED_ID" --json | jq -r '.[0].labels[]?' 2>/dev/null || true)
+if ! echo "$LABELS" | grep -qx "needs-decision"; then
+  echo "bead $CLOSED_ID has no needs-decision label; nothing to do"
+  exit 0
+fi
+BEAD_TITLE=$(gc bd show "$CLOSED_ID" --json | jq -r '.[0].title // ""')
+echo "needs-decision confirmed on bead $CLOSED_ID: $BEAD_TITLE"
+```
+"""
+
+[[steps]]
+id = "create-brief-record-bead"
+title = "Create brief-record bead"
+needs = ["check-needs-decision-label"]
+metadata = { "gc.run_target" = "{{prep_target}}" }
+description = """
+Create a brief-record bead in the current rig titled
+`[brief-record] <CLOSED_ID> <short-title>` with metadata linking back to the
+source bead (task-2-brief §2(b)).
+
+```bash
+BRIEF_RECORD=$(gc bd create \\
+  --type=task \\
+  --title="[brief-record] $CLOSED_ID $BEAD_TITLE" \\
+  --set-metadata source_bead="$CLOSED_ID" \\
+  --json | jq -r '.id')
+if [ -z "$BRIEF_RECORD" ]; then
+  echo "ERROR: failed to create brief-record bead for $CLOSED_ID"
+  exit 1
+fi
+echo "brief-record bead created: $BRIEF_RECORD (source: $CLOSED_ID)"
+```
+"""
+
+[[steps]]
+id = "touch-brief-prep-pipeline"
+title = "Touch the brief-prep pipeline"
+needs = ["create-brief-record-bead"]
+metadata = { "gc.run_target" = "{{prep_target}}", "gc.brief.source" = "{{vars.CLOSED_ID}}", "gc.brief.type" = "decision" }
+description = """
+Enter the brief-prep pipeline for the closed bead by creating a brief-prep
+work bead per the brief-prep formula's intake convention
+(source, brief_slug, brief_type) — task-2-brief §2(b).
+
+The slug is derived from the source bead id for stability: `brief-<CLOSED_ID>`.
+
+Primary path — use gc bd mol sling if the formula resolver supports it:
+```bash
+SLUG="brief-${CLOSED_ID}"
+gc bd mol sling brief-prep \\
+  --var source="$CLOSED_ID" \\
+  --var brief_slug="$SLUG" \\
+  --var brief_type="decision" && exit 0
+```
+
+Fallback — create the intake work bead directly (agent picks it up via
+the brief-watchdog-refill order cycle):
+```bash
+SLUG="brief-${CLOSED_ID}"
+gc bd create \\
+  --type=task \\
+  --title="[brief-prep] $SLUG" \\
+  --set-metadata gc.brief.source="$CLOSED_ID" \\
+  --set-metadata gc.brief.slug="$SLUG" \\
+  --set-metadata gc.brief.type="decision" \\
+  --set-metadata gc.brief.path="{{artifact_root}}/.staging/$SLUG/brief.md"
+echo "brief-prep work bead created for slug $SLUG"
+```
+"""
