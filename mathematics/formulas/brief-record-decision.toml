@@ -48,6 +48,17 @@ Write `{{artifact_root}}/decisions/{{brief_slug}}.toml` with:
 - timestamp
 - stack path
 - artifact paths
+- `source_bead` — the id of the bead this brief decides on. Copy it from the
+  brief's manifest entry: find the line in `{{artifact_root}}/stack/manifest.jsonl`
+  whose `slug` equals `{{brief_slug}}` and read its `source` field (the shuffle
+  manifest's `source` key carries the source bead id, propagated from the
+  brief-prep intake `source` var). Write it verbatim as
+  `source_bead = "<id>"`. This is REQUIRED — the downstream
+  brief-decision-dispatch formula keys the approve/reject/revise routing on
+  `source_bead`, and a missing value makes the approve path a silent no-op. If
+  the manifest entry has no `source` (legacy brief), fall back to the
+  brief-record bead's `source_bead` metadata; if neither is available, record
+  `source_bead = ""` and note the gap in `reason`.
 
 Use `record-decision` from the brief bundle for the durable decision shape.
 """
@@ -102,8 +113,10 @@ title = "Update manifest decision state"
 needs = ["archive-brief"]
 metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
-Mark the manifest entry for `{{brief_slug}}` as decided or archived without
-removing historical stack information. The manifest must remain valid JSONL.
+Mark the manifest entry for `{{brief_slug}}` by setting its `status` key
+(allowed values: `decided` or `archived`) without removing historical stack
+information. The drain reader (brief-drain-manifest.sh) filters out entries
+whose `status` is `decided` or `archived`. The manifest must remain valid JSONL.
 """
 
 [steps.check]

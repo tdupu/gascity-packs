@@ -6,8 +6,12 @@
 # the dispatch-decisions step — ensures the dispatched record is durable
 # before the step completes, and prevents re-dispatch of the same slug.
 #
-# exit 0  -> all processed slugs appear in the dispatch ledger (success)
-# exit 1  -> one or more processed slugs are missing from the ledger (retry)
+# exit 0  -> every processed slug has a SUCCESS line in the ledger
+# exit 1  -> one or more processed slugs lack a success line (retry)
+#
+# A SUCCESS line carries "dispatched_at". A failed-dispatch diagnostic line
+# carries "pending_retry":true and NO "dispatched_at" (C3c): it must NOT
+# satisfy this check, so the failed slug is retried on the next wake.
 #
 # Inputs (env):
 #   BRIEF_ROOT            brief pipeline artifact root (default: .beads/briefs)
@@ -33,17 +37,19 @@ fi
 # The ledger must exist once dispatch has run.
 [ -f "$LEDGER" ] || fail "missing dispatch ledger: $LEDGER"
 
-# Each pending slug must appear in the ledger.
+# Each pending slug must have a SUCCESS line (one carrying "dispatched_at").
+# A lone pending_retry diagnostic line does not count.
 missing=""
 for slug in $PENDING; do
-  if ! grep -q "\"$slug\"" "$LEDGER" 2>/dev/null; then
+  if ! grep "\"brief_slug\":[[:space:]]*\"$slug\"" "$LEDGER" 2>/dev/null \
+       | grep -q '"dispatched_at"'; then
     missing="$missing $slug"
   fi
 done
 
 if [ -n "$(echo "$missing" | tr -d ' ')" ]; then
-  fail "slugs not yet in dispatch ledger: $missing"
+  fail "slugs not successfully dispatched (no success line): $missing"
 fi
 
-echo "brief-decision-dispatched-check: all pending slugs found in $LEDGER"
+echo "brief-decision-dispatched-check: all pending slugs have a success line in $LEDGER"
 exit 0
