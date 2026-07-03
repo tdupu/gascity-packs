@@ -497,3 +497,38 @@ def test_dispatch_steps_do_not_combine_expand_and_check() -> None:
         assert not (has_expand and has_check), (
             "brief-decision-dispatch.toml: a step must not combine expand and check"
         )
+
+
+def test_formula_approve_publishes_branch_to_origin() -> None:
+    """gt-vtab dud-2 bug B1: the approve path must push a local-only source
+    branch to origin before reassigning to the refinery (refineries merge from
+    origin; a local-only branch bounces with 'not found on origin')."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "dispatch-decisions")
+    assert "git push" in text.replace('"$RIG_DIR" push', "push") or "push origin" in text, (
+        "approve path must publish the source branch to origin"
+    )
+    assert "ls-remote" in text, (
+        "approve path must probe origin for the branch before pushing"
+    )
+
+
+def test_formula_target_fill_detects_rig_default_branch() -> None:
+    """gt-vtab dud-2 bug B2: fill-target-if-missing must use the rig's
+    detected default branch (origin/HEAD, then main/master probe), not a
+    blind 'main' constant — hecke's default is master."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "dispatch-decisions")
+    assert "detect_default_branch" in text, (
+        "dispatch step must define/use a default-branch detector"
+    )
+    assert "symbolic-ref" in text, (
+        "detector must consult origin/HEAD via git symbolic-ref"
+    )
+    assert "master" in text, (
+        "detector must probe master as a candidate (repos not using main)"
+    )
+    # The blind fill must be gone: target must come from the detector.
+    assert 'set_target="$(detect_default_branch)"' in text, (
+        "fill-if-missing must take its value from detect_default_branch"
+    )
