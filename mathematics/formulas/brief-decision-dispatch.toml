@@ -11,8 +11,12 @@ not overlap.
 Routing contract (approve=merge back edge — HQ decision gt-r4ou):
 
   approve  → Read the source bead's existing metadata (`gc bd update` idioms
-             below). Fill `target` (default branch from GC_DEFAULT_BRANCH or
-             "main") only if it is missing — never clobber. Reuse the bead's
+             below). Ensure the source branch exists on origin — push it from
+             the rig checkout if it is local-only (refineries merge from
+             origin; a local-only branch bounces). Fill `target` only if it is
+             missing — never clobber — using the rig's DETECTED default branch
+             (origin/HEAD, then origin main/master probe, then
+             GC_DEFAULT_BRANCH or "main" as last resort). Reuse the bead's
              EXISTING `branch` metadata (polecat already wrote the real branch,
              cycle suffix and all). If `branch` is absent, do NOT guess and do
              NOT reassign: record a retryable failure instead. On success,
@@ -166,6 +170,23 @@ ROOT="{{artifact_root}}"
 LEDGER="$ROOT/decisions-dispatched.jsonl"
 DEFAULT_BRANCH="${GC_DEFAULT_BRANCH:-{{default_branch}}}"
 ESCALATE="/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/escalate.sh"
+# The rig repo root sits two levels above the brief root (<rig>/.beads/briefs).
+RIG_DIR="$(cd "$ROOT/../.." 2>/dev/null && pwd)"
+
+# Detect the SOURCE RIG's actual default branch. Hardcoded "main" is wrong for
+# repos whose default is master (gt-vtab dud-2 bug B2): prefer origin/HEAD,
+# then probe main/master on origin, then fall back to the var/env default.
+detect_default_branch() {
+  db="$(git -C "$RIG_DIR" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')"
+  if [ -z "$db" ]; then
+    for cand in main master; do
+      if git -C "$RIG_DIR" show-ref --verify --quiet "refs/remotes/origin/$cand"; then
+        db="$cand"; break
+      fi
+    done
+  fi
+  [ -n "$db" ] && printf '%s' "$db" || printf '%s' "$DEFAULT_BRANCH"
+}
 
 # A slug is dispatched only when a SUCCESS line (has dispatched_at) names it.
 is_dispatched() {
@@ -265,10 +286,22 @@ dispatch_slug() {
         action_taken="approve failed: source_bead $source_bead has no branch metadata; not reassigning"
       else
         ok=true
-        # Only fill target if the bead is missing it; never clobber.
+        # Publish the source branch before handing to the refinery (gt-vtab
+        # dud-2 bug B1): the refinery merges from origin, so a local-only
+        # branch bounces with "not found on origin". Push it if origin lacks
+        # it; if the branch exists nowhere, that's a retryable failure.
+        if ! git -C "$RIG_DIR" ls-remote --exit-code origin "refs/heads/$existing_branch" >/dev/null 2>&1; then
+          if git -C "$RIG_DIR" show-ref --verify --quiet "refs/heads/$existing_branch"; then
+            git -C "$RIG_DIR" push origin "$existing_branch" >/dev/null 2>&1 || ok=false
+          else
+            ok=false
+          fi
+        fi
+        # Only fill target if the bead is missing it; never clobber. Use the
+        # rig's detected default branch, not a blind "main" (bug B2).
         if [ -z "$existing_target" ]; then
-          gc bd update "$source_bead" --set-metadata target="$DEFAULT_BRANCH" 2>/dev/null || ok=false
-          set_target="$DEFAULT_BRANCH"
+          set_target="$(detect_default_branch)"
+          gc bd update "$source_bead" --set-metadata target="$set_target" 2>/dev/null || ok=false
         else
           set_target="$existing_target"
         fi
