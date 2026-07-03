@@ -9,7 +9,9 @@ through `pack.toml` imports, so a city can opt into any subset of the packs in
 this repo without forking.
 
 For the full model (cities, rigs, formulas, beads, runtime providers) see the
-[Gas City README](https://github.com/gastownhall/gascity).
+[Gas City README](https://github.com/gastownhall/gascity). For how a pack's
+`skills/` directory reaches agents as `.claude/skills` symlinks, see
+[skills materialization](./docs/skills-materialization.md).
 
 ## Sponsors
 
