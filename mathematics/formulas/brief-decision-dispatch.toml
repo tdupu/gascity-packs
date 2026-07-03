@@ -306,7 +306,11 @@ dispatch_slug() {
           set_target="$existing_target"
         fi
         # Reassign to the owning rig's refinery session (merge queue pickup).
-        gc bd update "$source_bead" --assignee refinery 2>/dev/null || ok=false
+        # Rig-qualify the name: bare "refinery" does not match the rig session's
+        # queue query (run-2 of the gt-vtab dispatch test sat unpicked; run-1's
+        # working assignment was hecke/gastown.refinery).
+        rig_name="$(basename "$RIG_DIR")"
+        gc bd update "$source_bead" --assignee "$rig_name/gastown.refinery" 2>/dev/null || ok=false
         if $ok; then
           action_taken="reassigned-to-refinery (branch=$existing_branch target=$set_target)"
         else

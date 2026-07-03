@@ -200,7 +200,8 @@ def test_formula_approve_uses_current_bd_idioms() -> None:
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
     text = _step_text(data, "dispatch-decisions")
     assert "bd update" in text, "approve path must use `bd update`"
-    assert "--assignee refinery" in text, "approve path must reassign via --assignee refinery"
+    assert "--assignee " in text, "approve path must reassign via --assignee"
+    assert "gastown.refinery" in text, "approve path must reassign to the rig refinery"
     assert "--set-metadata target=" in text, "approve path must set target via --set-metadata"
     # No stale idioms.
     assert "bd set-metadata" not in text, "must not use the nonexistent `bd set-metadata`"
@@ -531,4 +532,19 @@ def test_formula_target_fill_detects_rig_default_branch() -> None:
     # The blind fill must be gone: target must come from the detector.
     assert 'set_target="$(detect_default_branch)"' in text, (
         "fill-if-missing must take its value from detect_default_branch"
+    )
+
+
+def test_formula_approve_rig_qualifies_refinery_assignee() -> None:
+    """gt-vtab dud-2 bug B3: reassignment must rig-qualify the refinery name
+    (<rig>/gastown.refinery). Bare 'refinery' did not match the rig session's
+    queue query — run-2 sat unpicked; run-1's working name was
+    hecke/gastown.refinery."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    text = _step_text(data, "dispatch-decisions")
+    assert 'basename "$RIG_DIR"' in text, (
+        "reassignment must derive the rig name from RIG_DIR"
+    )
+    assert '"$rig_name/gastown.refinery"' in text, (
+        "assignee must be rig-qualified as <rig>/gastown.refinery, not bare 'refinery'"
     )
