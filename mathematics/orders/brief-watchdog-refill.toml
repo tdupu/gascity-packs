@@ -4,7 +4,7 @@ scope = "city"
 formula = "brief-watchdog-refill"
 trigger = "cooldown"
 interval = "30m"
-pool = "dog"
+pool = "gastown.dog"
 timeout = "60s"
 idempotent = true
 

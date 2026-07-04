@@ -1,7 +1,7 @@
 description = """
-Post-merge brief-record duty: inspect the most-recently closed bead and,
-if it carries the `needs-decision` label, create a brief-record bead and
-touch the brief-prep pipeline.
+Post-merge brief-record duty: inspect recently closed beads and, for those
+carrying the `needs-decision` label, create a brief-record bead and enter the
+brief-prep pipeline.
 
 Fired by the `on-merge-brief-record` order (event trigger on `bead.closed`).
 
@@ -19,76 +19,23 @@ After a successful merge of bead X:
           brief_type = "decision"
   (c) IF X is unlabeled (no `needs-decision`): do nothing extra.
 
-## Agent instructions
+## Why vapor
 
-This formula is a WAKE-UP, not a single-bead handler. The `bead.closed` event
-is only a signal that some bead closed; the controller passes no event-derived
-bead id to the formula (any trigger-bead env var, when set, points at the
-formula's OWN work bead, not the closed bead that fired the event). So we do a
-durable-state scan: list recently closed `needs-decision` beads and create
-brief-records for the ones that don't have one yet. This coalesces naturally —
-many closes, one wake, no duplicates.
+All operations are deterministic bd CLI commands — no judgment required.
+The formula runs as a single shell script (phase=vapor) so scan, dedup,
+create, and pipeline-touch stay in one process without burning an LLM turn
+per step. Variable state crosses steps trivially within the same shell.
 
-**Step 0 — scan recently closed needs-decision beads**
+## Wake-up contract
 
-```bash
-# Recently closed beads carrying the needs-decision label.
-SINCE="$(date -u -v-30d '+%Y-%m-%d' 2>/dev/null || date -u -d '30 days ago' '+%Y-%m-%d' 2>/dev/null || echo '1970-01-01')"
-CLOSED_IDS=$(bd list --status closed --label needs-decision \\
-  --closed-after "$SINCE" --json 2>/dev/null | jq -r '.[].id // empty')
-```
-
-**Step 1 — skip beads that already have a brief-record**
-
-For each closed id, a brief-record bead already exists iff a bead titled
-`[brief-record] <id> ...` is present:
-```bash
-has_record() {
-  bd list --all --title "[brief-record] $1 " --json 2>/dev/null \\
-    | jq -e 'length > 0' >/dev/null 2>&1
-}
-```
-
-**Step 2 — create brief-record beads for the missing ones**
-
-```bash
-for CLOSED_ID in $CLOSED_IDS; do
-  has_record "$CLOSED_ID" && continue
-  TITLE=$(bd show "$CLOSED_ID" --json | jq -r '.[0].title // ""')
-  bd create \\
-    --type=task \\
-    --title="[brief-record] $CLOSED_ID $TITLE" \\
-    --metadata "$(jq -n --arg sb "$CLOSED_ID" '{source_bead: $sb}')" \\
-    --json
-done
-```
-
-**Step 3 — touch the brief-prep pipeline (per missing bead)**
-
-Primary idiom is `bd mol pour` (persistent work with an audit trail):
-```bash
-SLUG="brief-${CLOSED_ID}"
-bd mol pour brief-prep \\
-  --var source="$CLOSED_ID" \\
-  --var brief_slug="$SLUG" \\
-  --var brief_type="decision"
-```
-
-If `bd mol pour brief-prep` is unavailable, create the intake work bead
-directly:
-```bash
-bd create \\
-  --type=task \\
-  --title="[brief-prep] $SLUG" \\
-  --metadata "$(jq -n --arg s "$CLOSED_ID" --arg sl "$SLUG" \\
-    '{"gc.brief.source": $s, "gc.brief.slug": $sl, "gc.brief.type": "decision"}')"
-```
+This formula is a WAKE-UP, not a single-bead handler. The `bead.closed`
+event is a signal; the controller passes no event-derived bead id into the
+formula. We do a durable-state scan: list recently closed `needs-decision`
+beads and create brief-records for the ones that don't have one yet.
 """
 formula = "on-merge-brief-record"
+phase = "vapor"
 version = 1
-
-[requires]
-formula_compiler = ">=2.0.0"
 
 [catalog]
 name = "on-merge-brief-record"
@@ -104,51 +51,45 @@ description = "Brief pipeline artifact root relative to the city or rig root."
 default = ".beads/briefs"
 
 [[steps]]
-id = "identify-closed-bead"
-title = "Scan recently closed needs-decision beads"
+id = "scan-and-record"
+title = "Scan closed needs-decision beads and create brief-records"
 metadata = { "gc.run_target" = "{{prep_target}}" }
 description = """
-This step is a durable-state SCAN, not a single-bead lookup. The bead.closed
-event carries no usable bead id into the formula (any trigger-bead env var
-points at the formula's own work bead, and there is no per-cursor events query
-to recover the closed subject), so list the recently closed beads that carry
-the `needs-decision` label. Processing the
-full recent set — not just "the one that fired" — is what coalesces multiple
-closes behind one wake without duplicating brief-records.
+Run this as one shell script so every derived value (CLOSED_IDS, MISSING,
+SLUG) remains in the same process without relying on cross-step variables.
 
 ```bash
+set -euo pipefail
+WORK_BEAD="${GC_BEAD_ID:-}"
+DRAIN_ACKED=0
+
+drain_ack_once() {
+  if [ "$DRAIN_ACKED" -ne 1 ]; then
+    gc runtime drain-ack || true
+    DRAIN_ACKED=1
+  fi
+}
+
+trap 'drain_ack_once' EXIT
+
+# ── Step 0: scan recently closed needs-decision beads ─────────────────────
 SINCE="$(date -u -v-30d '+%Y-%m-%d' 2>/dev/null || date -u -d '30 days ago' '+%Y-%m-%d' 2>/dev/null || echo '1970-01-01')"
-CLOSED_IDS=$(bd list --status closed --label needs-decision \\
+CLOSED_IDS=$(bd list --status closed --label needs-decision \
   --closed-after "$SINCE" --json 2>/dev/null | jq -r '.[].id // empty')
 if [ -z "$CLOSED_IDS" ]; then
   echo "no recently closed needs-decision beads; nothing to do"
+  if [ -n "$WORK_BEAD" ]; then
+    bd close "$WORK_BEAD" --reason "on-merge-brief-record: no recently closed needs-decision beads"
+  fi
+  drain_ack_once
   exit 0
 fi
 echo "CLOSED_IDS=$CLOSED_IDS"
-```
 
-Record CLOSED_IDS for downstream steps.
-
-**Manual catch-up for outages longer than 30 days:** run the scan once
-with `SINCE=1970-01-01` substituted into the command above to recover any
-closes that fell outside the rolling window.
-"""
-
-[[steps]]
-id = "check-needs-decision-label"
-title = "Check for needs-decision label"
-needs = ["identify-closed-bead"]
-metadata = { "gc.run_target" = "{{prep_target}}" }
-description = """
-The scan already filtered on the `needs-decision` label, so every id in
-CLOSED_IDS qualifies (task-2-brief §2(b/c) — unlabeled beads are excluded by
-construction). This step deduplicates: skip any closed bead that already has a
-`[brief-record] <id> ...` bead, so repeated wakes never create duplicates.
-
-```bash
+# ── Step 1: dedup — skip beads that already have a brief-record ───────────
 has_record() {
   # A brief-record already exists iff a bead titled "[brief-record] <id> " is present.
-  bd list --all --title "[brief-record] $1 " --json 2>/dev/null \\
+  bd list --all --title "[brief-record] $1 " --json 2>/dev/null \
     | jq -e 'length > 0' >/dev/null 2>&1
 }
 
@@ -162,70 +103,57 @@ for CLOSED_ID in $CLOSED_IDS; do
 done
 if [ -z "$(echo "$MISSING" | tr -d ' ')" ]; then
   echo "all closed needs-decision beads already have brief-records; nothing to do"
+  if [ -n "$WORK_BEAD" ]; then
+    bd close "$WORK_BEAD" --reason "on-merge-brief-record: all beads already have brief-records"
+  fi
+  drain_ack_once
   exit 0
 fi
 echo "MISSING=$MISSING"
-```
-"""
 
-[[steps]]
-id = "create-brief-record-bead"
-title = "Create brief-record bead"
-needs = ["check-needs-decision-label"]
-metadata = { "gc.run_target" = "{{prep_target}}" }
-description = """
-For each id in MISSING, create a brief-record bead titled
-`[brief-record] <CLOSED_ID> <short-title>` with metadata linking back to the
-source bead (task-2-brief §2(b)). `bd create` takes metadata as a single JSON
-blob via `--metadata` (there is no repeatable `--set-metadata` on `bd create`).
-
-```bash
+# ── Step 2: create brief-record beads for the missing ones ────────────────
 for CLOSED_ID in $MISSING; do
   BEAD_TITLE=$(bd show "$CLOSED_ID" --json | jq -r '.[0].title // ""')
-  BRIEF_RECORD=$(bd create \\
-    --type=task \\
-    --title="[brief-record] $CLOSED_ID $BEAD_TITLE" \\
-    --metadata "$(jq -n --arg sb "$CLOSED_ID" '{source_bead: $sb}')" \\
+  BRIEF_RECORD=$(bd create \
+    --type=task \
+    --title="[brief-record] $CLOSED_ID $BEAD_TITLE" \
+    --metadata "$(jq -n --arg sb "$CLOSED_ID" '{source_bead: $sb}')" \
     --json | jq -r '.id')
   if [ -z "$BRIEF_RECORD" ]; then
-    echo "ERROR: failed to create brief-record bead for $CLOSED_ID"
+    echo "ERROR: failed to create brief-record bead for $CLOSED_ID" >&2
     exit 1
   fi
   echo "brief-record bead created: $BRIEF_RECORD (source_bead: $CLOSED_ID)"
 done
-```
-"""
 
-[[steps]]
-id = "touch-brief-prep-pipeline"
-title = "Touch the brief-prep pipeline"
-needs = ["create-brief-record-bead"]
-metadata = { "gc.run_target" = "{{prep_target}}", "gc.brief.type" = "decision" }
-description = """
-Enter the brief-prep pipeline for each MISSING closed bead per the brief-prep
-formula's intake convention (source, brief_slug, brief_type) — task-2-brief
-§2(b). The slug is derived from the source bead id for stability:
-`brief-<CLOSED_ID>`.
-
-Primary idiom — `bd mol pour` (persistent work with an audit trail):
-```bash
+# ── Step 3: touch the brief-prep pipeline for each missing bead ──────────
+processed=0
 for CLOSED_ID in $MISSING; do
   SLUG="brief-${CLOSED_ID}"
-  if bd mol pour brief-prep \\
-      --var source="$CLOSED_ID" \\
-      --var brief_slug="$SLUG" \\
+  if bd mol pour brief-prep \
+      --var source="$CLOSED_ID" \
+      --var brief_slug="$SLUG" \
       --var brief_type="decision"; then
     echo "poured brief-prep for $SLUG"
-    continue
+  else
+    # Fallback — create the intake work bead directly.
+    bd create \
+      --type=task \
+      --title="[brief-prep] $SLUG" \
+      --metadata "$(jq -n --arg s "$CLOSED_ID" --arg sl "$SLUG" --arg p "{{artifact_root}}/.staging/$SLUG/brief.md" \
+        '{"gc.brief.source": $s, "gc.brief.slug": $sl, "gc.brief.type": "decision", "gc.brief.path": $p}')"
+    echo "brief-prep work bead created for slug $SLUG"
   fi
-  # Fallback — create the intake work bead directly (agent picks it up via the
-  # brief-watchdog-refill order cycle). bd create takes metadata as one JSON blob.
-  bd create \\
-    --type=task \\
-    --title="[brief-prep] $SLUG" \\
-    --metadata "$(jq -n --arg s "$CLOSED_ID" --arg sl "$SLUG" --arg p "{{artifact_root}}/.staging/$SLUG/brief.md" \\
-      '{"gc.brief.source": $s, "gc.brief.slug": $sl, "gc.brief.type": "decision", "gc.brief.path": $p}')"
-  echo "brief-prep work bead created for slug $SLUG"
+  processed=$((processed + 1))
 done
+
+if [ -n "$WORK_BEAD" ]; then
+  bd close "$WORK_BEAD" --reason "on-merge-brief-record: processed=$processed"
+fi
+drain_ack_once
+exit 0
 ```
-"""
+
+**Exit criteria:** script exits 0; brief-record beads created for every
+missing needs-decision bead; brief-prep pipeline touched; work bead closed
+if GC_BEAD_ID is set; drain-ack sent."""

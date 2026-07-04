@@ -24,6 +24,9 @@ scope = "city"
 formula = "file-or-sendback-route"
 trigger = "event"
 on = "brief.decided"
-pool = "polecat"
+# gsp-fqo: same pool-routing fix as gsp-f79; bare "polecat" never resolved for
+# a city order (polecats are rig-scoped). gastown.dog is the import-qualified
+# city pool that the reconciler can demand-scale.
+pool = "gastown.dog"
 timeout = "120s"
 idempotent = true
