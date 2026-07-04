@@ -37,6 +37,12 @@ close-the-loop design session.
   Phase 1: decision→dispatch (`brief-decision-dispatch` order) and
   escalation→Taylor. Their absence made the old pipeline a one-way
   funnel.
+- **Codex-worker** — a non-Anthropic (OpenAI Codex) pool worker in the
+  mathematics pack (`mathematics/agents/codex-worker/`). Reserved for
+  exceptional cases: creative design, critical cross-model review, very
+  large plan analysis, or retry after a prior agent failure. Invoked only
+  by explicit formula pour (`codex-dispatch`) — never fired automatically
+  by any order. Sparse by design; one call per multi-brief cycle at most.
 - **Sync direction (gascity-packs)** — rig (~/gt/gascity-packs) →
   fork (tdupu/gascity-packs) → ~/repos/gascity-packs. The fork is
   deliberately AHEAD of upstream (gastownhall); never mirror upstream
