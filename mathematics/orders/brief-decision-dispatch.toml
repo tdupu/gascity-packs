@@ -34,6 +34,12 @@ scope = "city"
 formula = "brief-decision-dispatch"
 trigger = "event"
 on = "brief.decided"
-pool = "polecat"
+# gsp-f79: import-qualified CITY pool. Bare "polecat" could never resolve for
+# a city order (polecats are rig-scoped), so routing decoration silently
+# dropped and nothing ever staffed the pour. The formula is phase=vapor, so
+# the poured root is demand-visible and the reconciler wakes a dog for it;
+# the formula itself scans every rig's brief root (rig-scoped event orders
+# would fan out once per rig on each city event — deliberately avoided).
+pool = "gastown.dog"
 timeout = "120s"
 idempotent = true

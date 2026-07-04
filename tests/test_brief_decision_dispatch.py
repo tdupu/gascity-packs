@@ -118,13 +118,33 @@ def test_order_on_brief_decided() -> None:
 
 
 def test_order_scope_is_city() -> None:
+    """City scope is deliberate (gsp-f79): rig-scoped event orders fan out
+    once per rig on every city-bus event (no per-rig event filtering exists),
+    so one brief.decided would pour ~14 wisps. The formula scans rigs itself."""
     data = tomllib.loads(ORDER_PATH.read_text(encoding="utf-8"))
     assert data["order"].get("scope") == "city"
 
 
-def test_order_pool_is_polecat() -> None:
+def test_order_pool_is_qualified_city_dog() -> None:
+    """gsp-f79: the pool must be an import-qualified CITY pool. Bare
+    'polecat' never resolved for a city order (polecats are rig-scoped), so
+    qualifyOrderPool returned it unqualified, gc.routed_to never matched a
+    demand template, and the pour was never staffed."""
     data = tomllib.loads(ORDER_PATH.read_text(encoding="utf-8"))
-    assert data["order"].get("pool") == "polecat"
+    assert data["order"].get("pool") == "gastown.dog"
+
+
+def test_formula_phase_is_vapor() -> None:
+    """gsp-f79: only a root-only (vapor) pour creates a demand-visible bead.
+    A graph-v2 workflow root is a blocked container the reconciler's scale
+    probe never counts, so pool workers were never woken. Do not reintroduce
+    [requires] formula_compiler here — it flips the compile back to graph-v2
+    and re-breaks staffing."""
+    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
+    assert data.get("phase") == "vapor"
+    assert "requires" not in data, (
+        "formula must not declare [requires] formula_compiler (forces graph-v2 root)"
+    )
 
 
 def test_order_idempotent_flag() -> None:
@@ -157,26 +177,27 @@ def test_formula_name() -> None:
 
 
 def test_formula_has_required_steps() -> None:
+    """gsp-f79: scan and dispatch merged into one step to avoid graph-v2 needs
+    dependency (which would force formula_compiler>=2.0 and break vapor pour)."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
     step_ids = [s["id"] for s in data.get("steps", [])]
-    assert "scan-undispatched" in step_ids
-    assert "dispatch-decisions" in step_ids
+    assert "scan-and-dispatch" in step_ids
 
 
-def test_formula_step_dependency_chain() -> None:
+def test_formula_no_graph_v2_constructs() -> None:
+    """gsp-f79: formula must not use graph-v2 constructs (needs, steps.check)
+    without declaring formula_compiler>=2.0.0. Declaring it would flip the root
+    from vapor (demand-visible) to a blocked container (never staffed)."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    steps = {s["id"]: s for s in data.get("steps", [])}
-    assert "scan-undispatched" in steps["dispatch-decisions"].get("needs", [])
-
-
-def test_formula_dispatch_step_has_check() -> None:
-    data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    steps = {s["id"]: s for s in data.get("steps", [])}
-    dispatch = steps["dispatch-decisions"]
-    assert "check" in dispatch, "dispatch-decisions must have a step check"
-    check = dispatch["check"]["check"]
-    assert check.get("mode") == "exec"
-    assert "brief-decision-dispatched-check" in check.get("path", "")
+    for step in data.get("steps", []):
+        assert "needs" not in step, (
+            f"step {step.get('id')!r} has 'needs' — graph-v2 construct; "
+            "remove it (merge steps) to keep vapor pour working"
+        )
+        assert "check" not in step, (
+            f"step {step.get('id')!r} has 'check' — graph-v2 construct; "
+            "remove it to keep vapor pour working"
+        )
 
 
 def _step_text(formula_data: dict, step_id: str) -> str:
@@ -188,7 +209,7 @@ def _step_text(formula_data: dict, step_id: str) -> str:
 
 def test_formula_approve_reassigns_to_refinery() -> None:
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "refinery" in text, "dispatch step must mention refinery for approve path"
     assert "target" in text, "dispatch step must set target metadata"
     assert "branch" in text, "dispatch step must reference branch metadata"
@@ -198,7 +219,7 @@ def test_formula_approve_uses_current_bd_idioms() -> None:
     """C3a: approve path must use `bd update --set-metadata` and
     `bd update --assignee`, not the nonexistent set-metadata/reassign verbs."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "bd update" in text, "approve path must use `bd update`"
     assert "--assignee " in text, "approve path must reassign via --assignee"
     assert "gastown.refinery" in text, "approve path must reassign to the rig refinery"
@@ -212,7 +233,7 @@ def test_formula_approve_does_not_guess_branch() -> None:
     """C3b: approve must reuse existing branch metadata, never fabricate
     `polecat/<source_bead>`."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert 'polecat/${source_bead}' not in text, "must not fabricate a branch name"
     assert "gc bd show" in text, "approve must read existing bead metadata first"
 
@@ -221,35 +242,34 @@ def test_formula_failed_dispatch_is_retryable() -> None:
     """C3c: failed dispatches append a pending_retry diagnostic (no
     dispatched_at) so the scan keeps the slug pending."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "pending_retry" in text, "failed dispatch must record pending_retry marker"
-    scan = _step_text(data, "scan-undispatched")
-    assert "dispatched_at" in scan, "scan must gate on the success marker dispatched_at"
+    assert "dispatched_at" in text, "scan must gate on the success marker dispatched_at"
 
 
 def test_formula_reject_creates_followup() -> None:
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "reject" in text
     assert "[rejected]" in text or "rejected" in text
 
 
 def test_formula_revise_creates_followup() -> None:
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "revise" in text
     assert "[revise]" in text or "revise" in text
 
 
 def test_formula_defer_is_noop() -> None:
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "defer" in text
 
 
 def test_formula_ledger_is_append_only() -> None:
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "append" in text.lower() or ">>" in text, (
         "dispatch step must append to ledger, never rewrite"
     )
@@ -415,7 +435,7 @@ def make_terminal_entry(slug: str, reason: str = "missing-source-bead") -> dict:
 def test_formula_terminalization_prose_present() -> None:
     """N1(a): dispatch-decisions step must describe terminalization of undispatchable slugs."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "undispatchable" in text, (
         "dispatch step must describe terminal undispatchable action"
     )
@@ -431,7 +451,7 @@ def test_formula_terminalization_prose_present() -> None:
 def test_formula_missing_source_bead_terminalized_immediately() -> None:
     """N1(a): approve with missing source_bead must be terminalized on first encounter."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "missing-source-bead" in text, (
         "dispatch step must name the missing-source-bead special-case termination reason"
     )
@@ -440,7 +460,7 @@ def test_formula_missing_source_bead_terminalized_immediately() -> None:
 def test_formula_escalate_sh_invoked_on_terminal() -> None:
     """N1(a): escalate.sh must be invoked with --title, --body, --priority 2 on terminal."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "escalate.sh" in text, "dispatch step must reference escalate.sh"
     assert "--priority 2" in text, "escalation priority must be 2 (accumulates, no ping)"
     assert "[undispatchable]" in text, "escalation title must carry [undispatchable] tag"
@@ -449,7 +469,7 @@ def test_formula_escalate_sh_invoked_on_terminal() -> None:
 def test_formula_escalate_sh_absence_does_not_block_terminalization() -> None:
     """N1(a): terminalization must proceed even when escalate.sh is absent."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     # The prose must describe a fallback path when the helper is absent.
     assert "absent" in text or "not depend on the helper" in text or "if [ -x" in text, (
         "dispatch step must handle missing escalate.sh without blocking terminalisation"
@@ -505,7 +525,7 @@ def test_formula_approve_publishes_branch_to_origin() -> None:
     branch to origin before reassigning to the refinery (refineries merge from
     origin; a local-only branch bounces with 'not found on origin')."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "git push" in text.replace('"$RIG_DIR" push', "push") or "push origin" in text, (
         "approve path must publish the source branch to origin"
     )
@@ -519,7 +539,7 @@ def test_formula_target_fill_detects_rig_default_branch() -> None:
     detected default branch (origin/HEAD, then main/master probe), not a
     blind 'main' constant — hecke's default is master."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert "detect_default_branch" in text, (
         "dispatch step must define/use a default-branch detector"
     )
@@ -541,7 +561,7 @@ def test_formula_approve_rig_qualifies_refinery_assignee() -> None:
     queue query — run-2 sat unpicked; run-1's working name was
     hecke/gastown.refinery."""
     data = tomllib.loads(FORMULA_PATH.read_text(encoding="utf-8"))
-    text = _step_text(data, "dispatch-decisions")
+    text = _step_text(data, "scan-and-dispatch")
     assert 'basename "$RIG_DIR"' in text, (
         "reassignment must derive the rig name from RIG_DIR"
     )
