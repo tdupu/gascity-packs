@@ -4,7 +4,7 @@ scope = "city"
 formula = "brief-archive-sweep"
 trigger = "cooldown"
 interval = "24h"
-pool = "dog"
+pool = "gastown.dog"
 timeout = "60s"
 idempotent = true
 

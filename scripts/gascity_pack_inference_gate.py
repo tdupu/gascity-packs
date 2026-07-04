@@ -2331,8 +2331,16 @@ def load_methodology_formula(pack_source: Path, formula_name: str | None, missin
         return None
     if payload.get("formula") != formula_name:
         missing.append(f"{formula_name}: formula field is {payload.get('formula')!r}, want {formula_name!r}")
-    if payload.get("contract") != "graph.v2":
-        missing.append(f"{formula_name}: contract is {payload.get('contract')!r}, want 'graph.v2'")
+    # Accept either the deprecated `contract = "graph.v2"` OR the canonical
+    # `[requires] formula_compiler = ">=2.0.0"` form (gsp-fqo rider).
+    has_contract = payload.get("contract") == "graph.v2"
+    has_requires = isinstance(payload.get("requires"), dict) and \
+        payload["requires"].get("formula_compiler") == ">=2.0.0"
+    if not has_contract and not has_requires:
+        missing.append(
+            f"{formula_name}: contract is {payload.get('contract')!r}, want 'graph.v2' "
+            f"or [requires] formula_compiler = '>=2.0.0'"
+        )
     return payload
 
 

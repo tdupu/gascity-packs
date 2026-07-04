@@ -201,7 +201,9 @@ def test_post_decision_order_catches_brief_decided() -> None:
     assert order["trigger"] == "event"
     assert order["on"] == "brief.decided"
     assert order["formula"] == "file-or-sendback-route"
-    assert order["pool"] == "polecat"
+    # gsp-fqo: pool fixed from bare "polecat" (rig-scoped, silent no-route) to
+    # import-qualified city pool.
+    assert order["pool"] == "gastown.dog"
     assert order["scope"] == "city"
 
 
@@ -210,7 +212,8 @@ def test_archive_on_request_order_catches_archive_requested() -> None:
     assert order["trigger"] == "event"
     assert order["on"] == "brief.archive_requested"
     assert order["formula"] == "brief-archive-sweep"
-    assert order["pool"] == "dog"
+    # gsp-fqo: pool fixed from bare "dog" to import-qualified city pool.
+    assert order["pool"] == "gastown.dog"
     assert order["scope"] == "city"
 
 
