@@ -1788,7 +1788,16 @@ class FormulaAssetTests(unittest.TestCase):
                     expansion = load_formula(pack_root, expansion_name)
                     self.assertEqual(expansion["formula"], expansion_name)
                     self.assertEqual(expansion["type"], "expansion")
-                    self.assertEqual(expansion["contract"], "graph.v2")
+                    has_contract = expansion.get("contract") == "graph.v2"
+                    has_requires = (
+                        isinstance(expansion.get("requires"), dict)
+                        and expansion["requires"].get("formula_compiler") == ">=2.0.0"
+                    )
+                    self.assertTrue(
+                        has_contract or has_requires,
+                        f"{expansion_name}: must declare graph.v2 contract via "
+                        "`contract='graph.v2'` or `[requires] formula_compiler='>=2.0.0'`",
+                    )
 
                     nodes = formula_nodes(expansion)
                     self.assertGreaterEqual(len(nodes), 4)
@@ -1815,7 +1824,15 @@ class FormulaAssetTests(unittest.TestCase):
             item_formula = load_formula(pack_root, expected["implementation_formula"])
             with self.subTest(pack=pack_name, item_formula=expected["implementation_formula"]):
                 self.assertEqual(item_formula["formula"], expected["implementation_formula"])
-                self.assertEqual(item_formula["contract"], "graph.v2")
+                _has_contract = item_formula.get("contract") == "graph.v2"
+                _has_requires = (
+                    isinstance(item_formula.get("requires"), dict)
+                    and item_formula["requires"].get("formula_compiler") == ">=2.0.0"
+                )
+                self.assertTrue(
+                    _has_contract or _has_requires,
+                    f"{expected['implementation_formula']}: must declare graph.v2 contract",
+                )
                 self.assertEqual(item_formula["extends"], ["do-work"])
                 self.assertNotEqual(item_formula.get("type"), "expansion")
                 self.assertTrue(item_formula["target_required"])
@@ -1891,7 +1908,15 @@ class FormulaAssetTests(unittest.TestCase):
             shared_item_formula = load_formula(pack_root, expected["implementation_item_formula"])
             with self.subTest(pack=pack_name, item_formula=expected["implementation_item_formula"]):
                 self.assertEqual(shared_item_formula["formula"], expected["implementation_item_formula"])
-                self.assertEqual(shared_item_formula["contract"], "graph.v2")
+                _has_contract = shared_item_formula.get("contract") == "graph.v2"
+                _has_requires = (
+                    isinstance(shared_item_formula.get("requires"), dict)
+                    and shared_item_formula["requires"].get("formula_compiler") == ">=2.0.0"
+                )
+                self.assertTrue(
+                    _has_contract or _has_requires,
+                    f"{expected['implementation_item_formula']}: must declare graph.v2 contract",
+                )
                 self.assertEqual(shared_item_formula["extends"], ["do-work-item"])
                 self.assertNotEqual(shared_item_formula.get("type"), "expansion")
                 self.assertTrue(shared_item_formula["target_required"])
