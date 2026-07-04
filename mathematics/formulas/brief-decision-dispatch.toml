@@ -43,12 +43,37 @@ line in the ledger (.beads/briefs/decisions-dispatched.jsonl); a lone
 pending_retry line does NOT satisfy it. The scan-undispatched step pre-filters
 succeeded slugs, so a run where ALL pending decisions already succeeded
 completes as a safe no-op.
+
+## Claim contract (vapor wisp)
+
+This formula pours as a single root-only vapor wisp routed to the city dog
+pool (gsp-f79: the reconciler's demand-scaler wakes a pool worker for any
+ready, unassigned, routed, actionable root — poured molecule containers and
+step beads are invisible to it by design; and rig-scoped event orders fan
+out once per rig on every city-bus event, so the order stays city-scoped
+and THIS FORMULA scans every rig itself). After claiming this wisp:
+
+```bash
+gc bd formula show brief-decision-dispatch --json
+```
+
+Follow the step descriptions in order (scan-undispatched, then
+dispatch-decisions) inside ONE session — state crosses steps via each rig's
+decisions dir and dispatch ledger on disk, not via bead handoffs. The scan
+step discovers per-rig brief roots; run the dispatch step once per rig root
+that has pending slugs. When finished, close this bead with a summary of
+dispatched/retryable slugs per rig, then run:
+
+```bash
+gc runtime drain-ack
+```
 """
 formula = "brief-decision-dispatch"
 version = 1
-
-[requires]
-formula_compiler = ">=2.0.0"
+# phase=vapor (not [requires] formula_compiler): a graph-v2 root is a blocked
+# container the demand probe never counts; a vapor root is the one shape gc
+# 1.3 demonstrably staffs to pools via orders (cf. bd pack mol-dog-*).
+phase = "vapor"
 
 [catalog]
 name = "brief-decision-dispatch"
@@ -59,119 +84,68 @@ description = "Dispatch approve/reject/revise/defer actions from decision record
 description = "Brief pipeline artifact root."
 default = ".beads/briefs"
 
-[vars.operator_target]
-description = "Run target for deterministic scanning and metadata writes."
-default = "gc.run-operator"
-
-[vars.dispatch_target]
-description = "Run target for reassignment/bead-creation steps."
-default = "gc.run-operator"
-
 [vars.default_branch]
 description = "Default merge target branch (approve path). Falls back to GC_DEFAULT_BRANCH env var, then 'main'."
 default = "main"
 
 [[steps]]
-id = "scan-undispatched"
-title = "Scan for undispatched decision records"
-metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}", "gc.brief.dispatch_ledger" = "{{artifact_root}}/decisions-dispatched.jsonl" }
+id = "scan-and-dispatch"
+title = "Scan for undispatched decisions and execute routing actions"
+metadata = { "gc.brief.root" = "{{artifact_root}}", "gc.brief.dispatch_ledger" = "{{artifact_root}}/decisions-dispatched.jsonl" }
 description = """
-Find decision records that have not yet been dispatched.
+Run everything in ONE shell session so derived values (PENDING_SLUGS per rig
+root) survive from scan to dispatch without crossing step boundaries.
 
-A record is UNDISPATCHED when `{{artifact_root}}/decisions/<slug>.toml`
-exists but no line in `{{artifact_root}}/decisions-dispatched.jsonl` has
-`brief_slug` equal to that slug.
+**Phase 1 — scan.** Find decision records that have not yet been dispatched,
+across ALL rigs. A record is UNDISPATCHED when
+`<rig>/{{artifact_root}}/decisions/<slug>.toml` exists but no SUCCESS line
+in `<rig>/{{artifact_root}}/decisions-dispatched.jsonl` carries that slug.
 
-Algorithm:
+This wisp is claimed by a CITY dog; discover rig brief roots explicitly from
+the city root (brief.decided does not say which rig decided; scanning every
+rig is idempotent and the ledger makes repeats safe).
 
-```bash
-ROOT="{{artifact_root}}"
-LEDGER="$ROOT/decisions-dispatched.jsonl"
-mkdir -p "$ROOT/decisions"
+**Phase 2 — dispatch.** For each rig root with pending slugs: read the
+decision record, execute the routing action, and append one JSONL line to the
+ledger. The rig checkout RIG_DIR derives from ROOT (two levels above the
+brief root: `RIG_DIR=$(dirname "$(dirname "$ROOT")")`).
 
-# A slug counts as dispatched ONLY when a SUCCESS line names it. Success lines
-# carry "dispatched_at"; failed-approve diagnostics carry "pending_retry":true
-# and NO "dispatched_at", so they never satisfy the dispatched test and the
-# next wake retries them (C3c retry semantics).
-is_dispatched() {
-  [ -f "$LEDGER" ] || return 1
-  grep "\"brief_slug\":[[:space:]]*\"$1\"" "$LEDGER" 2>/dev/null \
-    | grep -q '"dispatched_at"'
-}
+**Retry semantics (C3c):** the ledger is append-only with two line shapes. A
+SUCCESS line has `"dispatched_at"` set — treated as dispatched, never
+re-acted. A FAILURE line has `"pending_retry": true` and NO `"dispatched_at"`
+— still pending, so the next wake retries it. Failed approves never count as
+dispatched and are retried until they succeed. defer/reject/revise are always
+success lines.
 
-pending=""
-for f in "$ROOT/decisions/"*.toml; do
-  [ -f "$f" ] || continue
-  slug="$(basename "$f" .toml)"
-  if is_dispatched "$slug"; then
-    echo "already dispatched: $slug"
-    continue
-  fi
-  pending="$pending $slug"
-  echo "undispatched (new or failed-retry): $slug"
-done
+**Terminalization (unbounded-loop guard):** before dispatching any slug,
+count its existing `pending_retry` lines in the ledger. Two special cases:
 
-if [ -z "$(echo "$pending" | tr -d ' ')" ]; then
-  echo "no undispatched decision records; nothing to do"
-  exit 0
-fi
-echo "PENDING_SLUGS=$pending"
-```
+1. **Missing source_bead (approve only):** terminalize immediately on FIRST
+   encounter — no 3-retry grace — with reason `missing-source-bead`.
+2. **Retry limit reached:** if a slug already has >= 3 `pending_retry` lines,
+   do NOT retry. Terminalize it.
 
-Record PENDING_SLUGS for the dispatch step. If nothing is pending, exit
-cleanly — this makes the formula safe to fire repeatedly.
-"""
-
-[[steps]]
-id = "dispatch-decisions"
-title = "Execute routing action and append dispatch ledger"
-needs = ["scan-undispatched"]
-metadata = { "gc.run_target" = "{{dispatch_target}}", "gc.brief.root" = "{{artifact_root}}", "gc.brief.dispatch_ledger" = "{{artifact_root}}/decisions-dispatched.jsonl" }
-description = """
-For each undispatched slug, read the decision record, execute the routing
-action, and append one JSONL line to `{{artifact_root}}/decisions-dispatched.jsonl`.
-
-**Retry semantics (C3c):** the ledger is append-only and carries two line
-shapes. A SUCCESS line has `"dispatched_at"` set — the scan step treats the
-slug as dispatched and never re-acts. A FAILURE line has `"pending_retry":
-true` and NO `"dispatched_at"` — the scan step still treats the slug as
-pending, so the next wake retries it. Failed approves therefore never count as
-"dispatched" and are retried until they succeed. defer/reject/revise
-completions are always success lines.
-
-**Terminalization (unbounded-loop guard):** a decision that can never
-dispatch must not loop forever. Before dispatching any slug, count its
-existing `pending_retry` lines in the ledger. Two special cases apply:
-
-1. **Missing source_bead (approve only):** if the decision is `approve` and
-   `source_bead` is empty/missing, it can NEVER succeed. Terminalize
-   immediately on FIRST encounter — no 3-retry grace — with reason
-   `missing-source-bead`.
-2. **Retry limit reached:** if a slug already has >= 3 `pending_retry` lines
-   (from prior failed wakes), do NOT retry again. Terminalize it.
-
-Terminalizing a slug means: append a TERMINAL ledger line carrying
-`dispatched_at` (so the scan and check treat it as settled) with
-`action` = `undispatchable` and the last failure reason, then invoke the
-escalation helper so Taylor is notified:
+Terminalizing: append a TERMINAL ledger line carrying `dispatched_at` (so
+the scan treats it as settled) with `action = "undispatchable"`, then invoke
+the escalation helper:
 ```
 /Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/escalate.sh \
   --title "[undispatchable] brief decision <slug>" \
   --body "<reason>" --priority 2
 ```
-(P2 = accumulates, no immediate ping — appropriate for a dispatch that
-silently keeps failing.) If `escalate.sh` is absent, note it in the ledger
-line and continue — terminalization must not depend on the helper.
+(P2 = accumulates, no immediate ping.) If `escalate.sh` is absent, note it
+in the ledger line and continue.
 
-Process each slug in PENDING_SLUGS:
+Run this as one shell script:
 
 ```bash
-ROOT="{{artifact_root}}"
-LEDGER="$ROOT/decisions-dispatched.jsonl"
+set -euo pipefail
+CITY="${GC_CITY_PATH:-${GC_CITY:-$HOME/gt}}"
 DEFAULT_BRANCH="${GC_DEFAULT_BRANCH:-{{default_branch}}}"
 ESCALATE="/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/escalate.sh"
-# The rig repo root sits two levels above the brief root (<rig>/.beads/briefs).
-RIG_DIR="$(cd "$ROOT/../.." 2>/dev/null && pwd)"
+WORK_BEAD="${GC_BEAD_ID:-}"
+
+# Helper functions use ROOT, LEDGER, RIG_DIR set per-rig in the main loop.
 
 # Detect the SOURCE RIG's actual default branch. Hardcoded "main" is wrong for
 # repos whose default is master (gt-vtab dud-2 bug B2): prefer origin/HEAD,
@@ -222,7 +196,7 @@ terminalize_slug() {
     --arg reason "$reason" \
     --arg ts "$ts" \
     --arg note "$escalate_note" \
-    '{brief_slug: $slug, action: "undispatchable", undispatchable_reason: $reason, escalate_note: $note, dispatched_at: $ts}')" \
+    '{brief_slug: $slug, action: "undispatchable", undispatchable_reason: $reason, escalate_note: $note, dispatched_at: $ts}' -c)" \
     >> "$LEDGER"
   echo "TERMINAL $slug: $reason$escalate_note"
 }
@@ -356,7 +330,7 @@ dispatch_slug() {
   # next wake retries it) — C3c.
   ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')"
   if [ "$outcome" = "success" ]; then
-    printf '%s\n' "$(jq -n \
+    printf '%s\n' "$(jq -cn \
       --arg slug "$slug" \
       --arg decision "$decision" \
       --arg action "$action_taken" \
@@ -366,7 +340,7 @@ dispatch_slug() {
       '{brief_slug: $slug, decision: $decision, source_bead: $source, action: $action, follow_up_bead: $follow_up, dispatched_at: $ts}')" \
       >> "$LEDGER"
   else
-    printf '%s\n' "$(jq -n \
+    printf '%s\n' "$(jq -cn \
       --arg slug "$slug" \
       --arg decision "$decision" \
       --arg action "$action_taken" \
@@ -377,20 +351,44 @@ dispatch_slug() {
   fi
 }
 
-for slug in $PENDING_SLUGS; do
-  dispatch_slug "$slug"
+# Main scan+dispatch loop — discover every rig's brief root from the city dir.
+overall_dispatched=0
+overall_pending_retry=0
+
+for ROOT in "$CITY"/*/{{artifact_root}}; do
+  [ -d "$ROOT/decisions" ] || continue
+  LEDGER="$ROOT/decisions-dispatched.jsonl"
+  # The rig repo checkout sits two levels above the brief root.
+  RIG_DIR="$(cd "$ROOT/../.." 2>/dev/null && pwd)"
+
+  pending=""
+  for f in "$ROOT/decisions/"*.toml; do
+    [ -f "$f" ] || continue
+    slug="$(basename "$f" .toml)"
+    if is_dispatched "$slug"; then
+      echo "already dispatched: $slug ($ROOT)"
+      continue
+    fi
+    pending="$pending $slug"
+    echo "undispatched: $slug ($ROOT)"
+  done
+
+  for slug in $pending; do
+    [ -n "$slug" ] || continue
+    dispatch_slug "$slug"
+    overall_dispatched=$((overall_dispatched + 1))
+  done
 done
+
+echo "scan-and-dispatch complete: dispatched=$overall_dispatched"
+
+# Close the wisp; drain-ack tells the controller this session is done.
+if [ -n "$WORK_BEAD" ]; then
+  bd close "$WORK_BEAD" --reason "brief-decision-dispatch: dispatched=$overall_dispatched"
+fi
+gc runtime drain-ack
 ```
 
 Append-only; never rewrite existing lines. The ledger is the durable audit
 trail for Taylor.
 """
-
-[steps.check]
-max_attempts = 2
-
-[steps.check.check]
-mode = "exec"
-# TODO(Phase 2): absolute path required — gc resolves relative check paths against the work dir and rejects ../ traversal; replace when a pack-root mechanism exists (plan Global Constraints carve-out).
-path = "/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/checks/brief-decision-dispatched-check.sh"
-timeout = "1m"
