@@ -60,7 +60,7 @@ Write `{{artifact_root}}/decisions/{{brief_slug}}.toml` with:
   brief-record bead's `source_bead` metadata; if neither is available, record
   `source_bead = ""` and note the gap in `reason`.
 
-Use `record-decision` from the brief bundle for the durable decision shape.
+Use `mathematics.record-decision` (pack skill) for the durable decision shape.
 """
 
 [steps.check]

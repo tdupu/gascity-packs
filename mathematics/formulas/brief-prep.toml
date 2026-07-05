@@ -62,7 +62,7 @@ title = "Draft the brief"
 needs = ["initialize-staging"]
 metadata = { "gc.run_target" = "{{review_target}}", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.source" = "{{source}}", "gc.brief.type" = "{{brief_type}}", "gc.brief.path" = "{{artifact_root}}/.staging/{{brief_slug}}/brief.md" }
 description = """
-Use the `brief-prep` skill from `agent-skills/docs/brief-bundle`.
+Use the `mathematics.brief-prep` skill (canonical pack skill, v1.2+).
 
 Write `{{artifact_root}}/.staging/{{brief_slug}}/brief.md`. The brief must have
 a `Gate Evidence` section with one explicit entry for every gate in
@@ -71,6 +71,18 @@ Every `N/A` must cite the surface check that makes it not applicable.
 
 Required source: `{{source}}`
 Brief type: `{{brief_type}}`
+
+**Decision-at-Top INVARIANT (enforced by the skill).** The FIRST content after
+the artifact header MUST be "What is being decided" — before origin, math,
+timeline, or gates. The skill auto-rejects and rewrites on violation.
+
+**Output shape selection.** The skill consults `mathematics.catch-no-brainer`
+output to choose between full-form (7-section grill-ordered: §1 decision →
+§2 recommend → §3 assumptions → §4 alternatives → §5 risks → §6 evidence →
+§7 gates) and compact form (DECISION / CONTEXT / RECOMMEND / CONFIRM).
+Compact is used ONLY when `catch-no-brainer` emits `compact_eligible: true`
+AND both safety overrides (`server_touching`, `user_skill_touching_override`)
+are false AND the shape is not `capability-blocker`.
 """
 
 [[steps]]
@@ -100,13 +112,17 @@ title = "Coordinate review evidence"
 needs = ["attach-test-evidence"]
 metadata = { "gc.run_target" = "{{review_target}}", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.path" = "{{artifact_root}}/.staging/{{brief_slug}}/brief.md" }
 description = """
-Use `coordinate-review`, `critical-review`, `is-good-test`, and
-`is-good-experiment` as applicable.
+Use `mathematics.coordinate-review`, `mathematics.critical-review`,
+`mathematics.is-good-test`, and `mathematics.is-good-experiment` as applicable.
 
 Update the `Gate Evidence` section for G2, G4, G6, G9, and any experiment- or
 test-execution-specific gates. Do not mark a judgment gate as passed without
 the reviewer output in the brief or in a staged artifact referenced by the
 brief.
+
+Also verify the Decision-at-Top INVARIANT holds after any revision: the first
+content after the artifact header must still be the decision statement. If a
+reviewer-driven revision displaced the decision, fix before proceeding.
 
 If a judgment step fails and cannot be resolved, escalate immediately using
 `mathematics/assets/scripts/escalate.sh` (see escalation-protocol.md).
