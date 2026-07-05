@@ -151,3 +151,52 @@ A single brief cycle from artifact to decision proceeds as follows.
 7. **Two event-driven orders fire in parallel.** `brief-decision-dispatch` acts on the verdict — merging the source branch on approve, creating a follow-up work bead on reject/revise, or recording a defer marker. `post-decision-file-or-sendback` routes the brief itself: FILE (a successor bead gets re-briefed) or SEND-BACK (the brief archives and the work returns to the originator).
 
 8. **Brief archives.** Either `brief-archive-on-request` fires immediately on a SEND-BACK event, or `brief-archive-sweep` picks up the brief in its next 24h cooldown run. Decision records are never deleted; only the working artifacts move to `.beads/briefs/archive/`.
+
+---
+
+## Bead Backup Setup
+
+Each rig runs a Dolt-backed bead store. Beads hold internal operational context — decision records, brief history, bead metadata — that must not be exposed publicly even when the code repo is public. Back up bead data to a dedicated **private** GitHub repo.
+
+### Naming convention
+
+```
+<rig-name>-city-tdupu
+```
+
+Examples: `lmfdb-city-tdupu`, `gascity-HQ-city-tdupu`. HQ (`~/gt`) always uses `gascity-HQ-city-tdupu`. Never share the beads repo with the code repo for public code repos; keep them separate.
+
+### Setup steps
+
+**1. Create a private GitHub repo.**
+
+```bash
+gh repo create tdupu/<rig-name>-city-tdupu --private
+```
+
+Verify it is private before continuing. A public beads repo is a hard error.
+
+**2. Configure the Dolt remote.**
+
+```bash
+bd dolt remote remove origin    # drop any stale remote
+bd dolt remote add origin git+ssh://git@github.com/./tdupu/<rig-name>-city-tdupu.git
+```
+
+The `./` after `github.com` is required by the Dolt SSH protocol — omitting it breaks the push.
+
+**3. Push bead data.**
+
+```bash
+bd dolt push
+```
+
+Dolt writes to `refs/dolt/data`, a non-standard ref that is separate from git branches. It will not appear in the branch list and will not pollute the repo's branch history.
+
+**4. Verify.**
+
+```bash
+git ls-remote origin refs/dolt/data
+```
+
+A SHA line in the output confirms the push landed. If the output is empty, re-check the remote URL and SSH key access.
