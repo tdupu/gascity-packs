@@ -39,7 +39,7 @@ max_attempts = 1
 
 [steps.check.check]
 mode = "exec"
-path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-manifest-current.sh"
+path = "/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/checks/brief-manifest-current.sh"
 timeout = "1m"
 
 [[steps]]
@@ -80,6 +80,6 @@ max_attempts = 1
 
 [steps.check.check]
 mode = "exec"
-path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-watchdog-record-required.sh"
+path = "/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/checks/brief-watchdog-record-required.sh"
 timeout = "1m"
 

@@ -91,7 +91,7 @@ max_attempts = 3
 
 [steps.check.check]
 mode = "exec"
-path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-test-evidence-required.sh"
+path = "/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/checks/brief-test-evidence-required.sh"
 timeout = "2m"
 
 [[steps]]
@@ -131,6 +131,6 @@ max_attempts = 2
 
 [steps.check.check]
 mode = "exec"
-path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-pile-entry-required.sh"
+path = "/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/checks/brief-pile-entry-required.sh"
 timeout = "2m"
 
