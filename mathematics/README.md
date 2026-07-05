@@ -200,3 +200,24 @@ git ls-remote origin refs/dolt/data
 ```
 
 A SHA line in the output confirms the push landed. If the output is empty, re-check the remote URL and SSH key access.
+
+### Restore from backup
+
+To restore a rig's bead store from its private GitHub backup into a fresh directory:
+
+```bash
+mkdir -p /path/to/restore-dir
+cd /path/to/restore-dir
+bd init --remote "git+ssh://git@github.com/./tdupu/<rig-name>-city-tdupu.git" --non-interactive
+```
+
+`bd init --remote` clones the full Dolt database from `refs/dolt/data` and adopts the project identity. It downloads all bead chunks (expect ~200 MB for a large rig) and makes `bd list` immediately functional.
+
+**After restore:** the cloned database does not auto-configure a push remote. Before pushing from a disaster-recovery clone, re-add the remote explicitly:
+
+```bash
+bd dolt remote add origin "git+ssh://git@github.com/./tdupu/<rig-name>-city-tdupu.git"
+bd dolt push
+```
+
+**Delta on restore is normal:** beads created after the last `bd dolt push` will be missing from the restore. The delta equals the beads created since the last backup push.
