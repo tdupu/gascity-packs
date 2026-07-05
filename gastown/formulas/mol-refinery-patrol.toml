@@ -396,9 +396,9 @@ TARGET=$(gc bd show $WORK --json | jq -r '.[0].metadata.target // "{{target_bran
 MERGE_STRATEGY=$(gc bd show $WORK --json | jq -r '.[0].metadata.merge_strategy // "direct"')
 EXISTING_PR=$(gc bd show $WORK --json | jq -r '.[0].metadata.existing_pr // empty')
 ORIGIN_REPO_ERROR=""
-if command -v gh >/dev/null 2>&1; then
-  if ! ORIGIN_REPO=$(gh repo view --json nameWithOwner -q '.nameWithOwner' 2>&1); then
-    ORIGIN_REPO_ERROR="gh repo view failed while resolving origin repository: $ORIGIN_REPO"
+if command -v gh-bot >/dev/null 2>&1; then
+  if ! ORIGIN_REPO=$(gh-bot repo view --json nameWithOwner -q '.nameWithOwner' 2>&1); then
+    ORIGIN_REPO_ERROR="gh-bot repo view failed while resolving origin repository: $ORIGIN_REPO"
     ORIGIN_REPO=""
   fi
 else
@@ -409,7 +409,7 @@ else
         | sed -E 's#^git@github.com:##; s#^https://github.com/##; s#\\.git$##')
       ;;
     *)
-      ORIGIN_REPO_ERROR="GitHub REST fallback supports only github.com origin remotes; install gh for $ORIGIN_URL."
+      ORIGIN_REPO_ERROR="GitHub REST fallback supports only github.com origin remotes; install gh-bot for $ORIGIN_URL."
       ;;
   esac
 fi
@@ -553,7 +553,7 @@ init_github_rest() {
   fi
   TOKEN=$(resolve_github_token)
   if [ -z "$TOKEN" ]; then
-    echo "GitHub PR mode requires gh or a GitHub token available from env/git credential fill." >&2
+    echo "GitHub PR mode requires gh-bot or a GitHub token available from env/git credential fill." >&2
     return 1
   fi
   case "$ORIGIN_REPO" in
@@ -583,8 +583,8 @@ curl_gh_api() {
 lookup_pr_info() {
   ref="$1"
   err_file="$2"
-  if command -v gh >/dev/null 2>&1; then
-    gh pr view --json url,number,state,headRefName,baseRefName,headRepositoryOwner,headRepository -- "$ref" 2>"$err_file"
+  if command -v gh-bot >/dev/null 2>&1; then
+    gh-bot pr view --json url,number,state,headRefName,baseRefName,headRepositoryOwner,headRepository -- "$ref" 2>"$err_file"
     return $?
   fi
   if ! init_github_rest 2>"$err_file"; then
@@ -816,15 +816,15 @@ PR_BODY_FILE=$(mktemp)
 if [ -n "$EXISTING_PR" ]; then
   PR_REF="$EXISTING_PR"
 else
-  if command -v gh >/dev/null 2>&1; then
-    PR_URL=$(gh pr create \
+  if command -v gh-bot >/dev/null 2>&1; then
+    PR_URL=$(gh-bot pr create \
       --base "$TARGET" \
       --head "$BRANCH" \
       --title "$ISSUE_TITLE ($WORK)" \
       --body-file "$PR_BODY_FILE" 2>/dev/null || true)
 
     if [ -z "$PR_URL" ]; then
-      PR_URL=$(gh pr view "$BRANCH" --json url -q '.url')
+      PR_URL=$(gh-bot pr view "$BRANCH" --json url -q '.url')
     fi
   else
     PR_ERR=$(mktemp)
