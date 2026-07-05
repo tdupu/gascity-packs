@@ -99,6 +99,6 @@ max_attempts = 2
 
 [steps.check.check]
 mode = "exec"
-path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-test-execution-record-required.sh"
+path = "/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/checks/brief-test-execution-record-required.sh"
 timeout = "1m"
 

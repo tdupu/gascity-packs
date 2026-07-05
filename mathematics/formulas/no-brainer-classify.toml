@@ -59,7 +59,7 @@ max_attempts = 1
 
 [steps.check.check]
 mode = "exec"
-path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-no-brainer-execute-safety.sh"
+path = "/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/checks/brief-no-brainer-execute-safety.sh"
 timeout = "1m"
 
 [[steps]]
@@ -97,7 +97,7 @@ max_attempts = 1
 
 [steps.check.check]
 mode = "exec"
-path = "/Users/tdupuy/gt/gascity-packs/mathematics/assets/scripts/checks/brief-no-brainer-safety.sh"
+path = "/Users/tdupuy/repos/gascity-packs/mathematics/assets/scripts/checks/brief-no-brainer-safety.sh"
 timeout = "1m"
 
 [[steps]]

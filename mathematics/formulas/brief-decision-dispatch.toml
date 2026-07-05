@@ -184,10 +184,14 @@ terminalize_slug() {
   ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo 'unknown')"
   escalate_note=""
   if [ -x "$ESCALATE" ]; then
+    rc=0
     "$ESCALATE" \
       --title "[undispatchable] brief decision $slug" \
       --body "$reason" \
-      --priority 2 2>/dev/null || true
+      --priority 2 2>/dev/null || rc=$?
+    if [ "$rc" -ne 0 ]; then
+      escalate_note=" (escalate.sh failed: exit $rc)"
+    fi
   else
     escalate_note=" (escalate.sh absent)"
   fi
