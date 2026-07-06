@@ -1,6 +1,6 @@
 # mathematics
 
-**Taylor-local mathematical work pack.** Codifies the brief pipeline — formulas, orders, gate policy, and skills — that routes math research decisions (branches, PRs, experiments) from artifact to adjudication.
+**local mathematical work pack.** Codifies the brief pipeline — formulas, orders, gate policy, and skills — that routes math research decisions (branches, PRs, experiments) from artifact to adjudication.
 
 ## Links
 
