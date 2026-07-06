@@ -11,7 +11,7 @@
 
 ## What is the brief system
 
-The brief system is a structured decision pipeline for math research work. When an agent completes a branch, closes a bead, or proposes an experiment, it does not automatically merge or act. Instead it produces a brief — a formatted document that describes the artifact, the work done, the gate evidence, and a clear statement of what decision is needed. Briefs are the unit of work that flows between automated agents and Taylor.
+The brief system is a structured decision pipeline for math research work. When an agent completes a branch, closes a bead, or proposes an experiment, it does not automatically merge or act. Instead it produces a brief — a formatted document that describes the artifact, the work done, the gate evidence, and a clear statement of what decision is needed. Briefs are the unit of work that flows between automated agents and human user.
 
 The pipeline has two main phases. In the production phase, `brief-prep` (a skill that composes `grill-and-present`, `coordinate-review`, and the gate runner) prepares the brief from the source artifact, runs all required gates, and deposits the result into the `.pile` at `.beads/briefs/.pile/`. The `brief-shuffle-pile` order fires on condition, picks up pile items one at a time, applies gate-keep rules, and either promotes each brief to the `.beads/briefs/stack/` with a manifest entry or rejects it to `.pile/.rejected/`.
 
