@@ -21,7 +21,7 @@ In the adjudication phase, `brief-present-next` drains the stack and presents br
 
 ## Skills
 
-Nine skills ship with this pack. They are bare `SKILL.md` composition units — no wrapper scripts.
+Nine skills ship with this pack. They are bare `SKILL.md` composition units — no wrapper scripts. The `grill-with-docs` and its derivatives are based of Matt Popocock's repository: [Matt Popocock's](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs)
 
 | Skill | Description |
 |---|---|
