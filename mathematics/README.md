@@ -21,7 +21,7 @@ In the adjudication phase, `brief-present-next` drains the stack and presents br
 
 ## Skills
 
-Nine skills ship with this pack. They are bare `SKILL.md` composition units — no wrapper scripts. The `grill-with-docs` and its derivatives are based off [Matt Popocock's Skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs)
+Nine skills ship with this pack. They are bare `SKILL.md` composition units — no wrapper scripts. The `grill-with-docs` and its derivatives are based off [Matt Popocock's Skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs). Most of the skill formulas and plans were developed using a ``fixed point finder'' where artifacts (in this case the skill) goes through a comprehensive review until the agents converge on the skill. (The fixed point finder is now deprecated in favor of the gascity native version.)
 
 | Skill | Description |
 |---|---|
@@ -88,7 +88,9 @@ Located at `agents/codex-worker/agent.toml`. A simple Codex worker scoped to the
 
 ## 16-Gate system
 
-Every brief is evaluated against a registry of 16 gates before it can be promoted from the pile to the stack. Gates have four kinds:
+Every brief is evaluated against a registry of 16 gates before it can be promoted from the pile to the stack. This system was made autonomously after initially recieving many reviews. As the user approved decisions one has to classify them as "no-brainers". Every 10 new "no-brainers" sparks a review of the gate process so that the no-brainer reviews are caught and immediately processed. This allows us to cut down on the number of briefs we have to read. 
+
+Gates have developed into four kinds (so far):
 
 - **mechanical** — checked deterministically by script; no judgment required.
 - **review** — requires an agent or human reviewer to evaluate evidence.
