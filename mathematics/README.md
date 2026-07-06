@@ -158,6 +158,8 @@ A single brief cycle from artifact to decision proceeds as follows.
 
 ## Bead Backup Setup
 
+This section is intended to provide some documentation for how you can backup your beads directly on github by making new repositories and so you don't need to purchase a dolthub account. I haven't shared beads yet so I don't know who this works. This described my personal setup which you can adapt. If you read this and end up using something like this, please modify these instructions to remove my name and make them more general. Also, if you find a better solution please update this and make a PR. 
+
 Each rig runs a Dolt-backed bead store. Beads hold internal operational context — decision records, brief history, bead metadata — that must not be exposed publicly even when the code repo is public. Back up bead data to a dedicated **private** GitHub repo.
 
 ### Naming convention
