@@ -38,6 +38,25 @@ else
     SYNC="${4:-}"
 fi
 
+# Pre-flight: refuse to create worktrees when RIG_ROOT's git context resolves
+# outside the rig. Without a .git pointer file in the rig root, git walks up
+# to an enclosing repository (e.g. the city root) and every worktree created
+# here registers in the wrong repo — wrong branches, wrong pushes, cross-rig
+# leakage (gt-4rn).
+GITDIR=$(git -C "$RIG_ROOT" rev-parse --absolute-git-dir 2>/dev/null) || {
+    echo "worktree-setup: $RIG_ROOT is not a git repository" >&2
+    exit 1
+}
+case "$GITDIR" in
+    "$RIG_ROOT"/*) : ;;  # .repo.git or .git inside the rig — OK
+    *)
+        echo "worktree-setup: REFUSING to create worktree for $RIG_ROOT:" >&2
+        echo "  its git dir resolves OUTSIDE the rig ($GITDIR)." >&2
+        echo "  Likely a missing .git pointer file in the rig root (gt-4rn)." >&2
+        exit 1
+        ;;
+esac
+
 sync_worktree() {
     [ "$SYNC" = "--sync" ] || return 0
     if ! git -C "$WT" remote get-url origin >/dev/null 2>&1; then
