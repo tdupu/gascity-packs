@@ -19,6 +19,23 @@ In the adjudication phase, `brief-present-next` drains the stack and presents br
 
 ---
 
+## Skill canonicality
+
+**The mathematics pack is the single source of truth for all brief-pipeline and math-workflow skills.**
+
+- `~/repos/gascity-packs/mathematics/skills/<name>/SKILL.md` is the canonical file.
+- `~/repos/agent-skills/skills/<name>` is a relative symlink into the pack — it exists only so plain-session Claude Code agents (using `~/.claude/skills/`) can load these skills without a running city.
+- **Edits always land as commits to `gascity-packs` (fork `tdupu/gascity-packs`).** Never edit the agent-skills side of the symlink; it points back here.
+- **New brief-pipeline or math skills are created inside `mathematics/skills/<name>/` first**, then symlinked into `~/repos/agent-skills/skills/<name>` with `ln -s ../../gascity-packs/mathematics/skills/<name> <name>` (relative, from inside `agent-skills/skills/`). The symlink is committed to agent-skills.
+- Run `~/repos/agent-skills/scripts/check-skill-symlinks.sh` to verify all symlinks resolve and every skill dir contains `SKILL.md`.
+
+Skills currently managed under this policy (all 11 as of 2026-07-07):
+`brief-prep`, `catch-no-brainer`, `coordinate-review`, `critical-review`,
+`formula-creator`, `grill-and-present`, `is-good-experiment`, `is-good-test`,
+`present-briefs`, `present-it`, `record-decision`.
+
+---
+
 ## Skills
 
 Nine skills ship with this pack. They are bare `SKILL.md` composition units — no wrapper scripts. The `grill-with-docs` and its derivatives are based off [Matt Popocock's Skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs). Most of the skill formulas and plans were developed using a ``fixed point finder'' where artifacts (in this case the skill) goes through a comprehensive review until the agents converge on the skill. (The fixed point finder is now deprecated in favor of the gascity native version.)
