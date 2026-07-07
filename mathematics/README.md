@@ -165,17 +165,17 @@ Each rig runs a Dolt-backed bead store. Beads hold internal operational context 
 ### Naming convention
 
 ```
-<rig-name>-city-tdupu
+<X>-dolt
 ```
 
-Examples: `lmfdb-city-tdupu`, `gascity-HQ-city-tdupu`. HQ (`~/gt`) always uses `gascity-HQ-city-tdupu`. Never share the beads repo with the code repo for public code repos; keep them separate.
+Examples: `hecke-dolt`, `lmfdb-dolt`, `agent-skills-dolt`. HQ (`~/gt`) uses `gascity-HQ-dolt`. Renamed 2026-07-07 from the older `<rig-name>-city-tdupu` convention; GitHub redirects the old names but local remotes should use the new URLs. Never share the beads repo with the code repo for public code repos; keep them separate.
 
 ### Setup steps
 
 **1. Create a private GitHub repo.**
 
 ```bash
-gh repo create tdupu/<rig-name>-city-tdupu --private
+gh repo create tdupu/<X>-dolt --private
 ```
 
 Verify it is private before continuing. A public beads repo is a hard error.
@@ -184,7 +184,7 @@ Verify it is private before continuing. A public beads repo is a hard error.
 
 ```bash
 bd dolt remote remove origin    # drop any stale remote
-bd dolt remote add origin git+ssh://git@github.com/./tdupu/<rig-name>-city-tdupu.git
+bd dolt remote add origin git+ssh://git@github.com/./tdupu/<X>-dolt.git
 ```
 
 The `./` after `github.com` is required by the Dolt SSH protocol — omitting it breaks the push.
@@ -205,6 +205,16 @@ git ls-remote origin refs/dolt/data
 
 A SHA line in the output confirms the push landed. If the output is empty, re-check the remote URL and SSH key access.
 
+### Two-sided sync (~/repos/X ↔ ~/gt/X)
+
+Both the Gas City copy (`~/gt/X`) and the working copy (`~/repos/X`) point their `bd dolt remote origin` at the same tdupu/`<X>`-dolt repo. Sync is manual and on-demand:
+
+- When you sit down to work in `~/repos/X`, run `bd dolt pull` to fetch the latest beads from the backup remote.
+- When you finish working in `~/repos/X`, run `bd dolt push` to send local changes back to the remote.
+- The `~/gt/X` side has its own patrol and can push independently; both sides will converge on the remote's state.
+
+Critical: bead data must NEVER be pushed to the code repositories. Ensure that neither `~/repos/X` nor `~/gt/X` carry `refs/dolt/data` or `__dolt_remote_info__` on their code remotes (the remotes that point at `tdupu/X`, not `tdupu/X-dolt`).
+
 ### Restore from backup
 
 To restore a rig's bead store from its private GitHub backup into a fresh directory:
@@ -212,7 +222,7 @@ To restore a rig's bead store from its private GitHub backup into a fresh direct
 ```bash
 mkdir -p /path/to/restore-dir
 cd /path/to/restore-dir
-bd init --remote "git+ssh://git@github.com/./tdupu/<rig-name>-city-tdupu.git" --non-interactive
+bd init --remote "git+ssh://git@github.com/./tdupu/<X>-dolt.git" --non-interactive
 ```
 
 `bd init --remote` clones the full Dolt database from `refs/dolt/data` and adopts the project identity. It downloads all bead chunks (expect ~200 MB for a large rig) and makes `bd list` immediately functional.
@@ -220,7 +230,7 @@ bd init --remote "git+ssh://git@github.com/./tdupu/<rig-name>-city-tdupu.git" --
 **After restore:** the cloned database does not auto-configure a push remote. Before pushing from a disaster-recovery clone, re-add the remote explicitly:
 
 ```bash
-bd dolt remote add origin "git+ssh://git@github.com/./tdupu/<rig-name>-city-tdupu.git"
+bd dolt remote add origin "git+ssh://git@github.com/./tdupu/<X>-dolt.git"
 bd dolt push
 ```
 
