@@ -3,6 +3,8 @@ name: catch-no-brainer
 description: PRELIMINARY v0.1 — classify a brief against the he-lele 5-criterion no-brainer test, plus recognize the capability-blocker shape (would-be no-brainer stalled by a permission/capability gap) and signal compact-form eligibility to downstream present-it consumers (DRY-RUN). Emits one JSON-line verdict to stdout per brief; copies no-brainer matches into /Users/tdupuy/gt/hecke/.beads/briefs/.pile/.no-brainer/ and novel-shape descriptors into /Users/tdupuy/gt/hecke/.beads/.gates-candidate-pile/. NEVER edits bead he-xkq3, NEVER auto-merges, NEVER closes briefs, NEVER runs `bd update`. Triggers triaging a brief that just landed in the main stack for Taylor-bypass eligibility (stale-scratch cleanup, mechanical promotion, sibling-PASS); architecture-class briefs (deep design, coupling, judgment-load) bypass this skill and go straight to Mayor/Taylor.
 ---
 
+> **Canonical copy**: `mathematics.catch-no-brainer` in gascity-packs. This agent-skills copy is retained as fallback.
+
 > **PRELIMINARY v0.1 — DRY-RUN ONLY.** Emits proposed verdicts + proposed gates-registry extensions + compact-form eligibility signal.
 > NEVER writes to [[he-xkq3]], NEVER auto-merges, NEVER closes briefs, NEVER calls `bd update`/`bd close`/`bd link`.
 > Allowed side effects: `mkdir -p` + file write in `.pile/.no-brainer/` and `.gates-candidate-pile/`. Nothing else.
