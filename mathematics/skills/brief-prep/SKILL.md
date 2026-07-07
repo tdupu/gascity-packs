@@ -1,11 +1,27 @@
 ---
 name: brief-prep
-description: Specialized worker that owns the brief-prep pipeline end-to-end. Given an artifact (branch, bead-id, PR, diff, GH-issue-N), produces a pull-eligible brief in the stack with every gate satisfied. Enforces the Decision-at-Top INVARIANT from [[present-it]] (§1 of the brief MUST be "What is being decided" — before origin, math, timeline, or gates). Branches on catch-no-brainer output: cat-A/B/C/D with safety-overrides-clear → compact-form brief; everything else → full-form 7-section brief. Trigger on "brief-prep X", "prepare a brief for X", "run the brief pipeline on X", "deposit a brief on X", or whenever the user wants a polecat-style brief-prep with full bookkeeping. Composes grill-and-present (brief production) + the external review gate (coordinate-review) + the stack deposit + the bookkeeper convention. Self-rejects if any gate fails. Out of scope: presenting to Taylor (Mayor's job), adjudication (Taylor's job), executing decisions (Mayor or Taylor's job).
+description: >-
+  Specialized worker that owns the brief-prep pipeline end-to-end. Given an
+  artifact (branch, bead-id, PR, diff, GH-issue-N), produces a pull-eligible
+  brief in the stack with every gate satisfied. Enforces the Decision-at-Top
+  INVARIANT from [[present-it]] (§1 of the brief MUST be "What is being decided"
+  — before origin, math, timeline, or gates). Branches on catch-no-brainer
+  output: cat-A/B/C/D with safety-overrides-clear → compact-form brief;
+  everything else → full-form 7-section brief. Trigger on "brief-prep X",
+  "prepare a brief for X", "run the brief pipeline on X", "deposit a brief on
+  X", or whenever the user wants a polecat-style brief-prep with full
+  bookkeeping. Composes create-brief (brief production) + the external review
+  gate (coordinate-review) + the stack deposit + the bookkeeper convention.
+  Self-rejects if any gate fails. Out of scope: presenting to Taylor (clerk's
+  job, via the clerk channel), adjudication (Taylor's job), executing decisions
+  (Mayor or Taylor's job).
 ---
+
+> **Canonical copy**: `mathematics.brief-prep` in gascity-packs. This agent-skills copy is retained as fallback.
 
 # brief-prep
 
-You are the specialized worker that takes an artifact and produces a **pull-eligible brief** in `/Users/tdupuy/gt/hecke/.beads/briefs/`. By the time you return, every gate from [[brief-test-evidence-required]] and [[project_brief_stack_workflow]] has been satisfied. Mayor pulls and presents; you don't.
+You are the specialized worker that takes an artifact and produces a **pull-eligible brief** in `/Users/tdupuy/gt/hecke/.beads/briefs/`. By the time you return, every gate from [[brief-test-evidence-required]] and [[project_brief_stack_workflow]] has been satisfied. Mayor pulls and promotes; the clerk presents to Taylor; you do neither.
 
 ## Why this skill exists
 
@@ -47,13 +63,13 @@ For each test:
    - Outcomes (PASS + FAIL) both meaningful?
    - Coverage proportional?
    - Pitfalls (not-loading-data, slow-route, assert-by-accident) planned for?
-5. Record per-test result: file + command + exit code + pass/fail + good-test verdict. If a test is unrunnable (no Magma, missing DATA), declare it explicitly in §5 of the brief — never silently skip.
+5. Record per-test result: file + command + exit code + pass/fail + good-test verdict. If a test is unrunnable (no Magma, missing DATA), declare it explicitly in §6 of the brief — never silently skip.
 
-If ALL tests fail or are unrunnable: the brief becomes a "blocker"-class brief; verdict in §10 must capture the blocking condition.
+If ALL tests fail or are unrunnable: the brief becomes a "blocker"-class brief; the recommended answer in §2 must capture the blocking condition.
 
 ### Phase 3 — draft the brief
 
-Use [[present-it]] to draft the brief. Cite test evidence verbatim in §6 (evidence section).
+Draft the brief per [[create-brief]] — the gated `.md`-artifact producer (frontmatter schema, stack path, gate definitions); the section structure itself is [[present-it]]'s. This skill's Phases 2, 4, and 5 satisfy create-brief's gates 1–3 — do not re-run them inside the drafting step. Cite test evidence verbatim in §6 (evidence section).
 
 **Choose output shape** based on classification (see [[catch-no-brainer]] output + [[present-it]] "Output shapes"):
 
@@ -92,9 +108,9 @@ bd list --status blocked --limit 0 2>&1 | grep -F "← .* $ARTIFACT_BEAD_ID" | w
 bd list --metadata-field closes_gh_issues=$GH_NUM --limit 0 2>&1 | wc -l
 ```
 
-Sum direct + indirect. Record the computation transcript in §10 of the brief.
+Sum direct + indirect. Record the computation transcript in §7 of the brief (plan membership + blocking).
 
-**Compute safety-override frontmatter fields.** Run the mechanical tests below on the brief's accepted disposition (what files the recommended action would modify, per §2 + §10 of the brief). See "Safety overrides" section for the full path lists; populate the two frontmatter booleans here:
+**Compute safety-override frontmatter fields.** Run the mechanical tests below on the brief's accepted disposition (what files the recommended action would modify, per §2 recommended answer + §7 gates). See "Safety overrides" section for the full path lists; populate the two frontmatter booleans here:
 
 ```bash
 # server_touching: any path in the disposition matches he-lele cat-E server surfaces
@@ -105,7 +121,7 @@ Sum direct + indirect. Record the computation transcript in §10 of the brief.
 # (these files are loaded by every polecat session globally — pool-wide blast radius)
 ```
 
-When either field is `true`, the brief MUST also include a §10 callout citing the override and explicitly requesting Taylor adjudication; auto-merge is forbidden regardless of no-brainer classification.
+When either field is `true`, the brief MUST also include a §7 callout citing the override and explicitly requesting Taylor adjudication; auto-merge is forbidden regardless of no-brainer classification.
 
 ### Phase 4 — self critical-review (skill-level)
 
@@ -133,10 +149,12 @@ coordinate-review
   store_beads=false
 ```
 
-Update status field at each iteration: `in-review-iter-1`, `in-review-iter-2`, etc.
+Update status field at each iteration: `in-review-iter-1`, `in-review-iter-2`, etc. Run `/compact` between iterations N and N+1 so the prior round's transcript does not bloat context for the next round.
 
 - On APPROVING within 4 rounds: status → `approved`. Proceed to Phase 6.
 - On 4 rounds without APPROVING: status → `review-failed`. STOP — do NOT deposit-and-pretend; file a follow-up bead and surface to Mayor.
+
+**BETWEEN PHASES 5 and 5b: Run `/compact` to free context** before the optional second-opinion gate. This clears the working memory from the first coordinate-review iteration, preserving the summary for the second opinion phase.
 
 ### Phase 5b — optional second-opinion polecat (C-gate)
 
@@ -144,7 +162,7 @@ Trigger conditions (any TRUE):
 - Brief touches notes.tex with a hard gate.
 - Brief recommends DELETE on a branch with >5 commits.
 - Brief contradicts a prior brief or bead (check via `grep -l "<artifact>" .beads/briefs/`).
-- §10 explicitly flags uncertainty.
+- §5 (risks) explicitly flags uncertainty.
 
 If triggered (and `second_opinion` is not force-off): invoke `coordinate-review` a second time with an INDEPENDENT reviewer_persona ("independent skeptic, fresh eyes; you have not seen this brief before"). Cap at 2 rounds. Both reviews must converge to APPROVING before status → `approved`.
 
@@ -157,7 +175,7 @@ If triggered (and `second_opinion` is not force-off): invoke `coordinate-review`
              --description "..." \
              --metadata brief_path=<full-path>,brief_status=approved,cohort=brief-stack
    ```
-2. **For each finding the brief surfaces** (§7 or §10): file a follow-up bead with `--metadata surfaced_by_brief=<brief-filename>`.
+2. **For each finding the brief surfaces** (§5 risks or §7 plan/gates): file a follow-up bead with `--metadata surfaced_by_brief=<brief-filename>`.
 3. **Attach to relevant planning epics** via `bd dep add <follow-up> <epic> --type related` or `--type blocks` as appropriate.
 4. **Echo brief-record bead-id and follow-up bead-ids** in the return summary so Mayor can verify.
 
@@ -194,7 +212,7 @@ In all rejection cases: file a follow-up bead with metadata `brief_prep_blocked_
 
 ## Safety overrides (REJECT no-brainer auto-merge regardless of classification)
 
-Two SAFETY OVERRIDES fire BEFORE the no-brainer classifier and BEFORE the auto-merge kill-switch consultation. If either fires, the brief is NOT auto-mergeable regardless of category match (he-lele A/B/C/D); it routes to Taylor for explicit adjudication.
+Two SAFETY OVERRIDES take precedence over the no-brainer classifier's result and fire BEFORE the auto-merge kill-switch consultation (see "Order at gate-check time" below for the exact sequence). If either fires, the brief is NOT auto-mergeable regardless of category match (he-lele A/B/C/D); it routes to Taylor for explicit adjudication.
 
 These overrides are NEGATIVE classifiers consumed by downstream pipeline components (catch-no-brainer skill [[he-6wej]], shuffler [[he-p2jv]], pile-processor [[he-x3se]]). brief-prep DECLARES the override via the `server_touching` / `user_skill_touching_override` frontmatter booleans (set in Phase 3); downstream ENFORCES.
 
@@ -236,7 +254,7 @@ Rationale: user-skill files are loaded by every polecat session globally. An err
 
 ## Hard rules
 
-- **NO presenting to Taylor.** That's Mayor's job. Return the bead-id; Mayor calls `pull-brief`.
+- **NO presenting to Taylor.** The clerk owns Taylor-facing presentation (per the mayor-no-direct-grilling / clerk-is-intermediary-only memories); Mayor pulls/promotes from the stack and dispatches. Return the bead-id.
 - **NO `bd close` on adjudication-class beads.** Taylor decides; agents propose.
 - **NO commits or pushes.** Brief deposits are local-only artifact writes.
 - **NO `gh issue close`.** The brief recommends; Taylor or Mayor (via decisions.jsonl) executes.
@@ -247,8 +265,9 @@ Rationale: user-skill files are loaded by every polecat session globally. An err
 
 - **[[brief-test-evidence-required]]** — the per-brief workflow (§3 here implements it).
 - **[[project_brief_stack_workflow]]** — the durable-stack infra (Phase 3 + 5 deposit there).
-- **[[grill-and-present]]** — alternative orchestrator skill if user wants the legacy path.
-- **[[present-it]]** — the 10-section brief generator (called in Phase 3).
+- **[[grill-and-present]]** — legacy orchestrator; retirement proposed under as-4nu.
+- **[[create-brief]]** — the gated `.md`-artifact producer (called in Phase 3): frontmatter schema, stack path, gates, clerk-channel delivery.
+- **[[present-it]]** — defines the brief section structure (7 grill-ordered sections) and both output shapes; terminal context dump only, no file, no gates.
 - **[[coordinate-review]]** — the FP-finder for the external gate (Phase 5).
 - **[[is-good-experiment]]** + **[[is-good-test]]** — the test-quality rules (Phase 2 + 4).
 - **[[taylor-final-judge-sort]]** — Taylor adjudicates; you propose.
@@ -256,7 +275,7 @@ Rationale: user-skill files are loaded by every polecat session globally. An err
 
 ## What this skill does NOT do
 
-- **Does not present to Taylor.** Mayor's job.
+- **Does not present to Taylor.** Clerk's job, via the clerk channel; Mayor dispatches.
 - **Does not execute decisions.** Mayor or Taylor's job.
 - **Does not modify the artifact.** A brief is metadata, not a code edit.
 - **Does not auto-claim slings.** A sling-bead → brief-prep dispatch path is Mayor's call.
@@ -266,3 +285,4 @@ Rationale: user-skill files are loaded by every polecat session globally. An err
 - **v1.0 — overnight-supervisor draft + FP-finder pass 1** (2026-06-23): initial design per he-xgun charge. Two-round FP-loop converged inline.
 - **v1.1 — user-skill-touching SAFETY OVERRIDE** (2026-06-24, per [[as-wjv]]): added "Safety overrides" section codifying both server-touching (he-lele cat-E) and user-skill-touching (as-wjv) negative classifiers; brief-prep now computes `server_touching` and `user_skill_touching_override` frontmatter booleans in Phase 3 for downstream enforcement by catch-no-brainer ([[he-6wej]]) / shuffler ([[he-p2jv]]) / pile-processor ([[he-x3se]]).
 - **v1.2 — better briefs: Decision-at-Top INVARIANT + compact form + capability-blocker awareness** (2026-06-30, per as-niek per Taylor "better briefs" epic): hardened §1 ("What is being decided") from convention to invariant with auto-reject enforcement in Phase 4; adopted the grill-with-docs shape from [[present-it]] (decision-first; §3 assumptions surfaced, §4 alternatives named, §5 risks foregrounded, §6 evidence, §7 gates); added Phase 3 shape-branch selecting between full-form and compact form based on [[catch-no-brainer]] output (compact requires cat-A/B/C/D + `compact_eligible: true` + BOTH safety overrides clear + shape ≠ `capability-blocker`); added `capability-blocker` awareness — briefs where the recommended disposition WOULD be no-brainer if a permission/capability gap were resolved route through "resolve the blocker, then re-classify", never compact; added self-rejection conditions #1 (invariant violated) and #2 (compact misclassified).
+- **v1.3 — two-skill split recomposition** (2026-07-03, per as-4nu): Phase 3 now drafts per [[create-brief]] (the new gated `.md`-artifact producer); [[present-it]] is terminal-only (context dump in-conversation, no file, no gates, no batch) and supplies only the section structure; migrated residual old-numbering references (§10 → §2/§5/§7, test-evidence declarations → §6) left over from the pre-as-niek 10-section template.

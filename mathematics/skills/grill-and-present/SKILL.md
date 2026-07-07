@@ -1,15 +1,19 @@
 ---
 name: grill-and-present
-description: Produce decision-ready brief(s) on artifact(s) (branch, bead, PR, diff) by gathering all 10 present-it sections, grilling the decision-maker on ambiguity one question at a time, running the artifact's tests (divide-and-conquer in parallel), and FP-converging the brief itself through critical-review BEFORE presenting. When multiple artifacts are queued, prepares ALL briefs as a batch before bringing any to the decision-maker. Self-rejects (refuses to present) any brief lacking test-run evidence (file + command + pass/fail) or that has not passed critical-review. Trigger on "present this for decision", "give me a brief on X", "what's the decision on X", "should we merge/delete/keep X", "grill and present X", or batch phrasing like "brief me on these N items".
+description: Produce decision-ready brief(s) on artifact(s) (branch, bead, PR, diff) by gathering all present-it sections, grilling the decision-maker on ambiguity one question at a time, running the artifact's tests (divide-and-conquer in parallel), and FP-converging the brief itself through critical-review BEFORE presenting. When multiple artifacts are queued, prepares ALL briefs as a batch before bringing any to the decision-maker. Self-rejects (refuses to present) any brief lacking test-run evidence (file + command + pass/fail) or that has not passed critical-review. Trigger on "present this for decision", "give me a brief on X", "what's the decision on X", "should we merge/delete/keep X", "grill and present X", or batch phrasing like "brief me on these N items".
 ---
 
+> **Canonical copy**: `mathematics.grill-and-present` in gascity-packs. This agent-skills copy is retained as fallback.
+
 # grill-and-present
+
+> **Status (as-4nu, 2026-07-03): retirement PROPOSED, pending Taylor's adjudication.** The gates here now live in [[create-brief]] (composed by [[brief-prep]]); gate-free terminal presentation is [[present-it]]. This skill remains live until the as-4nu PR is adjudicated; prefer the split skills for new work.
 
 Produce decision-ready brief(s) while interactively resolving ambiguity during gathering, validating tests with evidence, and critical-reviewing each brief to APPROVING before presentation. The decision-maker reads one batch of briefs, asks no follow-up questions, and decides.
 
 This skill is **workflow orchestration**. It composes existing skills — do not re-implement their rules. Resolve via `~/.claude/skills/<name>/SKILL.md` or `~/repos/agent-skills/skills/<name>/SKILL.md`.
 
-- **Structure**: 10-section brief from `present-it/SKILL.md`.
+- **Structure**: the grill-ordered brief (7 sections) from `present-it/SKILL.md`.
 - **Interview discipline** when ambiguity surfaces: `grilling/SKILL.md` — one question at a time, recommended answer with each.
 - **Terminology sharpening** when fuzzy terms surface: `domain-modeling/SKILL.md` — inline, not batched.
 - **Test-quality gate**: `is-good-experiment` at `/Users/tdupuy/gt/agent_skills/.agents/skills/is-good-experiment/SKILL.md` — applied as a special case where the experiment's question is pre-filled as "does X work?" (X = the code under test).
@@ -19,13 +23,13 @@ This skill is **workflow orchestration**. It composes existing skills — do not
 
 A brief is **not deliverable** unless all three hold. If a gate fails, the agent refuses to present and reports the failure; this is self-enforcement, not waiting for the decision-maker to reject on receipt.
 
-1. **Tests run with evidence in §5.** Test file path + exact command + pass/fail outcome (or exit code). "Tests have not been run" → self-reject. Codified by the decision-maker 2026-06-22.
+1. **Tests run with evidence in §6.** Test file path + exact command + pass/fail outcome (or exit code). "Tests have not been run" → self-reject. Codified by the decision-maker 2026-06-22.
 2. **Tests pass quality rules** per `is-good-experiment` (all six checkpoints must clear; Checkpoint 5's pitfalls — data not loaded, slow route of computation — are the most common source of BLOCKING items in hecke artifacts). A test that functionally passes but yields `NEEDS-REVISION` with BLOCKING items is NOT a passing test for brief purposes.
 3. **Brief itself converged to APPROVING** via `coordinate-review` (FP-finder), not just drafted.
 
 ## Exception clause for unrunnable tests
 
-A test may be skipped only with a **good reason explicitly declared in §5** of the brief. Acceptable patterns: "the bead IS the test itself" — but even then **the test should still run** if at all possible. The only true skip is impossibility (no Magma reachable, hardware Taylor only has, etc.). **No silent skips.** A blank §5 is auto-reject.
+A test may be skipped only with a **good reason explicitly declared in §6** of the brief. Acceptable patterns: "the bead IS the test itself" — but even then **the test should still run** if at all possible. The only true skip is impossibility (no Magma reachable, hardware Taylor only has, etc.). **No silent skips.** A blank §6 is auto-reject.
 
 ## Workflow
 
@@ -38,11 +42,11 @@ Enumerate every artifact queued for decision. If one artifact: batch of 1. If ma
 For every artifact in the batch, identify the tests that should pass. **Dispatch all test runs in parallel — both within a single artifact (split its test suite across polecats/subagents) and across artifacts in the batch (run tests for A, B, C concurrently).** Do not serialize. For each test set:
 
 1. Dispatch runner(s). Capture file + command + result.
-2. If functionally fails → either fix the artifact (out-of-scope work, hand off) or surface the failure as data in §5 of the brief. Do not pretend pass. Re-run after any fix.
+2. If functionally fails → either fix the artifact (out-of-scope work, hand off) or surface the failure as data in §6 of the brief. Do not pretend pass. Re-run after any fix.
 3. Once functional-pass, evaluate against `is-good-experiment` (six checkpoints). BLOCKING items → not a pass; fix and re-run.
-4. If genuinely unrunnable: declare the reason and the evidence of impossibility (§5), per the exception clause.
+4. If genuinely unrunnable: declare the reason and the evidence of impossibility (§6), per the exception clause.
 
-Distinguish two failure modes: **(a) functional FAIL** (exit code nonzero, assertion fired) is presentable data — record it in §5 and present the brief; the decision-maker may still decide "delete" or "fix-then-revisit." **(b) `is-good-experiment` BLOCKING** is a gate 2 violation — fix the test design and re-run before presenting; the brief is not deliverable while gate 2 fails.
+Distinguish two failure modes: **(a) functional FAIL** (exit code nonzero, assertion fired) is presentable data — record it in §6 and present the brief; the decision-maker may still decide "delete" or "fix-then-revisit." **(b) `is-good-experiment` BLOCKING** is a gate 2 violation — fix the test design and re-run before presenting; the brief is not deliverable while gate 2 fails.
 
 ### Step 3: Gather + grill per artifact
 
@@ -57,15 +61,15 @@ Follow `grilling/SKILL.md`: one question at a time, with your recommended answer
 
 ### Step 4: Draft the brief
 
-Use `present-it/SKILL.md` exactly (10 sections, prose vs. bullets, Required gates summary, Decision options block). After the Decision options block and before asking for the decision, state **your recommendation with a one-line rationale**.
+Use `present-it/SKILL.md` exactly (7 grill-ordered sections, prose vs. bullets, Required gates summary, Decision options block). After the Decision options block and before asking for the decision, state **your recommendation with a one-line rationale**.
 
 ### Step 5: FP-converge each brief
 
-Invoke `coordinate-review` on each drafted brief with a reviewer persona appropriate to the artifact's domain (e.g., "a Magma reviewer paranoid about un-loaded data and slow intrinsics" for hecke artifacts). Iterate until APPROVING. If `coordinate-review` stalls (BLOCKING items persist past its own stop signals), that brief is non-deliverable: **hold the rest of the batch**, do not present any of it, and report the stall to the decision-maker as a separate communication. Do not silently drop the artifact from the batch.
+Invoke `coordinate-review` on each drafted brief with a reviewer persona appropriate to the artifact's domain (e.g., "a Magma reviewer paranoid about un-loaded data and slow intrinsics" for hecke artifacts). Iterate until APPROVING. Run `/compact` between iterations N and N+1 so the prior round's reviewer/revisor transcript does not bloat context for the next round. If `coordinate-review` stalls (BLOCKING items persist past its own stop signals), that brief is non-deliverable: **hold the rest of the batch**, do not present any of it, and report the stall to the decision-maker as a separate communication. Do not silently drop the artifact from the batch.
 
 ### Step 6: Steps 3–5 per artifact; Step 2 across artifacts
 
-Step 2 (tests) runs in parallel across the whole batch. Steps 3–5 (gather, draft, FP-converge) are per-artifact and may run in parallel across artifacts as well, subject to grilling needing the decision-maker's serial attention. **Only after every brief in the batch reaches APPROVING do you proceed to Step 7.** The unrunnable-test exception (declared in §5) still requires gate 3 — the brief itself must FP-converge to APPROVING.
+Step 2 (tests) runs in parallel across the whole batch. Steps 3–5 (gather, draft, FP-converge) are per-artifact and may run in parallel across artifacts as well, subject to grilling needing the decision-maker's serial attention. **Only after every brief in the batch reaches APPROVING do you proceed to Step 7.** The unrunnable-test exception (declared in §6) still requires gate 3 — the brief itself must FP-converge to APPROVING.
 
 ### Step 7: Present the batch
 

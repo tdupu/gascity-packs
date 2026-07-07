@@ -3,6 +3,8 @@ name: is-good-experiment
 description: Critical-review variant specialized for experiment proposals. Decides whether a proposed experiment is well-designed BEFORE any compute is spent running it. Trigger on "is this a good experiment?", "review this experiment proposal", "critique my experiment design", "is-good-experiment X", or whenever the user wants a pre-flight check on a computation, test script, or research probe. Used by `run-experiment` as a gate; specialization of `critical-review` (same verdict format, narrower scope).
 ---
 
+> **Canonical copy**: `mathematics.is-good-experiment` in gascity-packs. This agent-skills copy is retained as fallback.
+
 # is-good-experiment
 
 Specialization of `critical-review` for one artifact type: an **experiment proposal**. Your job is to decide whether the experiment is worth running. An experiment that produces an uninterpretable result is wasted compute; an experiment that can only support one conclusion is a confirmation, not a probe.
