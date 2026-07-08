@@ -31,7 +31,7 @@ default = ".beads/briefs"
 
 [vars.experiment_target]
 description = "Run target for experiment qualification and handoff."
-default = "gc.review-synthesizer"
+default = "gastown.mayor"
 
 [[steps]]
 id = "qualify-experiment"

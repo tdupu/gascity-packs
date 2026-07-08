@@ -31,7 +31,7 @@ enum = ["classify", "guarded-execute"]
 
 [vars.operator_target]
 description = "Run target for no-brainer classification."
-default = "gc.review-synthesizer"
+default = "gastown.mayor"
 
 [[steps]]
 id = "load-candidate"

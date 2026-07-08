@@ -32,7 +32,7 @@ default = ".beads/briefs"
 
 [vars.operator_target]
 description = "Run target for decision bookkeeping."
-default = "gc.run-operator"
+default = "gastown.dog"
 
 [[steps]]
 id = "write-decision"

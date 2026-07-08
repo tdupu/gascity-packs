@@ -36,11 +36,11 @@ default = ".beads/briefs"
 
 [vars.operator_target]
 description = "Run target for deterministic request bookkeeping."
-default = "gc.run-operator"
+default = "gastown.dog"
 
 [vars.review_target]
 description = "Run target for policy/risk review."
-default = "gc.review-synthesizer"
+default = "gastown.mayor"
 
 [[steps]]
 id = "write-request"
