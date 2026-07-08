@@ -226,6 +226,7 @@ check_server_touching_safety() {
   fi
 }
 
+
 check_file_or_sendback_log() {
   log="$ROOT/decisions/file-or-sendback.jsonl"
   require_file "$log"
