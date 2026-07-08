@@ -27,11 +27,11 @@ enum = ["standard", "no_brainer", "test_execution", "experiment"]
 
 [vars.operator_target]
 description = "Run target for deterministic gate checks and disposition."
-default = "gc.run-operator"
+default = "gastown.dog"
 
 [vars.review_target]
 description = "Run target for judgment-bearing review gates."
-default = "gc.review-synthesizer"
+default = "gastown.mayor"
 
 [[steps]]
 id = "load-registry"

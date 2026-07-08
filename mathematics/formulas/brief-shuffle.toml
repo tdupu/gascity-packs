@@ -22,7 +22,7 @@ default = ".beads/briefs"
 
 [vars.operator_target]
 description = "Run target for shuffler bookkeeping."
-default = "gc.run-operator"
+default = "gastown.dog"
 
 [[steps]]
 id = "acquire-lock"
