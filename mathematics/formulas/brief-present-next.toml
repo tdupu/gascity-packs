@@ -26,7 +26,7 @@ default = ".beads/briefs"
 
 [vars.presenter_target]
 description = "Run target for presenting the brief."
-default = "gc.review-synthesizer"
+default = "gastown.mayor"
 
 [[steps]]
 id = "read-manifest"

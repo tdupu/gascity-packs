@@ -40,11 +40,11 @@ default = ".beads/briefs"
 
 [vars.operator_target]
 description = "Run target for deterministic scanning and bookkeeping."
-default = "gc.run-operator"
+default = "gastown.dog"
 
 [vars.decide_target]
 description = "Run target for the judgment-bearing routing fallback."
-default = "gc.review-synthesizer"
+default = "gastown.mayor"
 
 [[steps]]
 id = "scan-pending"
