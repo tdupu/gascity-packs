@@ -1,11 +1,11 @@
 ---
 name: catch-no-brainer
-description: PRELIMINARY v0.1 — classify a brief against the he-lele 5-criterion no-brainer test, plus recognize the capability-blocker shape (would-be no-brainer stalled by a permission/capability gap) and signal compact-form eligibility to downstream present-it consumers (DRY-RUN). Emits one JSON-line verdict to stdout per brief; copies no-brainer matches into /Users/tdupuy/gt/hecke/.beads/briefs/.pile/.no-brainer/ and novel-shape descriptors into /Users/tdupuy/gt/hecke/.beads/.gates-candidate-pile/. NEVER edits bead he-xkq3, NEVER auto-merges, NEVER closes briefs, NEVER runs `bd update`. Triggers triaging a brief that just landed in the main stack for Taylor-bypass eligibility (stale-scratch cleanup, mechanical promotion, sibling-PASS); architecture-class briefs (deep design, coupling, judgment-load) bypass this skill and go straight to Mayor/Taylor.
+description: PRELIMINARY v0.2 — classify a brief against the he-lele 5-criterion no-brainer test, plus recognize the capability-blocker shape (would-be no-brainer stalled by a permission/capability gap) and signal compact-form eligibility to downstream present-it consumers (DRY-RUN). Emits one JSON-line verdict to stdout per brief; copies no-brainer matches into /Users/tdupuy/gt/hecke/.beads/briefs/.pile/.no-brainer/ and novel-shape descriptors into /Users/tdupuy/gt/hecke/.beads/.gates-candidate-pile/. NEVER edits bead he-xkq3, NEVER auto-merges, NEVER closes briefs, NEVER runs `bd update`. Triggers triaging a brief that just landed in the main stack for Taylor-bypass eligibility (stale-scratch cleanup, mechanical promotion, sibling-PASS); architecture-class briefs (deep design, coupling, judgment-load) bypass this skill and go straight to Mayor/Taylor.
 ---
 
 > **Canonical copy**: `mathematics.catch-no-brainer` in gascity-packs. This agent-skills copy is retained as fallback.
 
-> **PRELIMINARY v0.1 — DRY-RUN ONLY.** Emits proposed verdicts + proposed gates-registry extensions + compact-form eligibility signal.
+> **PRELIMINARY v0.2 — DRY-RUN ONLY.** Emits proposed verdicts + proposed gates-registry extensions + compact-form eligibility signal.
 > NEVER writes to [[he-xkq3]], NEVER auto-merges, NEVER closes briefs, NEVER calls `bd update`/`bd close`/`bd link`.
 > Allowed side effects: `mkdir -p` + file write in `.pile/.no-brainer/` and `.gates-candidate-pile/`. Nothing else.
 
@@ -27,28 +27,40 @@ Given a brief at `<path>` (frontmatter + body + diff summary inside the brief):
 
 4. **[[he-lele]] 5-criterion** (all 5 must hold): (1) branch regex `^(polecat|nux|<role>)/(<role>/)?<bead>(@<token>)?$`; (2) parent bead CLOSED with documented supersession (close-reason names a `bd`-resolvable artifact / merged PR / fs path); (3) diff vs `origin/master` touches ONLY scratch/transient files (no `magma/`, `latex/`, `notes.tex`, schema, `DATA/`, package files, `.beads/` except briefs themselves); (4) no downstream beads reference the branch; (5) brief verdict is `DELETE` or `INVESTIGATE`. → emit `{no_brainer:true, category:"stale-branch", compact_eligible:true}` (cat-A WIP-autosave; `cat-B` test-execution, `cat-C` verification-mid-flight, `cat-D` consolidate-mini-beads — see [[he-lele]] for definitions).
 
-5. **Else** (shape not in A/B/C/D and not a capability-blocker) → emit `{no_brainer:"candidate", proposed_registry_extension:"<one-line gate criterion>", requires_taylor_adjudication:true, compact_eligible:false}`.
+5. **DEFER-ratify-existing-HELD** (no-brainer DEFER). **Safety overrides apply first** — if steps 1 or 2 fired, this step is not reached. Trigger: (a) the brief's recommended disposition is `DEFER`; AND (b) the brief body or frontmatter indicates the current state is already HELD/standing (e.g., `status: HELD`, `existing_state: HELD`, or body text `already HELD` / `ratify existing hold` / `no-op: already deferred`); AND (c) the only action required is to ratify (record) that existing state — no new work, no file changes, no server interaction. → emit `{no_brainer:true, category:"defer-ratify-held", compact_eligible:true}` and copy brief into `.pile/.no-brainer/`.
+
+   *Rationale:* a brief whose decision merely confirms an already-deferred/held state carries zero adjudication load — the status quo IS the decision. Per [[feedback_no_brainer_class_under_flagged]] n=3 miss pattern.
+
+6. **CLOSE-DONE-cited-commit** (no-brainer CLOSE). **Safety overrides apply first** — if steps 1 or 2 fired, this step is not reached. Trigger: (a) the brief's recommended disposition is `CLOSE` with reason `DONE`; AND (b) a specific commit SHA (40-hex or abbreviated ≥7 chars) is cited in the brief body or frontmatter as evidence the work is already merged (e.g., `merged_commit:`, `evidence_sha:`, or inline `SHA: <hex>`); AND (c) the diff or body confirms the referenced commit is already present on `origin/master` (or the brief asserts "already merged"). → emit `{no_brainer:true, category:"close-done-cited-commit", compact_eligible:true}` and copy brief into `.pile/.no-brainer/`.
+
+   *Rationale:* if the work is provably merged (commit on record), closing is a mechanical record-keeping act. The SHA is the cryptographic receipt. Per [[feedback_no_brainer_class_under_flagged]] n=3 miss pattern.
+
+7. **EXECUTION-CONFIRMATION-with-cryptographic-proof** (no-brainer CONFIRM). **Safety overrides apply first** — if steps 1 or 2 fired, this step is not reached. Trigger: (a) the brief's recommended disposition is `CONFIRM` or `RATIFY-EXECUTION`; AND (b) the brief carries mechanically-verifiable proof that the execution already occurred — one or more of: a commit SHA, a signed artifact reference, an exit-code record (`exit_code: 0`), or a `bd`-resolvable artifact path; AND (c) the brief does NOT require Taylor to make any new judgment — it only asks for acknowledgment of a completed, provable act. → emit `{no_brainer:true, category:"execution-confirmation-proof", compact_eligible:true}` and copy brief into `.pile/.no-brainer/`.
+
+   *Rationale:* confirmation of an already-executed, provably-complete action is mechanical. The cryptographic/mechanical proof (SHA, signed artifact, exit record) substitutes for Taylor inspection. Per [[feedback_no_brainer_class_under_flagged]] n=3 miss pattern.
+
+8. **Else** (shape not in A/B/C/D, not steps 5/6/7, and not a capability-blocker) → emit `{no_brainer:"candidate", proposed_registry_extension:"<one-line gate criterion>", requires_taylor_adjudication:true, compact_eligible:false}`.
 
 ## Compact-form eligibility signal
 
 `compact_eligible: true` means the downstream [[present-it]] consumer MAY output the brief in compact form (`DECISION` / `CONTEXT` / `RECOMMEND` / `CONFIRM y/n/grill-me-further`) instead of the full 7-section grill-ordered brief. Necessary but not sufficient — [[brief-prep]] also requires BOTH safety-override booleans (`server_touching`, `user_skill_touching_override`) to be `false` before compact form ships.
 
-`compact_eligible: false` means the brief MUST be full-form. Applies to: server-touching, user-skill-touching, capability-blocker, and novel-shape (candidate) outputs.
+`compact_eligible: false` means the brief MUST be full-form. Applies to: server-touching, user-skill-touching, capability-blocker, and novel-shape (candidate) outputs. The three new path categories (defer-ratify-held, close-done-cited-commit, execution-confirmation-proof) emit `compact_eligible:true` when their trigger conditions are met — but ONLY because the safety overrides (steps 1 and 2) were already checked and did not fire.
 
 `capability-blocker` shape is a hard "not compact, not full-form-yet" — the brief should not be presented in either shape until the blocker is resolved. Mayor / dispatcher's job to route the blocker for resolution.
 
 ## Output schema (one JSON-line per brief, to stdout)
 ```json
 {"brief_path":"<abs>","bead_id":"<id|null>","no_brainer":true|false|"candidate",
- "category":"stale-branch|cat-A|cat-B|cat-C|cat-D|capability-blocker|null",
+ "category":"stale-branch|cat-A|cat-B|cat-C|cat-D|capability-blocker|defer-ratify-held|close-done-cited-commit|execution-confirmation-proof|null",
  "reason":"cat-E-server-touching|user-skill-touching-override|resolve <blocker>|null",
  "compact_eligible":true|false,
  "proposed_registry_extension":"<text|null>","requires_taylor_adjudication":true|false,
  "classified_at":"<ISO-8601-utc>"}
 ```
 
-## Side effects (v0.1)
-- `no_brainer:true` → `mkdir -p` + copy brief into `.pile/.no-brainer/`. Consumed by pile-processor ([[he-x3se]], not-yet-shipped); until then the file is inert.
+## Side effects (v0.2)
+- `no_brainer:true` (any category: stale-branch, defer-ratify-held, close-done-cited-commit, execution-confirmation-proof) → `mkdir -p` + copy brief into `.pile/.no-brainer/`. Consumed by pile-processor ([[he-x3se]], not-yet-shipped); until then the file is inert.
 - `no_brainer:"candidate"` → write `.gates-candidate-pile/<brief-slug>-candidate.md` with `pattern_fingerprint`, `originating_brief`, `why_classified_candidate`, `suggested_gate_criterion`. Curator promotion to [[he-xkq3]] is OUT of scope (see [[he-xxwb]]).
 - `category:"capability-blocker"` → stdout only. Do NOT deposit in `.pile/.no-brainer/` (the disposition can't be executed) or `.gates-candidate-pile/` (the shape isn't novel). Mayor consumes the stdout signal and dispatches capability resolution (e.g., token-pass-outer / credential provisioning); when resolved, the brief is re-classified.
 - `no_brainer:false` (server-touching / user-skill-touching) → stdout only.
@@ -69,12 +81,16 @@ Run `bash fixtures/run.sh`:
 | 4 | `server-touching.md` | `{no_brainer:false, reason:"cat-E-server-touching", compact_eligible:false}` |
 | 5 | `novel-shape.md` | `{no_brainer:"candidate", requires_taylor_adjudication:true, compact_eligible:false}` |
 | 6 | `capability-blocker.md` | `{no_brainer:false, category:"capability-blocker", compact_eligible:false}` |
+| 7 | `defer-ratify-held.md` | `{no_brainer:true, category:"defer-ratify-held", compact_eligible:true}` |
+| 8 | `close-done-cited-commit.md` | `{no_brainer:true, category:"close-done-cited-commit", compact_eligible:true}` |
+| 9 | `execution-confirmation-proof.md` | `{no_brainer:true, category:"execution-confirmation-proof", compact_eligible:true}` |
 
 Pass iff `fixtures/run.sh` exits 0.
 
 ## Status
-PRELIMINARY v0.1 under [[he-cnat]]. FP-converge follow-up [[he-ahfr]] (gated on ≥3 dogfood examples). Self-bead [[he-6wej]]. Sling [[he-h3p2]].
+PRELIMINARY v0.2 under [[he-cnat]]. FP-converge follow-up [[he-ahfr]] (gated on ≥3 dogfood examples). Self-bead [[he-6wej]]. Sling [[he-h3p2]].
 
 ## Versioning
 - **v0.0 — PRELIMINARY DRY-RUN** (2026-06-24): initial 5-criterion classifier + cat-E override + fixture harness (5 fixtures).
 - **v0.1 — capability-blocker shape + compact-form signal** (2026-06-30, per as-niek per Taylor "better briefs" epic): added step 2 (user-skill-touching-override consistency with [[as-wjv]]); added step 3 (capability-blocker shape — would-be no-brainer stalled by permission/capability gap; route as "resolve, then re-classify" rather than presenting A/B/C/D; data point he-gu79 n=5+); added `compact_eligible` output field consumed by [[present-it]] for compact-form eligibility; added capability-blocker.md fixture (6th case).
+- **v0.2 — 3 missing rubric paths** (2026-07-08, per [[feedback_no_brainer_class_under_flagged]] n=3 miss pattern, W2.6 triage plan): added steps 5, 6, 7 for three previously under-flagged no-brainer shapes — (a) DEFER-ratify-existing-HELD (step 5, category `defer-ratify-held`): brief disposition is DEFER and the current state is already HELD/standing, so the decision is a mechanical ratification; (b) CLOSE-DONE-cited-commit (step 6, category `close-done-cited-commit`): brief closes as DONE with a cited commit SHA confirming work is already merged, making closure a record-keeping act; (c) EXECUTION-CONFIRMATION-with-cryptographic-proof (step 7, category `execution-confirmation-proof`): brief only asks for acknowledgment of an already-executed act carrying mechanically-verifiable proof (commit SHA, signed artifact, exit-code record). All three: emit `no_brainer:true`, copy to `.pile/.no-brainer/`, `compact_eligible:true`. Safety overrides (steps 1+2: server-touching, user-skill-touching) remain absolute predecessors — a brief triggering those overrides CANNOT reach steps 5/6/7. Added fixtures 7/8/9 to fixture table. Updated output schema `category` enum and side effects header.
