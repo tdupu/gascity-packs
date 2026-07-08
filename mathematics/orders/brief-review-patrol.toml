@@ -1,0 +1,18 @@
+# Cooldown-trigger order — patrol for briefs stuck at the Phase 5 review gate.
+#
+# Backstop for brief-prep workers that deposit a brief but exit before
+# running Phase 5 (coordinate-review). Stuck signature: frontmatter
+# `review_gate: pending` older than the formula's grace period. The patrol
+# runs the missing review; APPROVING promotes the brief, anything else
+# records `review-failed` and escalates to the Mayor. Idempotent: both
+# outcomes remove the brief from the candidate set.
+
+[order]
+description = "Advance stack briefs stuck at review_gate: pending through Phase 5 (coordinate-review)."
+scope = "city"
+formula = "brief-review-patrol"
+trigger = "cooldown"
+interval = "30m"
+pool = "gastown.dog"
+timeout = "120s"
+idempotent = true

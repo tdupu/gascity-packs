@@ -210,6 +210,22 @@ check_archive_sweep_record() {
   mkdir -p "$ROOT/archive"
 }
 
+check_server_touching_safety() {
+  path="$(brief_path)"
+  [ -n "$path" ] && [ -f "$path" ] || return 0
+  # Mechanical check: frontmatter key server_touching: true blocks auto-dispatch.
+  # This is the machine form of brief-prep §"Safety overrides" Override 1 and
+  # present-it §"Compact form" NEVER rules.  No judgment applied here; any match
+  # must route to Taylor for explicit adjudication.
+  if grep -Eq '^server_touching:[[:space:]]*true\b' "$path"; then
+    fail "server_touching: true — brief requires explicit Taylor adjudication; auto-dispatch and auto-approval are forbidden"
+  fi
+  # Also block if the gate evidence section records the gate as failing/blocked.
+  if grep -Eq 'G5 Server-touching:[[:space:]]*(FAIL|BLOCKED)' "$path"; then
+    fail "G5 Server-touching gate is FAIL/BLOCKED — brief requires Taylor adjudication"
+  fi
+}
+
 check_file_or_sendback_log() {
   log="$ROOT/decisions/file-or-sendback.jsonl"
   require_file "$log"
@@ -247,6 +263,7 @@ case "$COMMAND" in
   breadcrumb) check_breadcrumb ;;
   no-brainer-safety) check_no_brainer_safety ;;
   no-brainer-execute-safety) check_no_brainer_execute_safety ;;
+  server-touching-safety) check_server_touching_safety ;;
   archive-sweep-record) check_archive_sweep_record ;;
   file-or-sendback-log) check_file_or_sendback_log ;;
   *) fail "unknown check: $COMMAND" ;;

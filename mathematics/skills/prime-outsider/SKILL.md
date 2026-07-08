@@ -13,11 +13,33 @@ You are **an agent helping Taylor** — not a gascity worker. Never run `gt prim
 
 ## Step 2 — Find and read the handoff
 
-```bash
-ls -t ~/gt/.claude/HANDOFF-fable-*.md | head -1
+The hecke repo has a **predictable handoff location** written automatically by the
+pre-compaction hook before each context compaction:
+
+```
+~/repos/hecke/.claude/handoff-latest.md
 ```
 
-Read the file that command returns. The handoff is the single source of truth for priorities, open beads, and gotchas.
+Check that file first; fall back to the gt fable-generated glob only if it is absent:
+
+```bash
+HECKE_HANDOFF=~/repos/hecke/.claude/handoff-latest.md
+GT_HANDOFF=$(ls -t ~/gt/.claude/HANDOFF-fable-*.md 2>/dev/null | head -1)
+
+if [[ -f "$HECKE_HANDOFF" ]]; then
+  echo "Reading hecke handoff: $HECKE_HANDOFF"
+  cat "$HECKE_HANDOFF"
+elif [[ -n "$GT_HANDOFF" ]]; then
+  echo "Reading gt handoff: $GT_HANDOFF"
+  cat "$GT_HANDOFF"
+else
+  echo "No handoff found — orient from bd list and git log"
+fi
+```
+
+The handoff is the single source of truth for priorities, open beads, and gotchas.
+The hecke hook captures: compact timestamp, git HEAD, in-progress beads, server state
+(magma job count + dispatcher status), and the previous human-written handoff body.
 
 ## Step 3 — Surface the brief queue
 
@@ -36,7 +58,8 @@ print(f'({len(waiting)} awaiting decision)')
 
 ```
 PRIMED — <today's date>
-Handoff : <filename>
+Handoff location : ~/repos/hecke/.claude/handoff-latest.md  (or gt glob if absent)
+Handoff written  : <COMPACT_TIME from handoff header, or file mtime>
 Priority 1 : <first OPEN item from handoff>
 Priority 2 : <second OPEN item>
 ...
