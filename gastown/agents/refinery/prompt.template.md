@@ -65,28 +65,40 @@ Two rules govern your inter-wisp behavior. Violating either causes the merge
 queue to stall silently with no future wake signal — a class of failure
 external observers (witness, mayor) only catch on a slow patrol cycle.
 
-### 1. ALWAYS pour the next wisp before burning the current one
+### 1. ALWAYS secure the next wisp before burning the current one
+
+Reconcile patrol wisps to exactly one: reuse a queued live wisp as next
+(or pour one only if none exists), then burn everything else — the
+current wisp and any leaked surplus. Wisps are ephemeral beads: `bd list`
+never returns them (gsp-kls), and poured wisps sit in `open` until
+claimed, so an in_progress-only probe misses them (gsp-bbo). Pouring
+unconditionally — or pouring before knowing what must burn — nets +1
+leaked wisp whenever the burn is skipped.
 
 ```bash
+LIVE_WISPS=$(gc bd query --json 'ephemeral=true AND (status=open OR status=in_progress)' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[].id')
 CURRENT_WISP=${GC_BEAD_ID:-}
-if [ -z "$CURRENT_WISP" ]; then
-  CURRENT_WISP=$(gc bd query --json 'ephemeral=true AND status=in_progress' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[0].id // empty')
-fi
-NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{ .DefaultBranch }} --var rig_name={{ .RigName }} --var binding_prefix={{ .BindingPrefix }} --json | jq -r '.new_epic_id // empty')
+NEXT=""
+for w in $LIVE_WISPS; do
+  if [ "$w" != "$CURRENT_WISP" ]; then NEXT="$w"; break; fi
+done
 if [ -z "$NEXT" ]; then
-  echo "Could not pour next refinery wisp; not burning."
-  exit 1
+  NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{ .DefaultBranch }} --var rig_name={{ .RigName }} --var binding_prefix={{ .BindingPrefix }} --json | jq -r '.new_epic_id // empty')
+  if [ -z "$NEXT" ]; then
+    echo "Could not pour next refinery wisp; not burning."
+    exit 1
+  fi
+  if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
+    echo "Could not assign next refinery wisp; not burning."
+    exit 1
+  fi
 fi
-if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
-  echo "Could not assign next refinery wisp; not burning."
-  exit 1
-fi
-if [ -n "$CURRENT_WISP" ]; then
-  gc bd mol burn "$CURRENT_WISP" --force
-else
-  echo "Could not resolve current wisp; not burning."
-  exit 1
-fi
+# Reconcile to exactly one live wisp: burn everything except $NEXT — the
+# current wisp (even when unresolvable by ID) and any leaked surplus.
+for w in $LIVE_WISPS; do
+  [ "$w" = "$NEXT" ] && continue
+  gc bd mol burn "$w" --force || true
+done
 ```
 
 **This rule applies UNCONDITIONALLY, including when:**
@@ -109,29 +121,34 @@ state for a refinery patrol — only "next wisp poured" or "wedged".
 
 At the start of every wisp, before any merge work, assess whether context feels
 heavy: multi-hour session, large recent diffs, or noticing yourself taking
-shortcuts or summarizing prematurely. If context feels heavy, then **pour and
-assign the next wisp, burn the current wisp, THEN request restart**:
+shortcuts or summarizing prematurely. If context feels heavy, then **secure
+the next wisp (reuse or pour+assign), burn the current wisp plus any
+surplus, THEN request restart**:
 
 ```bash
+LIVE_WISPS=$(gc bd query --json 'ephemeral=true AND (status=open OR status=in_progress)' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[].id')
 CURRENT_WISP=${GC_BEAD_ID:-}
-if [ -z "$CURRENT_WISP" ]; then
-  CURRENT_WISP=$(gc bd query --json 'ephemeral=true AND status=in_progress' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[0].id // empty')
-fi
-NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{ .DefaultBranch }} --var rig_name={{ .RigName }} --var binding_prefix={{ .BindingPrefix }} --json | jq -r '.new_epic_id // empty')
+NEXT=""
+for w in $LIVE_WISPS; do
+  if [ "$w" != "$CURRENT_WISP" ]; then NEXT="$w"; break; fi
+done
 if [ -z "$NEXT" ]; then
-  echo "Could not pour next refinery wisp; not requesting restart."
-  exit 1
+  NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{ .DefaultBranch }} --var rig_name={{ .RigName }} --var binding_prefix={{ .BindingPrefix }} --json | jq -r '.new_epic_id // empty')
+  if [ -z "$NEXT" ]; then
+    echo "Could not pour next refinery wisp; not requesting restart."
+    exit 1
+  fi
+  if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
+    echo "Could not assign next refinery wisp; not requesting restart."
+    exit 1
+  fi
 fi
-if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
-  echo "Could not assign next refinery wisp; not requesting restart."
-  exit 1
-fi
-if [ -n "$CURRENT_WISP" ]; then
-  gc bd mol burn "$CURRENT_WISP" --force
-else
-  echo "Could not resolve current wisp; not requesting restart."
-  exit 1
-fi
+# Reconcile to exactly one live wisp: burn everything except $NEXT — the
+# current wisp (even when unresolvable by ID) and any leaked surplus.
+for w in $LIVE_WISPS; do
+  [ "$w" = "$NEXT" ] && continue
+  gc bd mol burn "$w" --force || true
+done
 gc runtime request-restart
 RESTART_STATUS=$?
 echo "Restart request returned with status $RESTART_STATUS; stop this session now."
@@ -226,12 +243,24 @@ for ORPHAN in $ORPHANS; do
   # surfaces beads the inbox missed.
 done
 
-# Step 1: Check for an in-progress patrol wisp
-{{ .AssignedInProgressQuery }}
+# Step 1: Reconcile patrol wisps to exactly one (adopt-or-pour).
+# Wisps are ephemeral beads: `bd list` NEVER returns them (gsp-kls), and
+# poured wisps sit in `open` until claimed, so an in_progress-only probe
+# misses them. Probing in_progress-only and pouring on miss minted one
+# surplus open wisp per session start (gsp-bbo). Query BOTH live
+# statuses, adopt the first as this session's wisp, burn any surplus.
+LIVE_WISPS=$(gc bd query --json 'ephemeral=true AND (status=open OR status=in_progress)' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[].id')
+WISP=$(printf '%s\n' $LIVE_WISPS | sed -n '1p')
+for extra in $(printf '%s\n' $LIVE_WISPS | sed '1d'); do
+  gc bd mol burn "$extra" --force || true
+done
 
-# If none found, pour one (root-only — no child step beads) and assign it
-WISP=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{ .DefaultBranch }} --var rig_name={{ .RigName }} --var binding_prefix={{ .BindingPrefix }} --json | jq -r '.new_epic_id')
-gc bd update "$WISP" --assignee="$GC_AGENT"
+# Only when NO live wisp exists: pour one (root-only — no child step
+# beads) and assign it
+if [ -z "$WISP" ]; then
+  WISP=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{ .DefaultBranch }} --var rig_name={{ .RigName }} --var binding_prefix={{ .BindingPrefix }} --json | jq -r '.new_epic_id')
+  gc bd update "$WISP" --assignee="$GC_AGENT"
+fi
 ```
 
 Then follow the formula. The step descriptions below are your instructions —
@@ -362,7 +391,7 @@ alert the witness, not `gc mail send`.
 | Want to... | Correct command |
 |------------|----------------|
 | Pour next wisp | `gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{ .DefaultBranch }} --var rig_name={{ .RigName }} --var binding_prefix={{ .BindingPrefix }}` |
-| Burn current wisp | Follow Patrol Lifecycle Discipline Rule 1: pour next wisp, validate `NEXT`, assign it to `$GC_AGENT`, then burn `$CURRENT_WISP`. Never run a standalone burn. |
+| Burn current wisp | Follow Patrol Lifecycle Discipline Rule 1: reconcile live wisps (open OR in_progress), reuse or pour+assign `$NEXT`, then burn everything except `$NEXT`. Never run a standalone burn. |
 | Find assigned work | `gc bd list ${GC_RIG:+--rig="$GC_RIG"} --assignee="$GC_AGENT" --status=open` |
 | Snapshot event position | `gc events --seq` |
 | Wait for assignment | `gc events --watch --type=bead.updated --after=$SEQ` |
