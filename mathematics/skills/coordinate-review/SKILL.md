@@ -1,7 +1,24 @@
 ---
 name: coordinate-review
-description: Run an artifact through an iterative create/review loop until it converges to an approved state. Can start from scratch (given a spec) or from an existing artifact. Each iteration spawns a `critical-review` subagent to find problems, then a `create-artifact` or `revise-artifact` subagent to fix them. Convergence is gated by the META-FP formula (`ops/meta-fp-cycle` in gascity-packs) — monotone shrink-OR-split + APPROVING quality floor + cap=10 + 15min wall-time. Works on any artifact: SKILL.md files, plans, theorems, LaTeX, code, specifications. Use when you want to systematically create or improve something through a structured critic-creator loop. Trigger on phrases like "coordinate review of X", "iterate this to a fixed point", "run the review loop on", "improve this skill through review", "use the review process on", "apply coordinate-review to", "create X and review it", or whenever the user wants a multi-round quality improvement process on an artifact. Also use proactively when a user hands over a SKILL.md or plan and says "this is messed up" or "clean this up".
+description: >-
+  Run an artifact through an iterative create/review loop until it converges to
+  an approved state. Can start from scratch (given a spec) or from an existing
+  artifact. Each iteration spawns a `critical-review` subagent to find problems,
+  then a `create-artifact` or `revise-artifact` subagent to fix them.
+  Convergence is gated by the META-FP formula (`ops/meta-fp-cycle` in
+  gascity-packs) — monotone shrink-OR-split + APPROVING quality floor + cap=10 +
+  15min wall-time. Works on any artifact: SKILL.md files, plans, theorems,
+  LaTeX, code, specifications. Use when you want to systematically create or
+  improve something through a structured critic-creator loop. Trigger on phrases
+  like "coordinate review of X", "iterate this to a fixed point", "run the
+  review loop on", "improve this skill through review", "use the review process
+  on", "apply coordinate-review to", "create X and review it", or whenever the
+  user wants a multi-round quality improvement process on an artifact. Also use
+  proactively when a user hands over a SKILL.md or plan and says "this is messed
+  up" or "clean this up".
 ---
+
+> **Canonical copy**: `mathematics.coordinate-review` in gascity-packs. This agent-skills copy is retained as fallback.
 
 # coordinate-review
 
@@ -155,7 +172,7 @@ The formula emits one JSON line on stdout with `verdict ∈ {ACCEPT_REVISION, SP
 
 - **TERMINATE_CONVERGED**: Wrap-up with `status=converged`.
 - **TERMINATE_CAP**: Wrap-up with `status=cap-hit`. Surface the best-scoring candidate AND the cap-hit signal (artifact + gates need tuning).
-- **ACCEPT_REVISION** or **SPLIT_INTO_SIBLING**: set `PREV_CHARS=NEW_CHARS`, increment `N`, loop back to Step 1.
+- **ACCEPT_REVISION** or **SPLIT_INTO_SIBLING**: set `PREV_CHARS=NEW_CHARS`, increment `N`. **Before the next iteration, run `/compact` to free context** — this summarizes prior iterations and resets the working memory for the next critic-revisor cycle. Then loop back to Step 1.
 - **REJECT_AND_RETRY**: the revision broke the math gate or quality floor. Do NOT accept it. Restore from `.bak` (file mode) or revert in-memory (text mode). Re-spawn the revisor (Step 2) with the same critic action items + an extra OBSERVED line explaining the rejection (`reason` field of the formula verdict). Increment a retry counter; if 3 consecutive REJECT_AND_RETRY on the same iteration → Wrap-up with `status=cap-hit` (stuck).
 
 Per as-h7r §1 criterion 4: NEVER silently continue past TERMINATE_CAP or stuck REJECT_AND_RETRY. The HAND-OFF is mandatory.
@@ -191,7 +208,13 @@ Write `<bead-dir>/iteration-<N>.md`:
     ## Observed (carried to next iteration)
     <OBSERVED: items, or "none">
 
-Beads are evidence. Do not edit after writing.
+Beads are evidence. Do not edit them after writing.
+
+## Step 5: Next iteration
+
+Run `/compact` between iterations N and N+1 — clears the prior critic/revisor transcript from your context before the next round so the loop does not grow unbounded.
+
+Increment N. Go to Step 1.
 
 ## Wrap-up
 

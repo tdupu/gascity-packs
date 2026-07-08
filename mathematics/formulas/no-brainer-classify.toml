@@ -68,14 +68,25 @@ title = "Classify the candidate"
 needs = ["enforce-safety-exclusions"]
 metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.path" = "{{brief_path}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
-Use `catch-no-brainer` and `no-brainer-brief-filter.md`.
+Use `mathematics.catch-no-brainer` (pack skill, v0.1+) and
+`no-brainer-brief-filter.md`.
+
+The classifier runs four checks in order (first match wins):
+1. Server-touching — `{no_brainer: false, reason: "cat-E-server-touching"}`
+2. User-skill-touching (as-wjv override) — `{no_brainer: false, reason: "user-skill-touching-override"}`
+3. Capability-blocker shape — `{no_brainer: false, category: "capability-blocker", reason: "resolve <blocker>, then re-classify"}`
+4. he-lele 5-criterion (cat-A/B/C/D) — `{no_brainer: true, compact_eligible: true}`
+5. Else — `{no_brainer: "candidate", compact_eligible: false}`
 
 Record exactly one classification:
 
-- `no-brainer`
+- `no-brainer` (cat-A/B/C/D match, compact eligible)
+- `capability-blocker` (routes to Taylor for blocker resolution, not full-form presentation)
 - `not-no-brainer`
 - `needs-Taylor`
 
+Also record the `compact_eligible` boolean from the verdict — downstream
+`brief-present-next` uses it to select the compact vs full presentation shape.
 The classification must cite the gate evidence that permits or blocks shortcut
 handling.
 """
@@ -107,6 +118,8 @@ needs = ["classify", "guarded-execute"]
 metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.path" = "{{brief_path}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
 Record the classification and any guarded execution result in the brief record.
+Include the `compact_eligible` field from the `mathematics.catch-no-brainer`
+verdict so `brief-present-next` can select the compact form when appropriate.
 If execution did not occur, leave the brief in the normal Taylor presentation
 path.
 """

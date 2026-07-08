@@ -1,13 +1,26 @@
 ---
 name: present-it
-description: Produce a decision-ready brief on a code artifact (branch, bead, PR, diff, GH-issue). Enforces a Decision-at-Top INVARIANT — "What is being decided" MUST be the FIRST content after the header, before origin, math, timeline, or gates. Supports two output shapes — full-form brief (default, ~7 grill-ordered sections) and compact form (decision + one-line context + recommended action + y/n confirm) triggered when catch-no-brainer flags the brief no-brainer-eligible OR the caller passes `--compact`. Use whenever a decision-maker must evaluate an artifact with no prior knowledge. Trigger phrases "present X", "give me context on X", "what is X", "brief me on X", "show me everything about X".
+description: Dump decision-ready context into the CURRENT conversation for ONE specific question about a code artifact (branch, bead, PR, diff, GH-issue), so the decision-maker can decide with no prior knowledge. Terminal/in-conversation output only — produces NO file artifact, enforces NO pipeline gates, never batches. Enforces the Decision-at-Top INVARIANT — "What is being decided" MUST be the FIRST content after the header, before origin, math, timeline, or gates. Two output shapes — full-form (default, 7 grill-ordered sections) and compact form (decision + one-line context + recommended action + y/n confirm) when the caller passes `--compact` or upstream catch-no-brainer flagged compact-eligible. Trigger phrases "present X", "give me context on X", "what is X", "show me everything about X", "context dump on X", "walk me through X". NOT for the brief stack — to produce a gated .md brief artifact use create-brief; for the end-to-end pipeline with bookkeeping use brief-prep.
 ---
+
+> **Canonical copy**: `mathematics.present-it` in gascity-packs. This agent-skills copy is retained as fallback.
 
 # present-it
 
-Present a code artifact so the decision-maker can evaluate it with no prior knowledge. The presenter does all the research; the decision-maker only reads the brief.
+Present a code artifact **in the current conversation** so the decision-maker can evaluate it with no prior knowledge. The presenter does all the research; the decision-maker only reads the brief. The output is terminal text for ONE specific decision the reader is being asked to make right now — nothing is written to disk, nothing is queued.
 
 The brief follows a **grill-with-docs** shape: decision at the top; supporting evidence organized so a challenger can attack it head-on — assumptions surfaced, alternatives named, risks foregrounded.
+
+## When to use
+
+Use present-it when a decision-maker in THIS conversation needs full context on one artifact to answer one question, now. Typical seat: the clerk presenting a promoted brief to Taylor; any agent asked "what is X / present X / give me context on X" in-session.
+
+**Out of scope (route elsewhere):**
+
+- **File artifacts.** present-it never writes a `.md` brief. To produce the durable, gated brief artifact for the stack, use [[create-brief]].
+- **The brief stack / pipeline.** Depositing, gating, bookkeeping, unlock-count ranking — that is [[brief-prep]] (which composes [[create-brief]]).
+- **Batches.** present-it presents one artifact per invocation and carries no "prepare all before presenting any" semantics. Batch preparation is a property of the artifact pipeline — [[create-brief]] and the dispatch layer that queues its runs — not of this skill.
+- **Gate enforcement.** present-it runs no test-evidence, good-test, or critical-review gates and never self-rejects on their absence. Those gates bind the `.md`-artifact pipeline. Here, missing evidence is *reported*, not *enforced* (see §6).
 
 ## Decision-at-Top INVARIANT (hard rule)
 
@@ -15,11 +28,11 @@ The brief follows a **grill-with-docs** shape: decision at the top; supporting e
 
 Not origin. Not mathematics. Not timeline. Not required gates. The decision.
 
-This is an **invariant**, not a convention. Any brief violating it is auto-reject by [[brief-prep]] and [[grill-and-present]] before it leaves the drafting agent.
+This is an **invariant**, not a convention. It binds both this skill and the `.md`-artifact pipeline: [[create-brief]] and [[brief-prep]] auto-reject any brief file violating it before deposit. In conversation there is no rejector — if your draft does not open with the decision, rewrite it before presenting.
 
 Rationale: a brief is a decision aid. If the reader can't spot the question in the first ~5 lines, the brief has failed. Every downstream section is **evidence** for the decision at the top — not context to wade through before finding it.
 
-Violation examples (AUTO-REJECT):
+Violation examples (rewrite before presenting; auto-reject in the pipeline):
 - Opening with "This branch was created on 2026-04-01 by …" (origin before decision)
 - Opening with "The mathematics behind this change is …" (math before decision)
 - Opening with a diff summary or file list
@@ -46,7 +59,7 @@ Use ONLY when ALL of the following hold:
 2. Safety overrides all passed (no `server_touching`, no `user_skill_touching_override` per [[brief-prep]] §"Safety overrides").
 3. Caller did not explicitly request full-form (`--full`).
 
-OR when the caller passes `--compact` as an explicit override (Taylor may force compact if they know the artifact already).
+OR when the caller passes `--compact` as an explicit override (Taylor may force compact if they know the artifact already). The NEVER rules below trump `--compact`: a safety override, an architecture-class artifact, or a capability-blocker shape forces full-form even when compact was explicitly requested.
 
 Compact template:
 
@@ -63,7 +76,7 @@ Rules:
 - `CONFIRM y` = execute the recommended action; `n` = do not; `grill-me-further` = escalate to full-form and re-present.
 - NEVER present compact when a safety override fires — those ALWAYS route to full-form + Taylor adjudication.
 - NEVER present compact for architecture-class or judgment-heavy briefs — those bypass catch-no-brainer classification and go straight to Mayor / Taylor per [[catch-no-brainer]].
-- NEVER present compact when catch-no-brainer flagged the shape as `capability-blocker`. Route those as "resolve the blocker, then re-classify" per [[catch-no-brainer]] §"Capability-blocker shape".
+- NEVER present compact when catch-no-brainer flagged the shape as `capability-blocker`. In conversation, still present — full-form, reporting the blocker in §5/§6; the "resolve the blocker, then re-classify" routing belongs to the pipeline per [[catch-no-brainer]] §"Capability-blocker shape".
 
 ## Full-form template
 
@@ -94,7 +107,7 @@ Examples:
 - "Assumes no downstream bead cites this branch by name — checked via `bd list --status=blocked | grep polecat/foo`."
 - "Assumes `magma/test/foo.mag` is the only test exercising this path — bounded scan of `magma/test/`; not exhaustive."
 
-If genuinely no assumptions, write "None surfaced" with a one-line reason for why not. Missing §3 is AUTO-REJECT.
+If genuinely no assumptions, write "None surfaced" with a one-line reason for why not. Never omit §3.
 
 ### §4 — Alternatives named (grill-target)
 
@@ -107,7 +120,7 @@ Format:
 - D — INVESTIGATE further: name the specific question that would be investigated.
 - E — <anything else the reader may propose>.
 
-The decision-maker may pick any of A/B/C/D or propose E. Missing §4 is AUTO-REJECT.
+The decision-maker may pick any of A/B/C/D or propose E. Never omit §4.
 
 ### §5 — Risks foregrounded (grill-target)
 
@@ -124,7 +137,7 @@ Two flavors, both surfaced HERE (not buried at the bottom):
 - Interface changes that other code depends on?
 - Alternatives foreclosed by approving?
 
-If both flavors surface no risks, write "None surfaced" per flavor with a one-line reason. Missing §5 is AUTO-REJECT.
+If both flavors surface no risks, write "None surfaced" per flavor with a one-line reason. Never omit §5.
 
 ### §6 — Supporting evidence
 
@@ -134,14 +147,14 @@ The rest of the evidence, in whatever order best supports the decision at the to
 
 **Lines of code modified.** `git diff --stat origin/master...origin/<branch>` for branches, equivalent for other artifact types. For each file: one sentence on what changed and why. Show key lines for substantive diffs.
 
-**Test evidence (HARD gate).** For every test that exercises the artifact:
+**Test evidence (report, don't gate).** For every test that exercises the artifact, report what is known:
 - Test file path
 - Exact command run
 - Exit code + pass/fail outcome
 - Wall time
 - If unrunnable, state the reason explicitly ("no Magma reachable", "requires missing DATA").
 
-Missing test evidence is AUTO-REJECT (see [[brief-prep]] Phase 4 self-rejection).
+If the tests have NOT been run, say so explicitly ("tests exist at <path>; not run in this session"). For a terminal context dump, missing test evidence is *information the decision-maker weighs* — it is NOT grounds to refuse to present, and this skill has no auto-reject. The test-evidence HARD gate binds the `.md`-artifact pipeline instead: [[create-brief]] and [[brief-prep]] self-reject brief files lacking it (per the brief-test-evidence-required policy).
 
 **Mathematics (research repos only).** For `hecke`, `differential-valuations`, `magma-diff-alg`, `magma-clifford-algebras`:
 - What mathematical claim or construction does this implement?
@@ -177,11 +190,12 @@ Write structured prose. Prose for §1, §2, §4 alternatives text, §5 risks, §
 
 End with a **Required gates summary** one-liner (e.g., "improve-README: not required" or "improve-README: REQUIRED — not yet run"). The Decision options block from §4 is repeated verbatim at the end for the reader's convenience.
 
-Ask for the decision at the end. Present one artifact at a time; do not present the next until you receive a decision on the current one.
+Ask for the decision at the end.
 
 ## Cross-references
 
-- [[brief-prep]] — the full brief pipeline. Consumes present-it in Phase 3; enforces the Decision-at-Top INVARIANT in Phase 4 self-review; branches on compact vs full-form based on catch-no-brainer output.
+- [[create-brief]] — the file-artifact sibling: same section structure, written to a `.md` in the brief stack, gated (test-evidence + good-test + critical-review). Use it whenever the brief must outlive the conversation.
+- [[brief-prep]] — the end-to-end pipeline orchestrator (classification, external review, deposit, bookkeeping); composes [[create-brief]]; enforces the Decision-at-Top INVARIANT in its Phase 4 self-review.
 - [[catch-no-brainer]] — upstream classifier that signals `compact_eligible` and identifies `capability-blocker` shapes that MUST NOT go compact.
-- [[grill-and-present]] — orchestrator that pairs present-it with grilling for ambiguity resolution.
+- [[grill-and-present]] — legacy orchestrator (brief + grilling + gates in one skill); retirement proposed under as-4nu in favor of [[create-brief]] + [[brief-prep]].
 - [[grilling]] / [[grill-with-docs]] — the interrogation style this template is shaped by.

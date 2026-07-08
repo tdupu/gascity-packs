@@ -3,6 +3,8 @@ name: is-good-test
 description: Thin wrapper around is-good-experiment specialized for test files. A test is an experiment whose question is fixed as "does X work?" where X is the intrinsic / function / pipeline under test. Trigger on "is-good-test X", "review this test design", "is this a good test?", "does this test answer 'does X work?'", "review my Magma test", or any request to evaluate a test file's design (not its results). Sibling of is-good-experiment (parent), critical-review (grandparent). Out of scope for finished test results — use critical-review on the report instead.
 ---
 
+> **Canonical copy**: `mathematics.is-good-test` in gascity-packs. This agent-skills copy is retained as fallback.
+
 # is-good-test
 
 A test is a special case of an experiment whose **question is fixed**: "does X work?" where X is the artifact under test (an intrinsic, function, pipeline, script, or workflow).

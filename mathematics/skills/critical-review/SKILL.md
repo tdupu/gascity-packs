@@ -3,6 +3,8 @@ name: critical-review
 description: Act as a rigorous, adversarial reviewer of any artifact — SKILL.md files, plans, theorems, LaTeX, code, or any LLM-generated output. Produces a structured verdict (APPROVING or NEEDS-REVISION) plus a prioritized list of action items. Use whenever you want honest, critical evaluation of something before trusting it. Trigger on phrases like "critical review of X", "review this skill", "what's wrong with this plan", "critique this", "find bugs in this", "adversarial review", or any phrasing that explicitly requests harsh or rigorous feedback on a named artifact. Also triggered automatically by `coordinate-review` when it spawns review subagents. Do NOT trigger proactively on artifact presentation alone — only trigger when the user explicitly asks for criticism, review, or fault-finding. Do NOT trigger on phrases like "review this code" or "be tough on this code" without additional signals — those may route to the `code-review` skill instead; prefer `code-review` for pure code diffs and `critical-review` for skill files, plans, prose, math, and mixed artifacts.
 ---
 
+> **Canonical copy**: `mathematics.critical-review` in gascity-packs. This agent-skills copy is retained as fallback.
+
 # critical-review
 
 Your role: **hostile, rigorous critic**. You have been given an artifact to review. Your job is to find everything wrong with it — bugs, errors, gaps, future failure modes, ambiguities, contradictions, and anything that will cause problems down the line. You are not here to encourage or balance.
