@@ -11,8 +11,12 @@ where you left off from context (git state, bead state, last action).
 Formula steps are NOT materialized as child beads. Read the step
 descriptions below and work through them in order.
 
-The loop mechanism: every exit path (happy or early) pours the next
-wisp before burning this one. The prompt only bootstraps the first wisp.
+The loop mechanism: every exit path (happy or early) reconciles patrol
+wisps to exactly one — reuse a queued live wisp or pour the next one,
+then burn the current wisp plus any surplus. The prompt only bootstraps
+the first wisp. Poured wisps sit in `open` until claimed, so wisp
+queries must cover BOTH `open` and `in_progress` (gsp-bbo); `bd list`
+never returns ephemeral beads at all — use `bd query` (gsp-kls).
 
 Work beads flow directly: pool → polecat → refinery → closed.
 No separate MR beads. The polecat sets metadata (branch, target) on
@@ -114,31 +118,42 @@ description = """
 **1. Context check (FIRST — before any work):**
 
 If context feels heavy (multi-hour session, large recent diffs, or you notice
-yourself taking shortcuts or summarizing prematurely), pour and assign the next
-wisp, burn the current wisp, then request a restart:
+yourself taking shortcuts or summarizing prematurely), secure the next wisp
+(reuse or pour+assign), burn the current wisp plus any surplus, then request
+a restart:
 ```bash
+# Wisps are ephemeral: `bd list` never returns them (gsp-kls), and poured
+# wisps sit `open` until claimed, so an in_progress-only probe misses
+# them (gsp-bbo). Query BOTH live statuses, filtered to my assignments.
+LIVE_WISPS=$(gc bd query --json 'ephemeral=true AND (status=open OR status=in_progress)' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[].id')
 CURRENT_WISP=${GC_BEAD_ID:-}
-if [ -z "$CURRENT_WISP" ]; then
-  CURRENT_WISP=$(gc bd query --json 'ephemeral=true AND status=in_progress' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[0].id // empty')
-fi
-NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{target_branch}} --var rig_name={{rig_name}} --var binding_prefix={{binding_prefix}} --json | jq -r '.new_epic_id // empty')
+# Reuse a queued live wisp as next when one exists — a prior cycle may
+# have poured without burning. Pour only when there is nothing to reuse:
+# an unconditional pour whose burn is later skipped nets +1 leaked wisp
+# per cycle (gsp-bbo).
+NEXT=""
+for w in $LIVE_WISPS; do
+  if [ "$w" != "$CURRENT_WISP" ]; then NEXT="$w"; break; fi
+done
 if [ -z "$NEXT" ]; then
-  echo "Could not pour next refinery wisp; not requesting restart."
-  gc runtime drain-ack
-  exit 1
+  NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{target_branch}} --var rig_name={{rig_name}} --var binding_prefix={{binding_prefix}} --json | jq -r '.new_epic_id // empty')
+  if [ -z "$NEXT" ]; then
+    echo "Could not pour next refinery wisp; not requesting restart."
+    gc runtime drain-ack
+    exit 1
+  fi
+  if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
+    echo "Could not assign next refinery wisp; not requesting restart."
+    gc runtime drain-ack
+    exit 1
+  fi
 fi
-if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
-  echo "Could not assign next refinery wisp; not requesting restart."
-  gc runtime drain-ack
-  exit 1
-fi
-if [ -n "$CURRENT_WISP" ]; then
-  gc bd mol burn "$CURRENT_WISP" --force
-else
-  echo "Could not resolve current wisp; not requesting restart."
-  gc runtime drain-ack
-  exit 1
-fi
+# Reconcile to exactly one live wisp: burn everything except $NEXT — the
+# current wisp (even when unresolvable by ID) and any leaked surplus.
+for w in $LIVE_WISPS; do
+  [ "$w" = "$NEXT" ] && continue
+  gc bd mol burn "$w" --force || true
+done
 gc runtime request-restart
 RESTART_STATUS=$?
 echo "Restart request returned with status $RESTART_STATUS; stop this session now."
@@ -238,30 +253,40 @@ gc bd update $WORK \
 ```
 4. Do NOT delete the branch (new polecat needs it for conflict resolution).
 5. Clean up temp branch: `git checkout {{target_branch}} && git branch -D temp`
-6. Pour next patrol iteration before burning:
+6. Reconcile patrol wisps: secure next iteration (reuse or pour), then burn the rest:
 ```bash
+# Wisps are ephemeral: `bd list` never returns them (gsp-kls), and poured
+# wisps sit `open` until claimed, so an in_progress-only probe misses
+# them (gsp-bbo). Query BOTH live statuses, filtered to my assignments.
+LIVE_WISPS=$(gc bd query --json 'ephemeral=true AND (status=open OR status=in_progress)' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[].id')
 CURRENT_WISP=${GC_BEAD_ID:-}
-if [ -z "$CURRENT_WISP" ]; then
-  CURRENT_WISP=$(gc bd query --json 'ephemeral=true AND status=in_progress' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[0].id // empty')
-fi
-NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{target_branch}} --var rig_name={{rig_name}} --var binding_prefix={{binding_prefix}} --json | jq -r '.new_epic_id // empty')
+# Reuse a queued live wisp as next when one exists — a prior cycle may
+# have poured without burning. Pour only when there is nothing to reuse:
+# an unconditional pour whose burn is later skipped nets +1 leaked wisp
+# per cycle (gsp-bbo).
+NEXT=""
+for w in $LIVE_WISPS; do
+  if [ "$w" != "$CURRENT_WISP" ]; then NEXT="$w"; break; fi
+done
 if [ -z "$NEXT" ]; then
-  echo "Could not pour next refinery wisp; not burning."
-  gc runtime drain-ack
-  exit 1
+  NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{target_branch}} --var rig_name={{rig_name}} --var binding_prefix={{binding_prefix}} --json | jq -r '.new_epic_id // empty')
+  if [ -z "$NEXT" ]; then
+    echo "Could not pour next refinery wisp; not burning."
+    gc runtime drain-ack
+    exit 1
+  fi
+  if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
+    echo "Could not assign next refinery wisp; not burning."
+    gc runtime drain-ack
+    exit 1
+  fi
 fi
-if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
-  echo "Could not assign next refinery wisp; not burning."
-  gc runtime drain-ack
-  exit 1
-fi
-if [ -n "$CURRENT_WISP" ]; then
-  gc bd mol burn "$CURRENT_WISP" --force
-else
-  echo "Could not resolve current wisp; not burning."
-  gc runtime drain-ack
-  exit 1
-fi
+# Reconcile to exactly one live wisp: burn everything except $NEXT — the
+# current wisp (even when unresolvable by ID) and any leaked surplus.
+for w in $LIVE_WISPS; do
+  [ "$w" = "$NEXT" ] && continue
+  gc bd mol burn "$w" --force || true
+done
 ```
 7. Close this step after the current wisp is burned.
 
@@ -339,30 +364,40 @@ TARGET=$(gc bd show $WORK --json | jq -r '.[0].metadata.target // "{{target_bran
      ```
    - Delete branch: `git push origin --delete $BRANCH`
    - Clean up: `git checkout "$TARGET" && git branch -D temp`
-   - Pour next patrol iteration before burning:
+   - Reconcile patrol wisps: secure next iteration (reuse or pour), then burn the rest:
      ```bash
+     # Wisps are ephemeral: `bd list` never returns them (gsp-kls), and
+     # poured wisps sit `open` until claimed, so an in_progress-only probe
+     # misses them (gsp-bbo). Query BOTH live statuses, filtered to mine.
+     LIVE_WISPS=$(gc bd query --json 'ephemeral=true AND (status=open OR status=in_progress)' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[].id')
      CURRENT_WISP=${GC_BEAD_ID:-}
-     if [ -z "$CURRENT_WISP" ]; then
-       CURRENT_WISP=$(gc bd query --json 'ephemeral=true AND status=in_progress' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[0].id // empty')
-     fi
-     NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{target_branch}} --var rig_name={{rig_name}} --var binding_prefix={{binding_prefix}} --json | jq -r '.new_epic_id // empty')
+     # Reuse a queued live wisp as next when one exists — a prior cycle
+     # may have poured without burning. Pour only when there is nothing
+     # to reuse: an unconditional pour whose burn is later skipped nets
+     # +1 leaked wisp per cycle (gsp-bbo).
+     NEXT=""
+     for w in $LIVE_WISPS; do
+       if [ "$w" != "$CURRENT_WISP" ]; then NEXT="$w"; break; fi
+     done
      if [ -z "$NEXT" ]; then
-       echo "Could not pour next refinery wisp; not burning."
-       gc runtime drain-ack
-       exit 1
+       NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{target_branch}} --var rig_name={{rig_name}} --var binding_prefix={{binding_prefix}} --json | jq -r '.new_epic_id // empty')
+       if [ -z "$NEXT" ]; then
+         echo "Could not pour next refinery wisp; not burning."
+         gc runtime drain-ack
+         exit 1
+       fi
+       if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
+         echo "Could not assign next refinery wisp; not burning."
+         gc runtime drain-ack
+         exit 1
+       fi
      fi
-     if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
-       echo "Could not assign next refinery wisp; not burning."
-       gc runtime drain-ack
-       exit 1
-     fi
-     if [ -n "$CURRENT_WISP" ]; then
-       gc bd mol burn "$CURRENT_WISP" --force
-     else
-       echo "Could not resolve current wisp; not burning."
-       gc runtime drain-ack
-       exit 1
-     fi
+     # Reconcile to exactly one live wisp: burn everything except $NEXT —
+     # the current wisp (even when unresolvable by ID) and any surplus.
+     for w in $LIVE_WISPS; do
+       [ "$w" = "$NEXT" ] && continue
+       gc bd mol burn "$w" --force || true
+     done
      ```
    - Close this step after the current wisp is burned.
 
@@ -433,37 +468,38 @@ Work bead: $WORK
 Existing PR: $EXISTING_PR
 Branch: $BRANCH
 Target: $TARGET"
+  # Wisps are ephemeral: `bd list` never returns them (gsp-kls), and
+  # poured wisps sit `open` until claimed, so an in_progress-only probe
+  # misses them (gsp-bbo). Query BOTH live statuses, filtered to mine.
+  LIVE_WISPS=$(gc bd query --json 'ephemeral=true AND (status=open OR status=in_progress)' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[].id')
   CURRENT_WISP=${GC_BEAD_ID:-}
-  if [ -z "$CURRENT_WISP" ]; then
-    CURRENT_WISP=$(gc bd query --json 'ephemeral=true AND status=in_progress' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[0].id // empty')
-  fi
-  if [ -z "$CURRENT_WISP" ]; then
-    echo "Could not resolve current wisp; not burning."
-    echo "$reason"
-    echo "STOP. Existing PR metadata needs human correction."
-    gc runtime drain-ack
-    exit 1
-  fi
-  NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{target_branch}} --var rig_name={{rig_name}} --var binding_prefix={{binding_prefix}} --json | jq -r '.new_epic_id // empty')
+  # Reuse a queued live wisp as next when one exists — a prior cycle may
+  # have poured without burning. Pour only when there is nothing to
+  # reuse: an unconditional pour whose burn is later skipped nets +1
+  # leaked wisp per cycle (gsp-bbo).
+  NEXT=""
+  for w in $LIVE_WISPS; do
+    if [ "$w" != "$CURRENT_WISP" ]; then NEXT="$w"; break; fi
+  done
   if [ -z "$NEXT" ]; then
-    echo "Could not pour next refinery wisp; not burning."
-    gc runtime drain-ack
-    exit 1
+    NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{target_branch}} --var rig_name={{rig_name}} --var binding_prefix={{binding_prefix}} --json | jq -r '.new_epic_id // empty')
+    if [ -z "$NEXT" ]; then
+      echo "Could not pour next refinery wisp; not burning."
+      gc runtime drain-ack
+      exit 1
+    fi
+    if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
+      echo "Could not assign next refinery wisp; not burning."
+      gc runtime drain-ack
+      exit 1
+    fi
   fi
-  if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
-    echo "Could not assign next refinery wisp; not burning."
-    gc runtime drain-ack
-    exit 1
-  fi
-  if [ -n "$CURRENT_WISP" ]; then
-    gc bd mol burn "$CURRENT_WISP" --force
-  else
-    echo "Could not resolve current wisp; not burning."
-    echo "$reason"
-    echo "STOP. Existing PR metadata needs human correction."
-    gc runtime drain-ack
-    exit 1
-  fi
+  # Reconcile to exactly one live wisp: burn everything except $NEXT —
+  # the current wisp (even when unresolvable by ID) and any surplus.
+  for w in $LIVE_WISPS; do
+    [ "$w" = "$NEXT" ] && continue
+    gc bd mol burn "$w" --force || true
+  done
   echo "$reason"
   echo "STOP. Existing PR metadata needs human correction."
   gc runtime drain-ack
@@ -1056,30 +1092,40 @@ The convoy bead assignment is the ONLY path.
 
 If auto_land = "false": skip this entirely.
 
-**2. Resolve the current wisp, pour next iteration, then burn this wisp:**
+**2. Reconcile patrol wisps to exactly one — secure next iteration (reuse or pour), then burn the rest:**
 ```bash
+# Wisps are ephemeral: `bd list` never returns them (gsp-kls), and poured
+# wisps sit `open` until claimed, so an in_progress-only probe misses
+# them (gsp-bbo). Query BOTH live statuses, filtered to my assignments.
+LIVE_WISPS=$(gc bd query --json 'ephemeral=true AND (status=open OR status=in_progress)' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[].id')
 CURRENT_WISP=${GC_BEAD_ID:-}
-if [ -z "$CURRENT_WISP" ]; then
-  CURRENT_WISP=$(gc bd query --json 'ephemeral=true AND status=in_progress' --limit=0 | jq -r --arg a "$GC_AGENT" '[.[] | select(.assignee==$a and .issue_type=="molecule")] | .[0].id // empty')
-fi
-NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{target_branch}} --var rig_name={{rig_name}} --var binding_prefix={{binding_prefix}} --json | jq -r '.new_epic_id // empty')
+# Reuse a queued live wisp as next when one exists — a prior cycle may
+# have poured without burning. Pour only when there is nothing to reuse:
+# an unconditional pour whose burn is later skipped nets +1 leaked wisp
+# per cycle (gsp-bbo).
+NEXT=""
+for w in $LIVE_WISPS; do
+  if [ "$w" != "$CURRENT_WISP" ]; then NEXT="$w"; break; fi
+done
 if [ -z "$NEXT" ]; then
-  echo "Could not pour next refinery wisp; not burning."
-  gc runtime drain-ack
-  exit 1
+  NEXT=$(gc bd mol wisp mol-refinery-patrol --root-only --var target_branch={{target_branch}} --var rig_name={{rig_name}} --var binding_prefix={{binding_prefix}} --json | jq -r '.new_epic_id // empty')
+  if [ -z "$NEXT" ]; then
+    echo "Could not pour next refinery wisp; not burning."
+    gc runtime drain-ack
+    exit 1
+  fi
+  if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
+    echo "Could not assign next refinery wisp; not burning."
+    gc runtime drain-ack
+    exit 1
+  fi
 fi
-if ! gc bd update "$NEXT" --assignee="$GC_AGENT"; then
-  echo "Could not assign next refinery wisp; not burning."
-  gc runtime drain-ack
-  exit 1
-fi
-if [ -n "$CURRENT_WISP" ]; then
-  gc bd mol burn "$CURRENT_WISP" --force
-else
-  echo "Could not resolve current wisp; not burning."
-  gc runtime drain-ack
-  exit 1
-fi
+# Reconcile to exactly one live wisp: burn everything except $NEXT — the
+# current wisp (even when unresolvable by ID) and any leaked surplus.
+for w in $LIVE_WISPS; do
+  [ "$w" = "$NEXT" ] && continue
+  gc bd mol burn "$w" --force || true
+done
 ```
 
 Close this step. The new wisp is ready — re-read formula steps to begin."""

@@ -232,6 +232,54 @@ if verify >= metadata:
 PY
 }
 
+test_refinery_wisp_reconcile_is_leak_free() {
+    local formula prompt propulsion
+    formula="$GASTOWN/formulas/mol-refinery-patrol.toml"
+    prompt="$GASTOWN/agents/refinery/prompt.template.md"
+    propulsion="$GASTOWN/template-fragments/propulsion.template.md"
+
+    # Poured wisps sit `open` until claimed: an in_progress-only probe
+    # misses them, minting one surplus wisp per cycle (gsp-bbo).
+    ! grep -F "ephemeral=true AND status=in_progress" "$formula" >/dev/null ||
+        fail "refinery formula must not resolve wisps with an in_progress-only query; poured wisps sit open until claimed"
+    ! grep -F "ephemeral=true AND status=in_progress" "$prompt" >/dev/null ||
+        fail "refinery prompt must not resolve wisps with an in_progress-only query; poured wisps sit open until claimed"
+    [[ "$(grep -cF "ephemeral=true AND (status=open OR status=in_progress)" "$formula")" -eq 5 ]] ||
+        fail "every refinery formula pour site must query live wisps across open and in_progress"
+    [[ "$(grep -cF "ephemeral=true AND (status=open OR status=in_progress)" "$prompt")" -eq 3 ]] ||
+        fail "refinery prompt Rule 1, Rule 2, and Startup must query live wisps across open and in_progress"
+
+    # Every pour must be gated on "nothing to reuse" — an unconditional
+    # pour whose burn is later skipped nets +1 leaked wisp per cycle.
+    python3 - "$formula" "$prompt" <<'PY' || fail "every refinery wisp pour must be gated by a reuse check (if [ -z \"\$NEXT\" / \"\$WISP\" ])"
+import re
+import sys
+
+for path in sys.argv[1:]:
+    text = open(path, encoding="utf-8").read()
+    for match in re.finditer(r'^[^\n#]*\$\(gc bd mol wisp mol-refinery-patrol', text, re.M):
+        window = text[max(0, match.start() - 200):match.start()]
+        if 'if [ -z "$NEXT" ]; then' not in window and 'if [ -z "$WISP" ]; then' not in window:
+            raise SystemExit(f"{path}: ungated pour at offset {match.start()}")
+PY
+
+    # Every reconcile block must sweep surplus: burn everything except
+    # the secured next wisp, so accumulation self-heals.
+    [[ "$(grep -cF '[ "$w" = "$NEXT" ] && continue' "$formula")" -eq 5 ]] ||
+        fail "every refinery formula reconcile block must burn all live wisps except \$NEXT"
+    [[ "$(grep -cF '[ "$w" = "$NEXT" ] && continue' "$prompt")" -eq 2 ]] ||
+        fail "refinery prompt Rule 1 and Rule 2 must burn all live wisps except \$NEXT"
+    grep -F 'for extra in $(printf' "$prompt" >/dev/null ||
+        fail "refinery prompt startup must burn surplus wisps (adopt-or-pour reconcile)"
+
+    # The startup and propulsion prose must not regress to blind
+    # pour-on-miss (the gsp-bbo accumulation driver).
+    ! grep -F 'Check for an in-progress patrol wisp' "$prompt" >/dev/null ||
+        fail "refinery prompt startup must reconcile live wisps, not probe in_progress only"
+    ! grep -F 'Check for an in-progress patrol wisp' "$propulsion" >/dev/null ||
+        fail "propulsion-refinery fragment must describe adopt-or-pour reconcile, not an in_progress-only probe"
+}
+
 test_dog_assets_are_pack_local
 test_retired_dog_formulas_are_not_reintroduced
 test_shutdown_dance_contracts_are_executable
@@ -241,5 +289,6 @@ test_polecat_startup_uses_standard_hook_claim
 test_mayor_startup_sweeps_rig_ledgers
 test_review_leg_contract_forbids_synthetic_mutation
 test_refinery_direct_merge_is_worktree_safe_and_fail_closed
+test_refinery_wisp_reconcile_is_leak_free
 
 echo "gastown pack asset tests passed"
