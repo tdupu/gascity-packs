@@ -66,6 +66,17 @@ sync_worktree() {
     git -C "$WT" pull --rebase 2>/dev/null || true
 }
 
+# The redirect file is the sole beads authority in a worktree. A
+# .beads/metadata.json resurrected from legacy history (June-2026 bd-init
+# auto-commits) shadows the redirect: bd preserves the source dir's
+# dolt_database across a redirect, so the worktree connects to a DIFFERENT
+# project's database — PROJECT IDENTITY MISMATCH refusals and cross-rig
+# misidentification (gt-efc). Never keep a metadata.json next to a redirect.
+scrub_stale_beads_metadata() {
+    [ -f "$WT/.beads/redirect" ] || return 0
+    rm -f "$WT/.beads/metadata.json"
+}
+
 branch_name() {
     # Namescape worktree branches by target path so multiple cities or rigs
     # can share one underlying repo without colliding on global refs like
@@ -77,6 +88,7 @@ branch_name() {
 # Idempotent: skip if worktree already exists.
 if [ -d "$WT/.git" ] || [ -f "$WT/.git" ]; then
     sync_worktree
+    scrub_stale_beads_metadata
     exit 0
 fi
 
@@ -175,6 +187,7 @@ trap - EXIT HUP INT TERM
 # Bead redirect for filesystem beads.
 mkdir -p "$WT/.beads"
 echo "$RIG_ROOT/.beads" > "$WT/.beads/redirect"
+scrub_stale_beads_metadata
 
 # Submodule init (best-effort).
 git -C "$WT" submodule init 2>/dev/null || true
