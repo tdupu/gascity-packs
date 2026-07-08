@@ -64,6 +64,6 @@ all 3 promoted to `status: approved` in a single turn. No sling, no queue, no wa
 | | immediate-work | priority-work |
 |---|---|---|
 | Execution | Current session (synchronous) | Async (separate agent) |
-| Dispatch | Agent tool inline | codex-dispatch or sling to named target |
+| Dispatch | Agent tool inline | Background agent / sling to named target |
 | Taylor sees | Result in this conversation | Result lands in bead, review later |
 | Use when | Urgent + small scope + needs Taylor's eye | High priority but can run unattended |
