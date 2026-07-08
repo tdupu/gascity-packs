@@ -60,20 +60,40 @@ routes file:
 
 ```bash
 ROUTES="{{ .CityRoot }}/.beads/routes.jsonl"
-[ -f "$ROUTES" ] && jq -r 'select(.path != ".") | .path' "$ROUTES" | while IFS= read -r rig; do
-  for id in "$GC_SESSION_ID" "$GC_SESSION_NAME" "$GC_ALIAS"; do
-    [ -n "$id" ] || continue
-    gc bd list --rig "$rig" --assignee="$id" --status=open,in_progress --json --limit=10 2>/dev/null |
-      jq -r --arg rig "$rig" '.[]? | "\($rig)\t\(.id)\t\(.status)\t\(.title)"'
-  done
-done | sort -u
+if [ -f "$ROUTES" ]; then
+  (
+    SWEEP=$(mktemp -d)
+    : > "$SWEEP/0.tsv"
+    i=0
+    IFS=$'\n'
+    for rig in $(jq -r 'select(.path != ".") | .path' "$ROUTES"); do
+      i=$((i+1))
+      gc bd list --rig "$rig" --status=open,in_progress --json --limit=200 2>/dev/null |
+        jq -r --arg rig "$rig" \
+          --arg id1 "$GC_SESSION_ID" --arg id2 "$GC_SESSION_NAME" --arg id3 "$GC_ALIAS" \
+          '.[]? | (.assignee // "") as $a
+            | select($a != "" and ([$id1, $id2, $id3] | index($a) != null))
+            | "\($rig)\t\(.id)\t\(.status)\t\(.title)"' > "$SWEEP/$i.tsv" &
+    done
+    wait
+    cat "$SWEEP"/*.tsv 2>/dev/null | sort -u
+    rm -rf "$SWEEP"
+  )
+fi
 ```
 
 Each output line is `rig / bead-id / status / title`: assigned work sitting
 in that rig's ledger. Treat a hit exactly like hooked work — `gc bd show <id>`,
 then EXECUTE. The sweep is bounded: only rigs registered in `routes.jsonl`,
-at most 10 rows per rig, and the HQ route (`path: "."`) is skipped because
-steps 1 and 3 already probed it.
+at most 200 rows fetched per rig, and the HQ route (`path: "."`) is skipped
+because steps 1 and 3 already probed it.
+
+The shape matters (gsp-ydc): each `gc bd list` call costs ~10s of fixed
+overhead regardless of result size, so a serial rigs × identities loop (up
+to 45 calls) times out. One query per rig with no `--assignee` flag, all
+rigs as parallel background jobs, finishes in roughly one call's wall time;
+assignee matching happens client-side in jq against all three identity vars.
+Do not "simplify" this back to per-identity server-side queries.
 
 **Step 5 — inbox triage (mandatory, not optional):**
 Mail is how agents report to you: escalations, patrol findings, Slack messages

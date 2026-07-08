@@ -164,10 +164,27 @@ test_mayor_startup_sweeps_rig_ledgers() {
     # for ~6 days).
     grep -F '.beads/routes.jsonl' <<<"$mayor_block" >/dev/null ||
         fail "mayor startup must bound its rig-ledger sweep by routes.jsonl"
-    grep -F -- '--rig "$rig" --assignee="$id" --status=open,in_progress' <<<"$mayor_block" >/dev/null ||
-        fail "mayor startup must probe each rig ledger for assigned open/in-progress work"
+    grep -F -- '--rig "$rig" --status=open,in_progress' <<<"$mayor_block" >/dev/null ||
+        fail "mayor startup must probe each rig ledger for open/in-progress work"
     grep -F 'select(.path != ".")' <<<"$mayor_block" >/dev/null ||
         fail "mayor rig sweep must skip the HQ route already covered by the HQ probes"
+
+    # gsp-ydc: each `gc bd list` call has ~10s fixed overhead, so a serial
+    # rigs × identities loop (up to 45 calls) blows the 2-minute timeout.
+    # The sweep must be ONE query per rig, run as parallel background jobs,
+    # with assignee matching done client-side in jq.
+    ! grep -F -- '--assignee=' <<<"$mayor_block" >/dev/null ||
+        fail "mayor rig sweep must not regress to serial per-identity --assignee queries (gsp-ydc)"
+    grep -F -- '"$SWEEP/$i.tsv" &' <<<"$mayor_block" >/dev/null ||
+        fail "mayor rig sweep must run per-rig queries as parallel background jobs"
+    grep -E '^[[:space:]]*wait$' <<<"$mayor_block" >/dev/null ||
+        fail "mayor rig sweep must wait for the parallel per-rig queries before concatenating"
+    grep -F '$GC_SESSION_ID' <<<"$mayor_block" >/dev/null ||
+        fail "mayor rig sweep must filter client-side against \$GC_SESSION_ID"
+    grep -F '$GC_SESSION_NAME' <<<"$mayor_block" >/dev/null ||
+        fail "mayor rig sweep must filter client-side against \$GC_SESSION_NAME"
+    grep -F '$GC_ALIAS' <<<"$mayor_block" >/dev/null ||
+        fail "mayor rig sweep must filter client-side against \$GC_ALIAS"
 }
 
 test_review_leg_contract_forbids_synthetic_mutation() {
