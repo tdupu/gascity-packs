@@ -2,16 +2,19 @@
 
 A collection of opt-in [Gas City](https://github.com/gastownhall/gascity) packs.
 
-Gas City is an orchestration-builder SDK for multi-agent coding workflows. A
-*pack* is a unit of workspace configuration: agents, commands, services,
-formulas, skills, hooks, template fragments, or any combination. Packs compose
-through `pack.toml` imports, so a city can opt into any subset of the packs in
-this repo without forking.
+Gas City is an orchestration-builder SDK for multi-agent coding workflows. 
 
-For the full model (cities, rigs, formulas, beads, runtime providers) see the
-[Gas City README](https://github.com/gastownhall/gascity). For how a pack's
-`skills/` directory reaches agents as `.claude/skills` symlinks, see
-[skills materialization](./docs/skills-materialization.md).
+A *pack* is a unit of workspace configuration: agents, commands, services,
+formulas, skills, hooks, template fragments, or any combination. 
+
+Packs are optional. A city with zero packs is valid and boots successfully.
+
+Packs compose through `pack.toml` imports, so a city can opt into any subset of the packs in
+this repo without forking. 
+
+Skills in a pack are stored in `skills/` and automatically reach agent skills as `.claude/skills` symlinks, see[skills materialization](./docs/skills-materialization.md).
+
+This README assumes familiarity with beads, formulas, rigs, and orders. For the full model (cities, rigs, formulas, beads, runtime providers) see the [Gas City README](https://github.com/gastownhall/gascity). 
 
 ## Sponsors
 
@@ -48,73 +51,77 @@ Contributors working on the packs themselves can clone this repo and point
 source = "../gascity-packs/bmad"
 ```
 
-See [Contributing/Development](./README-contributing.md) for the full workflow
-around hacking on packs, publishing registry releases, and release
-compatibility gates.
+See [Contributing/Development](./README-contributing.md) for the full workflow around hacking on packs, publishing registry releases, and release compatibility gates.
 
 ## Start here: first build in about ten minutes
 
 If you just installed Gas City and want a working multi-agent build factory,
 this is the shortest path. Each step is copy-pasteable; swap names to taste.
 
-1. **Install Gas City and start a city** (skip steps you have already done):
+**Install Gas City and start a city** (skip steps you have already done):
 
-   ```sh
-   brew install gascity
-   gc init ~/my-city
-   cd ~/my-city
-   gc start
-   ```
+```sh
+brew install gascity
+gc init ~/my-city
+cd ~/my-city
+gc start
+```
 
-2. **Add the repository you want agents to work on as a rig:**
 
-   ```sh
-   git clone https://github.com/you/your-project
-   cd your-project
-   gc rig add .
-   ```
 
-3. **Import the base pack.** From the city directory:
+**Add the repository you want agents to work on as a rig:**
 
-   ```sh
-   gc import add --name gc https://github.com/gastownhall/gascity-packs.git//gascity
-   ```
+```sh
+git clone https://github.com/you/your-project
+cd your-project
+gc rig add .
+```
 
-   This writes the import, fetches the latest release, and pins it in
-   `packs.lock` — no clone needed. (`gc import upgrade gc` moves the pin
-   later; contributors hacking on the packs themselves can point `source`
-   at a local clone instead.)
 
-4. **Import the rig roles** in your city's `city.toml`. Rig-scoped imports
-   are declared on the rig entry:
 
-   ```toml
-   [[rigs]]
-   name = "your-project"
+**Import the base pack.** 
 
-   [rigs.imports.gc]
-   source = "https://github.com/gastownhall/gascity-packs.git//gascity/roles"
-   ```
+From the city directory:
 
-   The city-level import provides the workflow formulas and the `gc.mayor`
-   coordinator skill; the rig-level `roles` import provides the worker agents
-   (`gc.implementation-worker`, `gc.requirements-planner`, and friends) that
-   the formulas route work to. Run `gc import install` after editing to
-   fetch anything newly referenced.
+```sh
+gc import add --name gc https://github.com/gastownhall/gascity-packs.git//gascity
+```
 
-5. **Run your first build.** Create a bead describing the goal, then launch
-   the starter factory against it:
+This writes the import, fetches the latest release, and pins it in`packs.lock` — no clone needed. (`gc import upgrade gc` moves the pin later; contributors hacking on the packs themselves can point `source` at a local clone instead.)
 
-   ```sh
-   gc bd create "Add a --json flag to the export command"
-   gc sling gc.run-operator <bead-id> --on build-basic \
-     --var artifact_root=plans/json-flag/build
-   ```
 
-   `build-basic` walks requirements → plan → plan review → decomposition →
-   parallel implementation → a three-lane review fanout → finalize. Artifacts
-   (requirements, plan, review reports, and a `factory-run.md` summary) land
-   under `artifact_root` in your rig.
+
+**Import the rig roles**.
+
+This is done in your city's `city.toml`. 
+
+Rig-scoped imports are declared on the rig entry:
+
+```toml
+[[rigs]]
+name = "your-project"
+
+[rigs.imports.gc]
+source = "https://github.com/gastownhall/gascity-packs.git//gascity/roles"
+```
+
+The city-level import provides the workflow formulas and the `gc.mayor` coordinator skill; the rig-level `roles` import provides the worker agents (`gc.implementation-worker`, `gc.requirements-planner`, and friends) that the formulas route work to. Run `gc import install` after editing to fetch anything newly referenced.
+
+**Run your first build.** 
+
+Create a bead describing the goal, then launch the starter factory against it:
+
+```sh
+gc bd create "Add a --json flag to the export command"
+gc sling gc.run-operator <bead-id> --on build-basic \
+  --var artifact_root=plans/json-flag/build
+```
+
+`build-basic` walks 
+
+requirements → plan → plan review → decomposition → parallel implementation → a three-lane review fanout → finalize.
+
+The build artifacts (which include requirements, plan, review reports, and a `factory-run.md` summary) land under `artifact_root` in your rig.
 
 ## List of packs
 
@@ -124,10 +131,7 @@ Each top-level directory is either a pack or a group of related packs:
 - A directory without `pack.toml` groups related subpacks and typically ships
   an `all/` rollup that imports the group as one.
 
-Each pack's README has its own quick start and is linked below. For a table
-mapping every pack to the process it runs and when to reach for it, see
-[README-pack-list.md](./README-pack-list.md); for build-methodology and Slack
-tiering comparisons, see [README-featured.md](./README-featured.md).
+Each pack's README has its own quick start and is linked below. For a table mapping every pack to the process it runs and when to reach for it, see [README-pack-list.md](./README-pack-list.md); for build-methodology and Slack tiering comparisons, see [README-featured.md](./README-featured.md).
 
 | Pack | Category | Description |
 | --- | --- | --- |
@@ -152,16 +156,8 @@ tiering comparisons, see [README-featured.md](./README-featured.md).
 
 ## Which pack do I use?
 
-Most cities start with the base [gascity](./gascity/README.md) pack and add
-tiered Slack/contributor packs as needed. If you want a different build
-methodology, or need the Slack tiering comparison in one place, see
-**[README-featured.md](./README-featured.md)** for the full "which pack do I
-use" comparison tables and rationale.
+Most cities start with the base [gascity](./gascity/README.md) pack and add tiered Slack/contributor packs as needed. If you want a different build methodology, or need the Slack tiering comparison in one place, see **[README-featured.md](./README-featured.md)** for the full "which pack do I use" comparison tables and rationale.
 
 ## Contributing/Development
 
-Issues and pull requests are welcome. When a pack's surface changes, update
-its README in the same PR so the docs stay current with the code. See
-**[README-contributing.md](./README-contributing.md)** for the full
-contributor workflow: publishing registry releases, publishing a new pack to
-the registry, and the release compatibility/inference gates.
+Issues and pull requests are welcome. See the **[Development Guide](./README-contributing.md)** for the full contributor workflow: publishing registry releases, publishing a new pack to the registry, and the release compatibility/inference gates.
