@@ -3,7 +3,7 @@ name: dolt-pull
 description: >-
   Commit any pending beads changes locally, then pull from the Dolt remote.
   Scope is either a single rig (by name or current directory) or all rigs in
-  the city. If scope is not specified, ask before acting. Dolt auto-merges
+  the city. Default when unspecified: all rigs. Dolt auto-merges
   most conflicts; irresolvable conflicts are reported for human intervention.
   Trigger phrases: "dolt pull", "pull beads", "sync beads from remote",
   "pull dolt", "bd pull", "pull all dolts", "sync all rigs", "refresh beads".
@@ -19,15 +19,10 @@ most merges automatically; this skill reports the ones it cannot.
 If the user's request names a specific rig (e.g. "pull gascity-packs", "pull
 gsp") or you are standing in a rig directory, use that rig.
 
-If the user says "all" or "all rigs" or "city-wide", operate on every rig
-declared in the city's `.gc/site.toml`.
-
-**If scope is unspecified, ask:**
-
-> Which rig should I pull? Name a rig (e.g. `gascity-packs`, `agent-skills`)
-> or say `all` to pull every rig in the city.
-
-Do not guess — wait for the answer.
+**Default (no scope specified): pull ALL rigs in the city** — parse
+`.gc/site.toml` and pull every declared rig. "dolt pull", "pull beads", or
+"pull globally" all mean all rigs. Only ask if the user explicitly names a
+scope that is ambiguous.
 
 ## Step 1 — Discover rig paths
 

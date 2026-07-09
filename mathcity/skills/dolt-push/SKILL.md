@@ -3,7 +3,7 @@ name: dolt-push
 description: >-
   Commit any pending beads changes and push to the Dolt remote. Scope is
   either a single rig (by name or current directory) or all rigs in the city.
-  If scope is not specified, ask before acting. Handles non-fast-forward
+  Default when unspecified: all rigs. Handles non-fast-forward
   automatically by pulling first, then retrying the push. Trigger phrases:
   "dolt push", "push beads", "sync beads to remote", "push dolt", "bd push",
   "push all dolts", "sync all rigs".
@@ -19,15 +19,10 @@ conflict resolution for non-fast-forward rejections.
 If the user's request names a specific rig (e.g. "push gascity-packs", "push
 gsp") or you are standing in a rig directory, use that rig.
 
-If the user says "all" or "all rigs" or "city-wide", operate on every rig
-declared in the city's `.gc/site.toml`.
-
-**If scope is unspecified, ask:**
-
-> Which rig should I push? Name a rig (e.g. `gascity-packs`, `agent-skills`)
-> or say `all` to push every rig in the city.
-
-Do not guess — wait for the answer.
+**Default (no scope specified): push ALL rigs in the city** — parse
+`.gc/site.toml` and push every declared rig. "dolt push", "push beads", or
+"push globally" all mean all rigs. Only ask if the user explicitly names a
+scope that is ambiguous.
 
 ## Step 1 — Discover rig paths
 
