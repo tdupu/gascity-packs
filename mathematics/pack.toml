@@ -1,8 +1,0 @@
-[pack]
-name = "mathematics"
-version = "0.2.0"
-schema = 2
-description = "Taylor-local mathematical work pack, including the brief pipeline formulas, orders, and gate policy registry."
-
-[providers.codex]
-base = "builtin:codex"

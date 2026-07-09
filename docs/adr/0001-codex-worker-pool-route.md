@@ -34,5 +34,5 @@ independently; no Claude session bridges the call.
 
 The pool-route path requires the codex provider to be configured and a pool
 worker running. The subagent path would work even with no standing session.
-Accepted: codex is already declared in `mathematics/pack.toml`
+Accepted: codex is already declared in `mathcity/pack.toml`
 (`[providers.codex] base = "builtin:codex"`), and the agent is `scope = "rig"`.

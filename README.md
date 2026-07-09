@@ -150,7 +150,7 @@ Each pack's README has its own quick start and is linked below. For a table mapp
 | [oversight-rig](./oversight-rig/README.md) | Coordination & city | An always-on, rig-scoped project-lead that triages and dispatches its own ready work with severity-based escalation. |
 | [discord](./discord/README.md) | Service integration | Discord services, commands, and prompt fragments for Gas City. |
 | [github](./github/README.md) | Service integration | GitHub webhook intake services and commands for Gas City. |
-| [mathematics](./mathematics/README.md) | Research & ops | The brief pipeline that routes math research decisions (branches, PRs, experiments) to human adjudication. |
+| [mathcity](./mathcity/README.md) | Research & ops | The brief pipeline that routes math research decisions (branches, PRs, experiments) to human adjudication. |
 | [ops](./ops/README.md) | Research & ops | Operational/substrate primitives: experiment-lifecycle monitoring, cross-host heartbeat, dispatch-reliability instrumentation, restoration drills. |
 | [runtime-cloudflare](./runtime-cloudflare/README.md) | Runtime | Ships the `gc-runtime-cloudflare` executable, proxying Gas City sessions to a Cloudflare Worker runtime. |
 

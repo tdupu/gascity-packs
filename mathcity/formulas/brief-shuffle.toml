@@ -1,0 +1,125 @@
+description = """
+Single-writer shuffler for brief pile to stack promotion.
+
+This formula is intended for the `brief-shuffle-pile` order. It processes at
+most one pile item per run, applies gate-keep rules, and either promotes it to
+the stack with a manifest append or rejects it into `.pile/.rejected`.
+"""
+formula = "brief-shuffle"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[catalog]
+name = "brief-shuffle"
+description = "Promote or reject one brief from .pile according to the gate registry."
+
+[vars]
+[vars.artifact_root]
+description = "Brief pipeline artifact root."
+default = ".beads/briefs"
+
+[vars.operator_target]
+description = "Run target for shuffler bookkeeping."
+default = "gastown.dog"
+
+[[steps]]
+id = "acquire-lock"
+title = "Acquire the shuffler lock"
+metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
+description = """
+Acquire `{{artifact_root}}/.shuffle.lock` before touching `.pile`, `stack`, or
+`stack/manifest.jsonl`. If the lock is held by a live run, stop cleanly. If it
+is stale, record why it is stale before taking over.
+"""
+
+[[steps]]
+id = "select-pile-item"
+title = "Select one pile item"
+needs = ["acquire-lock"]
+metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}", "gc.brief.path" = "{{artifact_root}}/.pile" }
+description = """
+Select the oldest non-hidden markdown brief from `{{artifact_root}}/.pile`.
+Process only one item per shuffler run. Leave the item in place until the
+promote/reject write is ready so failed runs are restartable.
+"""
+
+[steps.check]
+max_attempts = 1
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/brief-pile-nonempty.sh"
+timeout = "30s"
+
+[[steps]]
+id = "apply-gates"
+title = "Apply gate registry to selected brief"
+needs = ["select-pile-item"]
+metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
+description = """
+Apply the gate registry from `assets/brief-pipeline/gates.toml` to the selected
+brief. Judgment gates must already be present in the brief; the shuffler does
+not invent approvals.
+
+If any required gate fails or is missing, move the brief to
+`{{artifact_root}}/.pile/.rejected/<slug>/brief.md` with a short rejection
+record. If all gates pass, prepare promotion to stack.
+"""
+
+[[steps]]
+id = "write-disposition"
+title = "Promote or reject the selected brief"
+needs = ["apply-gates"]
+metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
+description = """
+For `Disposition: promote`, move the brief to
+`{{artifact_root}}/stack/<slug>.md` and append one JSON object to
+`{{artifact_root}}/stack/manifest.jsonl` with EXACTLY these keys (the drain
+reader brief-drain-manifest.sh keys on `slug`, `gate_profile`, and
+`unlock_count`; the others are consumed downstream):
+
+- `slug` — brief slug
+- `path` — `{{artifact_root}}/stack/<slug>.md`
+- `source` — the source bead id (brief-record-decision copies this into the
+  decision record's `source_bead`; the whole approve dispatch depends on it)
+- `unlock_count` — integer, drain sort key
+- `created_at` — RFC3339 promote time
+- `gate_profile` — e.g. `no_brainer` or a full-brief profile
+
+The `status` key is NOT written here; brief-record-decision adds it later
+(values `decided`/`archived`).
+
+For `Disposition: reject` or `Disposition: blocked`, move the brief under
+`{{artifact_root}}/.pile/.rejected/<slug>/` and do not append to the stack
+manifest.
+"""
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/brief-shuffle-result-required.sh"
+timeout = "2m"
+
+[[steps]]
+id = "release-lock"
+title = "Release the shuffler lock"
+needs = ["write-disposition"]
+metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
+description = """
+Release `{{artifact_root}}/.shuffle.lock`. If the selected item was promoted,
+ensure `stack/manifest.jsonl` is still valid JSONL and sorted consumers can
+select by unlock count.
+"""
+
+[steps.check]
+max_attempts = 1
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/brief-manifest-current.sh"
+timeout = "1m"
+

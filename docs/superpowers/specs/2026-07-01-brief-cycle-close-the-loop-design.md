@@ -62,7 +62,7 @@ Success is measured by landing, not machinery:
 | Question | Decision |
 | --- | --- |
 | Complete vs simplify the built design | Phased middle path (C): flow first, canonicalize later |
-| Skills integration | Move the 9 formula-referenced brief-cycle skills into `mathematics/skills/` (pack materialization ships them to every city agent); keep personal/utility skills in agent-skills; dual-home `grill-and-present` / `present-it` |
+| Skills integration | Move the 9 formula-referenced brief-cycle skills into `mathcity/skills/` (pack materialization ships them to every city agent); keep personal/utility skills in agent-skills; dual-home `grill-and-present` / `present-it` |
 | Decision UX | Batched accumulation, drained on demand; escalations get an optional immediate-interrupt path |
 | What approval authorizes | Approval = merge: submit source branch to the rig refinery; gates run; land on main |
 | Brief-worthiness | Inverted default: beads are NOT brief-worthy unless flagged (`needs-decision` label or narrow criteria). Most beads close on merge silently |
@@ -81,7 +81,7 @@ Remaining:
 - Verify the reconciler at HEAD reclaims the phantom mayor/deacon session
   records (`gastown__mayor-gt-wisp-k1dnvi`, `gastown__deacon-gt-wisp-yhvy1s`).
 - Reap idle polecat sessions (6 on hecke).
-- Fix the import tangle: `city.toml` `[defaults.rig.imports.mathematics]`
+- Fix the import tangle: `city.toml` `[defaults.rig.imports.mathcity]`
   pins a GitHub sha while `pack.toml` imports the local path. Point both
   at the local path so pack edits propagate without re-pinning.
 - **Stop condition:** if the daemon still crashes on the schema error with
@@ -137,7 +137,7 @@ UX, per Taylor).
 ## Phase 2 — Canonicalize + economize (beads filed now, executed after flow)
 
 - Move the 9 formula-referenced brief-cycle skills into
-  `mathematics/skills/`: brief-prep, coordinate-review, is-good-test,
+  `mathcity/skills/`: brief-prep, coordinate-review, is-good-test,
   is-good-experiment, critical-review, catch-no-brainer, record-decision,
   present-it, grill-and-present;
   dual-home the two Taylor-facing ones. Personal/utility skills

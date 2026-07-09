@@ -38,7 +38,7 @@ close-the-loop design session.
   escalation→Taylor. Their absence made the old pipeline a one-way
   funnel.
 - **Codex-worker** — a non-Anthropic (OpenAI Codex) pool worker in the
-  mathematics pack (`mathematics/agents/codex-worker/`). Reserved for
+  mathematics pack (`mathcity/agents/codex-worker/`). Reserved for
   exceptional cases: creative design, critical cross-model review, very
   large plan analysis, or retry after a prior agent failure. Invoked only
   by explicit formula pour (`codex-dispatch`) — never fired automatically

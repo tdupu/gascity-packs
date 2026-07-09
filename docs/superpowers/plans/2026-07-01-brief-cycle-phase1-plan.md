@@ -72,9 +72,9 @@ decision-worthy beads.
    for appending post-merge duties to the gastown refinery agent's prompt
    from the mathematics pack. If patches support prompt fragments
    (`append_fragments`/`inject_fragments`), add a
-   `mathematics/template-fragments/refinery-post-merge.md` fragment and the
-   patch stanza in `mathematics/pack.toml`. If agent patches cannot carry
-   this, fall back to a `mathematics/orders/on-merge-brief-record.toml`
+   `mathcity/template-fragments/refinery-post-merge.md` fragment and the
+   patch stanza in `mathcity/pack.toml`. If agent patches cannot carry
+   this, fall back to a `mathcity/orders/on-merge-brief-record.toml`
    condition/event order that watches for freshly closed beads with the
    `needs-decision` label.
 2. The post-merge duty, precisely: after a successful merge of bead X —
@@ -83,13 +83,13 @@ decision-worthy beads.
        in X's rig titled `[brief-record] <X-id> <short title>` with
        metadata linking X, and touch the brief-prep pipeline (create the
        brief-prep work bead per the existing brief-prep formula's intake
-       convention — read `mathematics/formulas/brief-prep.toml` for what it
+       convention — read `mathcity/formulas/brief-prep.toml` for what it
        expects as source);
    (c) IF X is unlabeled: do nothing extra.
 3. A pytest under `tests/` covering the decision logic if it lands as a
    script; if it lands purely as prompt fragment + order TOML, the gate is
-   `gc lint mathematics/` + a test of any helper script added.
-4. Verification: `gc lint mathematics/` passes; tests pass.
+   `gc lint mathcity/` + a test of any helper script added.
+4. Verification: `gc lint mathcity/` passes; tests pass.
 
 ## Task 3: brief-decision-dispatch (approval=merge back edge)
 
@@ -103,7 +103,7 @@ terminal; nothing dispatches follow-on work.
    the branch; resolve conflicts; keep its tests. Review what it already
    covers — it may implement much of the routing.
 2. End state on top of the salvage:
-   - `mathematics/formulas/brief-decision-dispatch.toml`: given a decision
+   - `mathcity/formulas/brief-decision-dispatch.toml`: given a decision
      record (slug, decision, source bead id), route:
      approve → set `target` metadata (default branch) on the source bead if
      missing and reassign the bead to the owning rig's refinery session
@@ -111,19 +111,19 @@ terminal; nothing dispatches follow-on work.
      `target`, reassign); reject/revise → create a follow-up bead in the
      source rig carrying the decision reason; defer → no-op beyond marking
      the record dispatched.
-   - `mathematics/orders/brief-decision-dispatch.toml`: fires when
+   - `mathcity/orders/brief-decision-dispatch.toml`: fires when
      undispatched decision records exist. Prefer `trigger = "event"` with a
      decision event if `brief-record-decision.toml` can emit one (check
      whether a `gc event` emit is available to formula steps); otherwise
      `trigger = "condition"` with a check script comparing `decisions.jsonl`
      entries against a dispatched ledger file
      (`.beads/briefs/decisions-dispatched.jsonl`). The check script lives in
-     `mathematics/assets/scripts/` and must not hard-code absolute paths.
-   - Update `mathematics/formulas/brief-record-decision.toml` minimally if
+     `mathcity/assets/scripts/` and must not hard-code absolute paths.
+   - Update `mathcity/formulas/brief-record-decision.toml` minimally if
      needed to mark records dispatchable (do not restructure it).
 3. Idempotency: dispatching the same decision twice must be a no-op
    (ledger check). Cover this in a pytest.
-4. Verification: `gc lint mathematics/`; pytest suite passes including the
+4. Verification: `gc lint mathcity/`; pytest suite passes including the
    salvaged `test_file_or_sendback_routing.py` and the new idempotency test.
 
 ## Task 4: Escalation helper (bd human + P0/P1 ping)
@@ -131,14 +131,14 @@ terminal; nothing dispatches follow-on work.
 **Bead:** gsp-p2a.
 
 **Requirements:**
-1. `mathematics/assets/scripts/escalate.sh`: takes `--title`, `--body`,
+1. `mathcity/assets/scripts/escalate.sh`: takes `--title`, `--body`,
    `--priority` (0-4), `--rig` (optional; default current). Creates a bead
    (`bd create --type=task --priority=N` + `bd human <id>` flag — check `bd
    human --help` for the exact flagging idiom), then if priority ≤ 1: sends
    `gc mail send` to the human/overseer alias AND fires a macOS
    notification via `osascript -e 'display notification ...'`. Priority ≥ 2:
    bead only. No absolute paths; executable bit set.
-2. `mathematics/template-fragments/escalation-protocol.md`: a short
+2. `mathcity/template-fragments/escalation-protocol.md`: a short
    fragment telling agents when to escalate and the P0/P1 bar ("stalled
    work wastes running compute or blocks a chain"), referencing the script
    by pack-relative path. Wire the fragment into the mathematics pack's
@@ -148,7 +148,7 @@ terminal; nothing dispatches follow-on work.
 3. Pytest (or bats-style shell test consistent with existing test idiom)
    for the script's priority branching — mock `bd`/`gc`/`osascript` with a
    PATH shim; assert P1 pings and P2 does not.
-4. Verification: `gc lint mathematics/`; tests pass; `shellcheck` clean if
+4. Verification: `gc lint mathcity/`; tests pass; `shellcheck` clean if
    shellcheck is available (skip silently if not installed).
 
 ## Task 5: brief-present-next drain-mode
@@ -157,17 +157,17 @@ terminal; nothing dispatches follow-on work.
 resolvable target).
 
 **Requirements:**
-1. Rework `mathematics/formulas/brief-present-next.toml`: one run drains ALL
+1. Rework `mathcity/formulas/brief-present-next.toml`: one run drains ALL
    pending stack briefs instead of selecting exactly one. Iterate the
    manifest queue (`stack/manifest.jsonl`) in unlock order; for each brief:
    no-brainer-classified entries render as one-line items in a single
    consolidated presentation; full briefs render via the existing
    grill-and-present/present-it step description. Presentation records
    written per brief as today.
-2. The order `mathematics/orders/brief-present-next.toml` stays
+2. The order `mathcity/orders/brief-present-next.toml` stays
    `trigger = "manual"` (accumulate-and-drain UX per HQ decision gt-3x2d).
    Update its description to say "drains all pending briefs".
 3. Do not change gate semantics, shuffle, or decision recording.
-4. Verification: `gc lint mathematics/`; any manifest-iteration helper
+4. Verification: `gc lint mathcity/`; any manifest-iteration helper
    script gets a pytest with a fixture manifest (mixed no-brainer + full
    briefs) asserting the drain order and grouping.
