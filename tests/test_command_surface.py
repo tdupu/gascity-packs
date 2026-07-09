@@ -46,7 +46,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-FORMULAS = REPO_ROOT / "mathematics" / "formulas"
+FORMULAS = REPO_ROOT / "mathcity" / "formulas"
 
 # ---------------------------------------------------------------------------
 # city-directory discovery

@@ -12,7 +12,7 @@ try:
 except ImportError:
     import tomli as tomllib  # type: ignore[no-reuse-def,import-not-found]
 
-PACK_ROOT = Path(__file__).parent.parent / "mathematics"
+PACK_ROOT = Path(__file__).parent.parent / "mathcity"
 FORMULA_PATH = PACK_ROOT / "formulas" / "codex-dispatch.toml"
 AGENT_PATH = PACK_ROOT / "agents" / "codex-worker" / "agent.toml"
 

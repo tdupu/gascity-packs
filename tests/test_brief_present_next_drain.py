@@ -24,7 +24,7 @@ except ImportError:
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-MATHEMATICS = REPO_ROOT / "mathematics"
+MATHEMATICS = REPO_ROOT / "mathcity"
 SCRIPTS = MATHEMATICS / "assets" / "scripts"
 ORDERS = MATHEMATICS / "orders"
 FORMULAS = MATHEMATICS / "formulas"

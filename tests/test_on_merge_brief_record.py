@@ -24,7 +24,7 @@ except ImportError:
     import tomli as tomllib  # type: ignore[no-reuse-def,import-not-found]
 
 
-PACK_ROOT = Path(__file__).parent.parent / "mathematics"
+PACK_ROOT = Path(__file__).parent.parent / "mathcity"
 ORDER_PATH = PACK_ROOT / "orders" / "on-merge-brief-record.toml"
 FORMULA_PATH = PACK_ROOT / "formulas" / "on-merge-brief-record.toml"
 

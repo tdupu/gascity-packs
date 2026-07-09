@@ -54,7 +54,7 @@ max_attempts = 1
 [steps.check.check]
 mode = "exec"
 # TODO(Phase 2): absolute path required — gc resolves relative check paths against the work dir and rejects ../ traversal; replace when a pack-root mechanism exists (plan Global Constraints carve-out).
-path = ".gc/scripts/brief-drain-manifest.sh"
+path = "/Users/tdupuy/repos/gascity-packs/mathcity/assets/scripts/brief-drain-manifest.sh"
 timeout = "1m"
 
 [[steps]]
@@ -64,8 +64,8 @@ needs = ["read-manifest"]
 metadata = { "gc.run_target" = "{{presenter_target}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
 Read `{{artifact_root}}/.drain-run/no-brainer-slugs.txt`. For each slug in
-the file (in the listed order), load the brief record and emit it in compact
-form per the `mathcity.present-it` compact template:
+the file (in the listed order), load the brief record and render it as a
+one-line item using the `mathcity.present-it` compact template:
 
 ```
 DECISION:  <one sentence — what is being decided>

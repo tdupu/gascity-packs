@@ -27,10 +27,10 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CHECKS = REPO_ROOT / "mathematics" / "assets" / "scripts" / "checks"
+CHECKS = REPO_ROOT / "mathcity" / "assets" / "scripts" / "checks"
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "file-or-sendback"
-ORDERS = REPO_ROOT / "mathematics" / "orders"
-FORMULAS = REPO_ROOT / "mathematics" / "formulas"
+ORDERS = REPO_ROOT / "mathcity" / "orders"
+FORMULAS = REPO_ROOT / "mathcity" / "formulas"
 
 FILE_ENTRY, SENDBACK_ENTRY = [
     json.loads(line)

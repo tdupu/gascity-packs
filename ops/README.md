@@ -17,6 +17,13 @@ Operational/substrate primitives for Gas Town. Sibling to `gastown/` and
   — monotone shrink-OR-split + quality floor + cap=10 + wall-time
   gate — as a reusable formula instead of in-skill logic
   (`meta-fp-cycle`).
+- You want to **codify the mayor-questions-as-briefs policy as an
+  auto-trigger** so a Mayor (or any non-Taylor agent) surfacing a
+  Taylor-decidable question lands as a brief on the stack instead of
+  a synchronous Taylor grill — the clerk owns Taylor-facing dialogue
+  per [[grills-here-briefs-there]] + [[mayor-no-direct-grilling]].
+  Pairs with the existing brief-pipeline watchdog; codification ADDS,
+  watchdog stays, per [[codification-preserves-brief-pipeline]].
 - You want a **public, non-mathematical** home for ops primitives so the
   math pack (`mathcity/`) stays focused on research content and
   `gastown/` stays focused on coordination.
@@ -42,6 +49,7 @@ ops/
     experiment-respawn.toml            # decision-matrix-driven unclaim + repool (Phase 5; stub)
     escalate-stuck-experiment.toml     # Mayor mail emitter (Phase 4; stub)
     meta-fp-cycle.toml                 # per-iteration META-FP convergence check (Phase 8d; stub)
+    mol-mayor-q-brief.toml             # codify mayor-questions-as-briefs auto-trigger (as-da9n; stub)
     gates/
       experiment-must-have-target.toml         # dispatch-side check formula
       experiment-must-have-clerk-route.toml    # drop-off validation check formula
@@ -53,6 +61,7 @@ ops/
     on-experiment-done.toml            # event → experiment-pickup
     on-experiment-health-red.toml      # event → escalate-stuck-experiment (Phase 4; stub)
     on-experiment-session-dead.toml    # event → experiment-respawn (Phase 5; stub)
+    on-mayor-question.toml             # event → mol-mayor-q-brief (as-da9n; stub)
   agents/
     .gitkeep                           # experiment-clerk role decision deferred — see §5.3
   assets/
@@ -179,6 +188,45 @@ gates, and skills — no credentials, API keys, or tokens. Cross-host
 heartbeat plumbing (Phase 6) references credentials by env-var name
 only; never literals (per `[[never-echo-credentials]]`).
 
+## Mayor-questions-as-briefs auto-trigger (as-da9n)
+
+`mol-mayor-q-brief.toml` + `on-mayor-question.toml` codify the policy
+that Mayor (or any non-Taylor agent) questions to Taylor go through the
+brief stack — never through real-time grilling. The clerk owns
+Taylor-facing dialogue.
+
+When an upstream emitter (Mayor `gc mail` or `gc sling` envelope tagged
+for Taylor adjudication) creates a question-bead with
+`metadata.mayor_question=true` and `status=ready`, the order fires the
+formula. The formula:
+
+1. **envelope-check** — gate the question text + non-redundant fire.
+2. **identify-question** — extract the verbatim question text; reject
+   multi-question envelopes (one question → one brief, per
+   [[no-meta-sequencing-briefs]]).
+3. **frame-decision-class** — categorize as exactly one of
+   `merge` / `delete` / `defer` / `investigate` / `route` /
+   `scope-cut` / `escalate` / `other`. Refuse open-ended brainstorms;
+   surface back to Mayor for refinement.
+4. **gather-context** — pull surrounding evidence (artifacts, prior
+   verdicts, unlock-count) per the chosen decision-class.
+5. **compose-brief** — draft the [[present-it]] 10-section structure
+   citing the verbatim question.
+6. **external-review-gate** — optional FP-loop via
+   [[coordinate-review]] for `investigate` / `other` classes; skipped
+   for mechanical adjudications.
+7. **deposit-to-stack** — atomic write to
+   `.beads/briefs/mayor-q-<topic>-brief.md`; refuse on collision with
+   an already-pending brief on the same topic.
+8. **notify-clerk** — nudge the clerk to surface; never mail Taylor
+   directly per [[mayor-no-direct-grilling]].
+
+Codification ADDS — the existing brief-pipeline watchdog stays
+operational per [[codification-preserves-brief-pipeline]].
+[[catch-no-brainer]] pre-classifies the deposited brief AFTER this
+formula returns; the [[no-brainer-cycle]] handles no-brainer
+adjudications without Taylor surface.
+
 ## Cross-references
 
 - **Design source**: `he-6lz0-redesign-brief.md` (Taylor verdict A
@@ -190,8 +238,9 @@ only; never literals (per `[[never-echo-credentials]]`).
 - **Pattern instance**:
   `[[gascity-orders-and-formulas-decomposition-pattern]]` —
   n=1 brief-pipeline; n=2 experiment-monitoring (this pack); n=3
-  no-brainer-cycle + META-FP convergence (this pack). All share the
-  same formula+order+gates(+optional cooldown-sweep) shape.
+  no-brainer-cycle + META-FP convergence (this pack); n=6
+  mol-mayor-q-brief (this pack). All share the same
+  formula+order+gates(+optional cooldown-sweep) shape.
 - **Detection half** of the no-brainer cycle:
   `[[catch-no-brainer]]` skill in `agent-skills` repo (classifier).
 - **First consumer of META-FP**: `coordinate-review` SKILL.md in
@@ -203,4 +252,8 @@ only; never literals (per `[[never-echo-credentials]]`).
   `[[gate-keep-architecture]]`,
   `[[reference-bd-backup-subcommand]]`,
   `[[check-docs-before-designing-workarounds]]`,
-  `[[never-echo-credentials]]`
+  `[[never-echo-credentials]]`,
+  `[[grills-here-briefs-there]]`,
+  `[[mayor-no-direct-grilling]]`,
+  `[[codification-preserves-brief-pipeline]]`,
+  `[[no-meta-sequencing-briefs]]`

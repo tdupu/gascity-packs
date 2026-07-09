@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCRIPT = REPO_ROOT / "mathematics" / "assets" / "scripts" / "escalate.sh"
+SCRIPT = REPO_ROOT / "mathcity" / "assets" / "scripts" / "escalate.sh"
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -339,18 +339,18 @@ def test_notification_title_with_double_quote(tmp_path: Path) -> None:
 
 
 def test_escalation_protocol_fragment_exists() -> None:
-    frag = REPO_ROOT / "mathematics" / "template-fragments" / "escalation-protocol.md"
+    frag = REPO_ROOT / "mathcity" / "template-fragments" / "escalation-protocol.md"
     assert frag.is_file(), f"fragment missing: {frag}"
 
 
 def test_escalation_protocol_mentions_script() -> None:
-    frag = REPO_ROOT / "mathematics" / "template-fragments" / "escalation-protocol.md"
+    frag = REPO_ROOT / "mathcity" / "template-fragments" / "escalation-protocol.md"
     text = frag.read_text()
     assert "escalate.sh" in text, "fragment must reference the escalate.sh script"
 
 
 def test_escalation_protocol_mentions_p0_p1_bar() -> None:
-    frag = REPO_ROOT / "mathematics" / "template-fragments" / "escalation-protocol.md"
+    frag = REPO_ROOT / "mathcity" / "template-fragments" / "escalation-protocol.md"
     text = frag.read_text()
     assert "P0" in text or "P1" in text, "fragment must mention P0/P1 bar"
 
@@ -361,7 +361,7 @@ def test_escalation_protocol_mentions_p0_p1_bar() -> None:
 
 
 def test_codex_worker_prompt_references_escalation() -> None:
-    prompt = REPO_ROOT / "mathematics" / "agents" / "codex-worker" / "prompt.template.md"
+    prompt = REPO_ROOT / "mathcity" / "agents" / "codex-worker" / "prompt.template.md"
     text = prompt.read_text()
     assert "escalat" in text.lower(), (
         "codex-worker prompt must mention escalation protocol"
@@ -379,7 +379,7 @@ def test_brief_prep_coordinate_review_mentions_escalation() -> None:
     except ImportError:
         import tomli as tomllib  # type: ignore[no-reuse-def,import-not-found]
 
-    formula_path = REPO_ROOT / "mathematics" / "formulas" / "brief-prep.toml"
+    formula_path = REPO_ROOT / "mathcity" / "formulas" / "brief-prep.toml"
     data = tomllib.loads(formula_path.read_text(encoding="utf-8"))
     coord_step = next(
         (s for s in data.get("steps", []) if s["id"] == "coordinate-review"), None
