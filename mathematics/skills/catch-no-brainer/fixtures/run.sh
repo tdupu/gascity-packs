@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# catch-no-brainer v0.1 fixture harness.
-# Implements the SKILL.md classification rules over the 6 fixture briefs.
-# Pass-bar: all 6 fixtures classify with the expected verdict shape. Exit 0 = PASS.
+# catch-no-brainer v0.2 fixture harness.
+# Implements the SKILL.md classification rules over the 9 fixture briefs.
+# Pass-bar: all 9 fixtures classify with the expected verdict shape. Exit 0 = PASS.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -14,7 +14,7 @@ classify_brief() {
   yaml_get() { echo "$fm" | grep -E "^$1:" | head -1 | sed -E "s/^$1:[[:space:]]*//"; }
   yaml_list() { echo "$fm" | awk -v k="$1:" 'index($0,k)==1{i=1;next} /^[A-Za-z_]+:/{i=0} i && /^[[:space:]]+- /{sub(/^[[:space:]]+- /,""); print}'; }
 
-  local branch verdict parent_closed parent_super downstream files cap_block
+  local branch verdict parent_closed parent_super downstream files cap_block status existing_state merged_commit exec_proof
   branch=$(yaml_get branch)
   verdict=$(yaml_get verdict)
   parent_closed=$(yaml_get parent_bead_closed)
@@ -22,6 +22,10 @@ classify_brief() {
   downstream=$(yaml_get downstream_beads_reference)
   files=$(yaml_list diff_files)
   cap_block=$(yaml_get capability_blocker)
+  status=$(yaml_get status)
+  existing_state=$(yaml_get existing_state)
+  merged_commit=$(yaml_get merged_commit)
+  exec_proof=$(yaml_get execution_proof)
 
   # Step 1: server-touching (he-xkq3 G5 fires before G9)
   local server_re='magma/scripts/dispatch\.sh|magma/make/dispatch/|^gt-dolt|^gt-upf|\.gc/daemon|\.dolt-data/|\.gc/agent-bridge/|aia-s27'
@@ -53,13 +57,34 @@ classify_brief() {
       && [[ "$files_ok" == "1" ]] \
       && [[ "$downstream" == "false" ]] \
       && [[ "$verdict" =~ ^(DELETE|INVESTIGATE)$ ]]; then
-    printf '{"brief_path":"%s","bead_id":null,"no_brainer":true,"category":"stale-branch","reason":null,"compact_eligible":true,"proposed_registry_extension":null,"requires_taylor_adjudication":false,"classified_at":"v0.1-dryrun"}\n' "$f"
+    printf '{"brief_path":"%s","bead_id":null,"no_brainer":true,"category":"stale-branch","reason":null,"compact_eligible":true,"proposed_registry_extension":null,"requires_taylor_adjudication":false,"classified_at":"v0.2-dryrun"}\n' "$f"
     return 0
   fi
 
-  # Step 5: novel shape (proposed registry extension is one-line synthesis from the failing criteria)
+  # Step 5: DEFER-ratify-existing-HELD
+  # Trigger: (a) verdict is DEFER; (b) status/existing_state indicates already HELD; (c) only action is ratification
+  if [[ "$verdict" == "DEFER" ]] && ([[ "$status" == "HELD" ]] || [[ "$existing_state" == "HELD" ]]); then
+    printf '{"brief_path":"%s","bead_id":null,"no_brainer":true,"category":"defer-ratify-held","reason":null,"compact_eligible":true,"proposed_registry_extension":null,"requires_taylor_adjudication":false,"classified_at":"v0.2-dryrun"}\n' "$f"
+    return 0
+  fi
+
+  # Step 6: CLOSE-DONE-cited-commit
+  # Trigger: (a) verdict is CLOSE with reason DONE; (b) merged_commit field is set (SHA evidence)
+  if [[ "$verdict" == "CLOSE" ]] && [[ -n "$merged_commit" ]]; then
+    printf '{"brief_path":"%s","bead_id":null,"no_brainer":true,"category":"close-done-cited-commit","reason":null,"compact_eligible":true,"proposed_registry_extension":null,"requires_taylor_adjudication":false,"classified_at":"v0.2-dryrun"}\n' "$f"
+    return 0
+  fi
+
+  # Step 7: EXECUTION-CONFIRMATION-with-cryptographic-proof
+  # Trigger: (a) verdict is CONFIRM; (b) execution_proof field is set (commit SHA, artifact, etc.)
+  if [[ "$verdict" == "CONFIRM" ]] && [[ -n "$exec_proof" ]]; then
+    printf '{"brief_path":"%s","bead_id":null,"no_brainer":true,"category":"execution-confirmation-proof","reason":null,"compact_eligible":true,"proposed_registry_extension":null,"requires_taylor_adjudication":false,"classified_at":"v0.2-dryrun"}\n' "$f"
+    return 0
+  fi
+
+  # Step 8: novel shape (proposed registry extension is one-line synthesis from the failing criteria)
   local why="branch=$branch verdict=$verdict supersession=$parent_super"
-  printf '{"brief_path":"%s","bead_id":null,"no_brainer":"candidate","category":null,"reason":null,"compact_eligible":false,"proposed_registry_extension":"new shape candidate: %s","requires_taylor_adjudication":true,"classified_at":"v0.1-dryrun"}\n' "$f" "$why"
+  printf '{"brief_path":"%s","bead_id":null,"no_brainer":"candidate","category":null,"reason":null,"compact_eligible":false,"proposed_registry_extension":"new shape candidate: %s","requires_taylor_adjudication":true,"classified_at":"v0.2-dryrun"}\n' "$f" "$why"
 }
 
 expected_for() {
@@ -68,13 +93,16 @@ expected_for() {
     server-touching.md) echo '"reason":"cat-E-server-touching"';;
     novel-shape.md) echo '"no_brainer":"candidate"';;
     capability-blocker.md) echo '"category":"capability-blocker"';;
+    defer-ratify-held.md) echo '"no_brainer":true,"category":"defer-ratify-held"';;
+    close-done-cited-commit.md) echo '"no_brainer":true,"category":"close-done-cited-commit"';;
+    execution-confirmation-proof.md) echo '"no_brainer":true,"category":"execution-confirmation-proof"';;
     *) echo '???';;
   esac
 }
 
 fail=0
-echo "=== catch-no-brainer v0.1 fixture run ==="
-for f in stale-branch-A.md stale-branch-B.md stale-branch-C.md server-touching.md novel-shape.md capability-blocker.md; do
+echo "=== catch-no-brainer v0.2 fixture run ==="
+for f in stale-branch-A.md stale-branch-B.md stale-branch-C.md server-touching.md novel-shape.md capability-blocker.md defer-ratify-held.md close-done-cited-commit.md execution-confirmation-proof.md; do
   out=$(classify_brief "$f")
   exp=$(expected_for "$f")
   echo "$out"
@@ -92,5 +120,5 @@ if [[ $fail -ne 0 ]]; then
   echo "FIXTURE FAILED (one or more cases misclassified)"
   exit 1
 fi
-echo "ALL 6 FIXTURES PASSED"
+echo "ALL 9 FIXTURES PASSED"
 exit 0
