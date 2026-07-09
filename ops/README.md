@@ -1,7 +1,7 @@
 # Ops Pack
 
 Operational/substrate primitives for Gas Town. Sibling to `gastown/` and
-`mathematics/`.
+`mathcity/`.
 
 ## When to choose `ops`
 
@@ -18,7 +18,7 @@ Operational/substrate primitives for Gas Town. Sibling to `gastown/` and
   gate — as a reusable formula instead of in-skill logic
   (`meta-fp-cycle`).
 - You want a **public, non-mathematical** home for ops primitives so the
-  math pack (`mathematics/`) stays focused on research content and
+  math pack (`mathcity/`) stays focused on research content and
   `gastown/` stays focused on coordination.
 
 ## What the pack ships (Phase 1 scaffold)
@@ -186,7 +186,7 @@ only; never literals (per `[[never-echo-credentials]]`).
   "we need to codify the no-brainer cycle with a formula" (no-brainer
   cycle lane); Taylor 2026-06-25 verdict on `as-h7r` "Let's do cap=10.
   Then I agree with the brief." (META-FP lane).
-- **Sibling pack in flight**: `gascity-packs/mathematics/` (bead `as-ajw`)
+- **Sibling pack in flight**: `gascity-packs/mathcity/` (bead `as-ajw`)
 - **Pattern instance**:
   `[[gascity-orders-and-formulas-decomposition-pattern]]` —
   n=1 brief-pipeline; n=2 experiment-monitoring (this pack); n=3

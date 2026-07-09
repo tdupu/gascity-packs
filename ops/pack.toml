@@ -1,6 +1,6 @@
 # Operations pack — substrate primitives for long-running work in Gas Town.
 #
-# Sibling to `gastown/` (city/rig coordination) and `mathematics/` (research
+# Sibling to `gastown/` (city/rig coordination) and `mathcity/` (research
 # tooling). Owns operational/infra primitives that aren't coordination logic
 # and aren't research content:
 #
