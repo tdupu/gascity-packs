@@ -21,6 +21,37 @@ For the full model (cities, rigs, formulas, beads, runtime providers) see the
   </a>
 </p>
 
+## Using a pack
+
+Each pack documents its own prerequisites, import snippet, and usage.
+
+The canonical path is the import CLI — it writes the import, fetches the
+latest release, and pins the commit in `packs.lock`:
+
+```sh
+gc import add https://github.com/gastownhall/gascity-packs.git//bmad
+```
+
+Which is equivalent to this in `city.toml` (or any pack's `pack.toml`),
+followed by `gc import install`:
+
+```toml
+[imports.bmad]
+source = "https://github.com/gastownhall/gascity-packs.git//bmad"
+```
+
+Contributors working on the packs themselves can clone this repo and point
+`source` at a local path instead:
+
+```toml
+[imports.bmad]
+source = "../gascity-packs/bmad"
+```
+
+See [Contributing/Development](./README-contributing.md) for the full workflow
+around hacking on packs, publishing registry releases, and release
+compatibility gates.
+
 ## Start here: first build in about ten minutes
 
 If you just installed Gas City and want a working multi-agent build factory,
@@ -85,59 +116,7 @@ this is the shortest path. Each step is copy-pasteable; swap names to taste.
    (requirements, plan, review reports, and a `factory-run.md` summary) land
    under `artifact_root` in your rig.
 
-6. **Pick a methodology when you want more opinion.** The four methodology
-   packs below replace `build-basic`'s stages with vendored, battle-tested
-   processes while keeping the same launch shape — import one at city scope
-   and sling its build formula instead (for example `--on bmad-build`):
-
-   ```sh
-   gc import add https://github.com/gastownhall/gascity-packs.git//bmad
-   ```
-
-   Each pack's README has its own quick start.
-
-## Which build pack should I use?
-
-| Pack | Process it runs | Reach for it when |
-| ---- | --------------- | ----------------- |
-| [gascity](./gascity) (`build-basic`) | Requirements → plan → review → decompose → implement → three-lane review | You want the default starter factory with the fewest moving parts. |
-| [bmad](./bmad) (`bmad-build`) | PRD → architecture → epics/stories → readiness gate → story-by-story implementation with self-check and acceptance audit → adversarial review | You want disciplined document-first delivery with explicit story decomposition and readiness checks. |
-| [compound-engineering](./compound-engineering) (`compound-build`) | Brainstorm/plan → plan review → implement → the widest reviewer-persona fanout → resolution | Review depth matters most: correctness, security, performance, migrations, and API contracts each get their own reviewer lane. |
-| [superpowers](./superpowers) (`superpowers-build`) | Brainstorm → written spec approval → per-task test-driven development → spec-compliance then code-quality review | You want hard approval gates before code and strict TDD per task. |
-| [gstack](./gstack) (`gstack-build`) | Office-hours intake → multi-perspective plan review → build → staff review → QA → security → release readiness | You want founder/PM-flavored gates and explicit QA + release-readiness stages before shipping. |
-
-All five expose the same launch variables (`interaction_mode`, `review_mode`,
-`drain_policy`, `push`, `open_pr`, …), so switching methodology is a one-word
-change to the formula name.
-
-## Using a pack
-
-The canonical path is the import CLI — it writes the import, fetches the
-latest release, and pins the commit in `packs.lock`:
-
-```sh
-gc import add https://github.com/gastownhall/gascity-packs.git//bmad
-```
-
-Which is equivalent to this in `city.toml` (or any pack's `pack.toml`),
-followed by `gc import install`:
-
-```toml
-[imports.bmad]
-source = "https://github.com/gastownhall/gascity-packs.git//bmad"
-```
-
-Contributors working on the packs themselves can clone this repo and point
-`source` at a local path instead:
-
-```toml
-[imports.bmad]
-source = "../gascity-packs/bmad"
-```
-
-Each pack documents its own prerequisites, import snippet, and usage.
-
-## Layout
+## List of packs
 
 Each top-level directory is either a pack or a group of related packs:
 
@@ -145,142 +124,44 @@ Each top-level directory is either a pack or a group of related packs:
 - A directory without `pack.toml` groups related subpacks and typically ships
   an `all/` rollup that imports the group as one.
 
-Browse the tree for the current set; each pack has its own README.
+Each pack's README has its own quick start and is linked below. For a table
+mapping every pack to the process it runs and when to reach for it, see
+[README-pack-list.md](./README-pack-list.md); for build-methodology and Slack
+tiering comparisons, see [README-featured.md](./README-featured.md).
 
-### Agent context packs
+| Pack | Category | Description |
+| --- | --- | --- |
+| [gascity](./gascity/README.md) | Build methodology | The `build-base` workflow contract and the default `build-basic` implementation. |
+| [bmad](./bmad/README.md) | Build methodology | Document-first delivery (PRD → architecture → stories) as `bmad-build`. |
+| [compound-engineering](./compound-engineering/README.md) | Build methodology | The widest reviewer-persona fanout, as `compound-build`. |
+| [superpowers](./superpowers/README.md) | Build methodology | Hard approval gates and strict per-task TDD, as `superpowers-build`. Vendors [Jesse Vincent](https://github.com/obra)'s [Superpowers](https://github.com/obra/superpowers) skill library. |
+| [gstack](./gstack/README.md) | Build methodology | Founder/PM-flavored gates plus QA and release-readiness, as `gstack-build`. |
+| [cass](./cass/README.md) | Agent context | Adds a shared `cass-search` prompt fragment and Claude skill overlay for searching past coding-agent sessions. |
+| [slack-mini](./slack-mini/README.md) | Slack (tier 1) | Minimal mention bridge and outbound messaging to a single channel. |
+| [slack-channel](./slack-channel/README.md) | Slack (tier 2) | Shared channel routing and session identity for a few named sessions. |
+| [slack-full](./slack-full/README.md) | Slack (tier 3) | Slash commands, interactive modals/buttons, peer fanout, and multi-rig routing. |
+| [pr-pipeline](./pr-pipeline/README.md) | Contributor workflow | Author-side PR formulas: plan, blast-radius mapping, scorecard self-review, pre-push gate. |
+| [contributing](./contributing/README.md) | Contributor workflow | The full external-contributor lifecycle for gastownhall/gascity, built on `pr-pipeline`. |
+| [gastown](./gastown/README.md) | Coordination & city | The default Gas Town coding workflow: city/rig coordination, dog pool, and the polecat/refinery build-and-review pipeline. |
+| [oversight-rig](./oversight-rig/README.md) | Coordination & city | An always-on, rig-scoped project-lead that triages and dispatches its own ready work with severity-based escalation. |
+| [discord](./discord/README.md) | Service integration | Discord services, commands, and prompt fragments for Gas City. |
+| [github](./github/README.md) | Service integration | GitHub webhook intake services and commands for Gas City. |
+| [mathematics](./mathematics/README.md) | Research & ops | The brief pipeline that routes math research decisions (branches, PRs, experiments) to human adjudication. |
+| [ops](./ops/README.md) | Research & ops | Operational/substrate primitives: experiment-lifecycle monitoring, cross-host heartbeat, dispatch-reliability instrumentation, restoration drills. |
+| [runtime-cloudflare](./runtime-cloudflare/README.md) | Runtime | Ships the `gc-runtime-cloudflare` executable, proxying Gas City sessions to a Cloudflare Worker runtime. |
 
-- [cass](./cass) adds a shared `cass-search` prompt fragment and Claude skill
-  overlay for searching past coding-agent sessions.
+## Which pack do I use?
 
-### Build methodology packs
+Most cities start with the base [gascity](./gascity/README.md) pack and add
+tiered Slack/contributor packs as needed. If you want a different build
+methodology, or need the Slack tiering comparison in one place, see
+**[README-featured.md](./README-featured.md)** for the full "which pack do I
+use" comparison tables and rationale.
 
-Raw-framework subagents become Gas City fanouts. The vendored methodology text
-is treated as source material for behavior, not runtime authority: if a raw
-skill says to spawn a subagent, dispatch a task tool, or invoke a plugin
-command, the pack should model that work as formula steps, expansion children,
-drains, or fanout/fanin lanes.
-
-Use two mode concepts when comparing methodology packs:
-
-- `interaction_mode` describes human participation in planning and gates:
-  interactive, autonomous, or headless.
-- `review_mode` describes whether review is report-only, machine handoff, or
-  an interactive top-level review that may apply safe fixes.
-
-- [gascity](./gascity) provides the `build-base` workflow contract, the
-  default `build-basic` implementation, and the `build-from-*` continuation
-  entrypoints for resuming a build from existing artifacts.
-- [compound-engineering](./compound-engineering) imports `gascity` as `gc`
-  and implements `build-base` with vendored Compound Engineering skills,
-  agent personas, and Gas City-native review/finalization expansions.
-- [superpowers](./superpowers) imports `gascity` as `gc` and implements
-  `build-base` with vendored Superpowers skills and Gas City-native
-  development/review expansions.
-- [bmad](./bmad) imports `gascity` as `gc` and implements `build-base` with
-  vendored BMAD Method skills and Gas City-native story/review expansions.
-- [gstack](./gstack) imports `gascity` as `gc` and implements `build-base`
-  with vendored garrytan/gstack office-hours, autoplan, review, QA, security,
-  documentation, and release-readiness skills mapped to Gas City fanouts.
-
-See the [build methodology framework audit](./docs/design/build-methodology-framework-audit.md)
-for the current parity assessment and proposed beginner-friendly updates.
-
-### Slack packs (tiered)
-
-The Slack provider ships as three tiers — pick the smallest one that covers
-your use case:
-
-| Tier | Pack | Use it when |
-| ---- | ---- | ----------- |
-| 1 | [slack-mini](./slack-mini) | The mayor only needs to post status into a single channel. No bindings, no state. |
-| 2 | [slack-channel](./slack-channel) | A few named sessions share channels with distinct identities — no slash commands or cross-rig routing. |
-| 3 | [slack-full](./slack-full) | Slash commands, interactive modals/buttons, peer fanout, launcher-mode spawning, or multi-rig channel routing. |
-
-See the [tiering design memo](./docs/design/slack-pack-tiering.md) for the
-rationale.
-
-### Contributor workflow packs
-
-Discipline for sending good work *to* another repo — planning, building,
-reviewing, and shipping the PRs your city authors.
-
-- [pr-pipeline](./pr-pipeline) ships the author-side PR workflows as formulas
-  (and four wrapper `pr` commands): plan an issue into a structured plan, map a
-  change's blast radius, self-review an outgoing PR against an 11-category
-  scorecard, and run a pre-push gate. None of them push or open PRs.
-- [contributing](./contributing) stitches the full external-contributor
-  lifecycle for `gastownhall/gascity` — write a good issue, find priority work,
-  open a PR, self-review — into one map. It imports `pr-pipeline` for steps 2-4
-  and adds the net-new `write-issue` issue-authoring discipline for step 1.
-
-## Contributing
+## Contributing/Development
 
 Issues and pull requests are welcome. When a pack's surface changes, update
-its README in the same PR so the docs stay current with the code.
-
-### Publishing registry releases
-
-Registry releases are content-addressed. Use the Make targets so the release
-commit and hash are stamped by `gc` instead of hand-authored:
-
-```sh
-GC=/path/to/gc make registry-publish \
-  PACK=slack-mini \
-  VERSION=0.1.1 \
-  DESCRIPTION="Release summary."
-```
-
-`GC` defaults to `gc`, so local testing can point it at an uninstalled build.
-`REGISTRY_COMMIT` defaults to `HEAD`, and only tracked files at that commit are
-hashed; commit pack content before publishing. For new packs, also pass
-`PACK_DESCRIPTION="..."`. To withdraw a bad consumed release without rewriting
-it:
-
-```sh
-make registry-withdraw \
-  PACK=slack-mini \
-  VERSION=0.1.0 \
-  REASON="Superseded by 0.1.1."
-```
-
-Before opening a PR, run:
-
-```sh
-make registry-format-validate
-GC=/path/to/gc make registry-validate
-```
-
-### Publishing a pack to the registry
-
-`registry.toml` is the public catalog. Each `[[pack.release]]` carries a
-content hash that `validate_registry.py` enforces against the pack tree at the
-pinned `commit`. To register a new pack, commit it on your branch, then mint a
-ready-to-paste entry with the canonical hash:
-
-```bash
-# Print just the content hash for a pack at a given commit (default: HEAD)
-python3 validate_registry.py --compute <pack> --commit <ref>
-
-# Print a full [[pack]] block to paste into registry.toml
-python3 validate_registry.py --emit-entry <pack> \
-  --version 0.1.0 \
-  --pack-description "One-line catalog description." \
-  --release-description "Initial <pack> pack release."
-
-# Validate the catalog (default, no-arg invocation — same as CI)
-python3 validate_registry.py
-```
-
-The hash is derived from a sorted manifest of each tracked file's relative
-path, mode, and blob SHA-256 — so it is deterministic and reproducible. A
-maintainer re-pins releases to a single published commit at release time.
-
-### Release compatibility and inference gates
-
-Supported pack releases are also gated by the registry-driven compatibility
-smoke in `scripts/pack_release_compat.py` and the
-`Pack Release Compatibility` workflow. First-class supported packs also have a
-model-backed formula gate in `scripts/gascity_pack_inference_gate.py`, plus a
-scheduled supported-pack nightly workflow. See
-[Release Compatibility Testing](./docs/design/release-compatibility-testing.md)
-for the release-time and nightly test contract.
+its README in the same PR so the docs stay current with the code. See
+**[README-contributing.md](./README-contributing.md)** for the full
+contributor workflow: publishing registry releases, publishing a new pack to
+the registry, and the release compatibility/inference gates.
