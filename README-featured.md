@@ -52,6 +52,17 @@ Use two mode concepts when comparing methodology packs:
 | [bmad](./bmad) | Imports `gascity` as `gc` and implements `build-base` with vendored [BMAD Method](https://github.com/bmad-code-org/BMAD-METHOD) skills and Gas City-native story/review expansions. |
 | [gstack](./gstack) | Imports `gascity` as `gc` and implements `build-base` with vendored [garrytan/gstack](https://github.com/garrytan/gstack) office-hours, autoplan, review, QA, security, documentation, and release-readiness skills mapped to Gas City fanouts. |
 
+Every row above imports `gascity` as `gc` and is built on top of the same
+`build-base` compatibility contract — durable formulas, fanouts, drains,
+convoy identity, artifacts, gates, and mode handling — defined in
+[gascity/REQUIREMENTS.md](./gascity/REQUIREMENTS.md). That ledger is
+normative, not just descriptive: it specifies what each methodology
+implementation must preserve (base anchors and their order, artifact and
+traceability shape, `interaction_mode`/`review_mode` handling) when it swaps
+in its own vendored process, so `bmad-build`, `compound-build`,
+`superpowers-build`, and `gstack-build` stay compatible with the base pack
+even as their stages diverge.
+
 See the [build methodology framework audit](./docs/design/build-methodology-framework-audit.md)
 for the current parity assessment and proposed beginner-friendly updates.
 

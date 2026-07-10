@@ -133,6 +133,8 @@ Each top-level directory is either a pack or a group of related packs:
 
 Each pack's README has its own quick start and is linked below. For a table mapping every pack to the process it runs and when to reach for it, see [README-pack-list.md](./README-pack-list.md); for build-methodology and Slack tiering comparisons, see [README-featured.md](./README-featured.md).
 
+The `Build methodology` packs below all build on one shared contract: `gascity` provides the `build-base` workflow and its default `build-basic` implementation, and `bmad`, `compound-engineering`, `superpowers`, and `gstack` each import `gascity` as `gc` and implement that same contract with their own vendored formulas and prompt assets. See [gascity/REQUIREMENTS.md](./gascity/REQUIREMENTS.md) for the normative requirements every methodology pack is built on top of and must preserve.
+
 | Pack | Category | Description |
 | --- | --- | --- |
 | [gascity](./gascity/README.md) | Build methodology | The `build-base` workflow contract and the default `build-basic` implementation. |

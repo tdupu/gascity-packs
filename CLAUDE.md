@@ -1,5 +1,10 @@
 @AGENTS.md
 
+**Role determination:** see [AGENTS.md](./AGENTS.md) for whether you are an
+inside worker (gascity-managed) or an outside agent (assisting the human
+user), and what each may do. Outside agents should read
+[OUTSIDE-AGENTS.md](./OUTSIDE-AGENTS.md).
+
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
 ## Beads Issue Tracker
