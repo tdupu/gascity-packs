@@ -59,8 +59,7 @@ formula = "mol-pr-from-issue"
 phase = "vapor"
 version = 1
 
-[requires]
-formula_compiler = ">=2.0.0"
+contract = "graph.v2"
 
 [vars]
 [vars.issue_number]
