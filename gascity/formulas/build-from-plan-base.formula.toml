@@ -31,6 +31,10 @@ default = ""
 description = "Plan-review artifact path to create or reuse."
 default = ""
 
+[vars.plan_mode]
+description = "Controls whether the formula generates a new plan ('create') or reuses an approved plan that already exists on disk ('reuse'). When set to 'reuse', the plan and plan-review generation steps are skipped and the formula proceeds directly to the decompose stage. Requires plan_path to point to an existing approved plan artifact."
+default = "create"
+
 [[steps]]
 id = "prepare-plan"
 title = "Validate plan continuation inputs"
@@ -41,6 +45,7 @@ description_file = "../assets/workflows/build-from-plan-base/prepare-plan.md"
 id = "plan"
 title = "Produce implementation plan"
 needs = ["prepare-plan"]
+condition = "{{plan_mode}} == create"
 metadata = { "gc.run_target" = "gc.design-author", "gc.build.artifact_schema" = "gc.build.plan.v1", "gc.build.artifact_path_keys" = "gc.build.plan_path,gc.var.plan_path" }
 description_file = "../assets/workflows/build-from-plan-base/plan.md"
 
@@ -56,12 +61,13 @@ timeout = "5m"
 id = "plan-review"
 title = "Review implementation plan"
 needs = ["plan"]
+condition = "{{plan_mode}} == create"
 metadata = { "gc.run_target" = "gc.review-synthesizer" }
 description_file = "../assets/workflows/build-from-plan-base/plan-review.md"
 
 [[steps]]
 id = "prepare-decompose"
 title = "Validate decompose continuation inputs"
-needs = ["plan-review"]
+needs = ["plan-review", "prepare-plan"]
 metadata = { "gc.run_target" = "gc.run-operator" }
 description_file = "../assets/workflows/build-from-plan-base/prepare-decompose.md"
