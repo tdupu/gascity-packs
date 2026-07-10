@@ -19,7 +19,6 @@ Launch inputs:
 """
 formula = "github-pr-review"
 version = 1
-contract = "graph.v2"
 target_required = false
 
 [catalog]
@@ -102,3 +101,6 @@ title = "Finalize PR review result"
 needs = ["post-comment"]
 metadata = { "gc.run_target" = "gc.run-operator" }
 description_file = "../assets/workflows/github-pr-review/finalize.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

@@ -8,7 +8,6 @@ source-anchor close contract.
 """
 formula = "implementation-base"
 version = 1
-contract = "graph.v2"
 target_required = true
 internal = true
 
@@ -52,3 +51,6 @@ title = "Close owned source anchor"
 needs = ["implement"]
 metadata = { "gc.run_target" = "gc.run-operator" }
 description_file = "../assets/workflows/implementation-base/close-source-anchor.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

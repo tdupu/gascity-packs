@@ -8,7 +8,6 @@ Launch inputs:
 """
 formula = "fix-convoy"
 version = 1
-contract = "graph.v2"
 target_required = true
 internal = true
 
@@ -40,3 +39,6 @@ title = "Create fix convoy"
 needs = ["validate-fix-plan"]
 metadata = { "gc.run_target" = "gc.run-operator" }
 description_file = "../assets/workflows/fix-convoy/create-fix-convoy.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

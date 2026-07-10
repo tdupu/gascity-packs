@@ -8,7 +8,6 @@ artifact paths consumed by entrypoint adapters.
 """
 formula = "planning-base"
 version = 1
-contract = "graph.v2"
 target_required = false
 internal = true
 
@@ -79,3 +78,6 @@ title = "Approve implementation plan"
 needs = ["plan"]
 metadata = { "gc.run_target" = "gc.review-synthesizer" }
 description_file = "../assets/workflows/planning-base/plan-review.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

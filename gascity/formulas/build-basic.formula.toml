@@ -7,7 +7,6 @@ same full-lifecycle stage contract exposed by build-base.
 """
 formula = "build-basic"
 version = 1
-contract = "graph.v2"
 extends = ["build-base"]
 target_required = true
 
@@ -133,3 +132,6 @@ title = "Optionally publish build-basic"
 needs = ["finalize"]
 metadata = { "gc.run_target" = "gc.publisher" }
 description_file = "../assets/workflows/build-basic/publish.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

@@ -8,7 +8,6 @@ Launch inputs:
 """
 formula = "gap-analysis"
 version = 1
-contract = "graph.v2"
 target_required = false
 mode = "report"
 
@@ -41,3 +40,6 @@ title = "Write gap-analysis report"
 needs = ["validate-context"]
 metadata = { "gc.run_target" = "gc.gap-analyst" }
 description_file = "../assets/workflows/gap-analysis/write-report.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

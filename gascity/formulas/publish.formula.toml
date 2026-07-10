@@ -8,7 +8,6 @@ Launch inputs:
 """
 formula = "publish"
 version = 1
-contract = "graph.v2"
 target_required = false
 internal = true
 
@@ -44,3 +43,6 @@ title = "Open PR if authorized"
 needs = ["push"]
 metadata = { "gc.run_target" = "gc.publisher" }
 description_file = "../assets/workflows/publish/open-pr.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

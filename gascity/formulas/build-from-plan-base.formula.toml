@@ -7,7 +7,6 @@ implementation plan and plan-review verdict, then hands off to
 """
 formula = "build-from-plan-base"
 version = 1
-contract = "graph.v2"
 extends = ["build-from-decompose-base"]
 target_required = false
 internal = true
@@ -71,3 +70,6 @@ title = "Validate decompose continuation inputs"
 needs = ["plan-review", "prepare-plan"]
 metadata = { "gc.run_target" = "gc.run-operator" }
 description_file = "../assets/workflows/build-from-plan-base/prepare-decompose.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

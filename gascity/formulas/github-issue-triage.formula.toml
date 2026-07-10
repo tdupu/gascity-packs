@@ -16,9 +16,11 @@ Launch inputs:
 formula = "github-issue-triage"
 extends = ["github-issue-triage-base"]
 version = 1
-contract = "graph.v2"
 target_required = false
 
 [catalog]
 name = "github-issue-triage"
 description = "Triage a GitHub issue through the GitHub issue adapter workflow."
+
+[requires]
+formula_compiler = ">=2.0.0"

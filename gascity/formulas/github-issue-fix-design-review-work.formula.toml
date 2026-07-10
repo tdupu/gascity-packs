@@ -10,7 +10,6 @@ contract for downstream bead creation.
 formula = "github-issue-fix-design-review-work"
 type = "expansion"
 version = 1
-contract = "graph.v2"
 
 [vars.mode]
 description = "Issue-fix front-half mode, recorded in artifacts."
@@ -69,3 +68,6 @@ title = "Finalize approved issue-fix implementation-plan review"
 needs = ["{target}.review-loop"]
 metadata = { "gc.run_target" = "gc.run-operator" }
 description_file = "../assets/workflows/github-issue-fix-design-review-work/{target}.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

@@ -10,7 +10,6 @@ Launch inputs:
 """
 formula = "review"
 version = 1
-contract = "graph.v2"
 extends = ["code-review-base"]
 target_required = false
 mode = "report"
@@ -60,3 +59,6 @@ max_attempts = 3
 mode = "exec"
 path = ".gc/scripts/checks/build-artifact-valid.sh"
 timeout = "5m"
+
+[requires]
+formula_compiler = ">=2.0.0"

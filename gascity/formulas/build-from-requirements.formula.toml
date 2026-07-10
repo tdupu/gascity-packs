@@ -6,7 +6,6 @@ built-in Gas City methodology defaults.
 """
 formula = "build-from-requirements"
 version = 1
-contract = "graph.v2"
 extends = ["build-from-requirements-base"]
 target_required = false
 
@@ -19,3 +18,6 @@ allowed_drain_policies = ["separate", "same-session"]
 implementation_strategy = "drain"
 interaction_modes = ["interactive", "autonomous", "headless"]
 review_modes = ["report", "agent", "interactive"]
+
+[requires]
+formula_compiler = ">=2.0.0"

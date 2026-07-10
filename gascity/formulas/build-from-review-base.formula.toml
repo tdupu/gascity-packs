@@ -8,7 +8,6 @@ to `prepare-review` after producing implementation evidence.
 """
 formula = "build-from-review-base"
 version = 1
-contract = "graph.v2"
 target_required = false
 internal = true
 
@@ -136,3 +135,6 @@ title = "Optionally publish continuation result"
 needs = ["finalize"]
 metadata = { "gc.run_target" = "gc.publisher" }
 description_file = "../assets/workflows/build-from-review-base/publish.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

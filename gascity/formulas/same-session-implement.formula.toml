@@ -9,7 +9,6 @@ Launch inputs:
 """
 formula = "same-session-implement"
 version = 1
-contract = "graph.v2"
 target_required = true
 internal = true
 
@@ -36,3 +35,6 @@ member_access = "exclusive"
 
 [steps.drain.item]
 single_lane = true
+
+[requires]
+formula_compiler = ">=2.0.0"

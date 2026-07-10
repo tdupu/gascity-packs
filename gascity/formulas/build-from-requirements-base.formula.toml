@@ -7,7 +7,6 @@ inherited `prepare-plan` step.
 """
 formula = "build-from-requirements-base"
 version = 1
-contract = "graph.v2"
 extends = ["build-from-plan-base"]
 target_required = false
 internal = true
@@ -50,3 +49,6 @@ title = "Validate plan continuation inputs"
 needs = ["requirements"]
 metadata = { "gc.run_target" = "gc.run-operator" }
 description_file = "../assets/workflows/build-from-requirements-base/prepare-plan.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

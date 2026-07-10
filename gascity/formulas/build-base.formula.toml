@@ -27,7 +27,6 @@ Launch inputs:
 """
 formula = "build-base"
 version = 1
-contract = "graph.v2"
 target_required = true
 internal = true
 
@@ -249,3 +248,6 @@ title = "Optionally publish build result"
 needs = ["finalize"]
 metadata = { "gc.run_target" = "gc.publisher" }
 description_file = "../assets/workflows/build-base/publish.md"
+
+[requires]
+formula_compiler = ">=2.0.0"

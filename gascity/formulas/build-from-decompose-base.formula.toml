@@ -29,7 +29,6 @@ Launch inputs:
 """
 formula = "build-from-decompose-base"
 version = 1
-contract = "graph.v2"
 extends = ["build-from-convoy-base"]
 target_required = false
 internal = true
@@ -88,3 +87,6 @@ title = "Validate implementation convoy"
 needs = ["decompose"]
 metadata = { "gc.run_target" = "gc.run-operator" }
 description_file = "../assets/workflows/build-from-decompose-base/prepare-convoy.md"
+
+[requires]
+formula_compiler = ">=2.0.0"
