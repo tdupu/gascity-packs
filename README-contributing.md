@@ -13,7 +13,9 @@ Discipline for sending good work *to* another repo — planning, building, revie
 
 ## Build Methodology Packs
 
-If you are creating a build methodology pack like superpowers or gascity, see the [build methodology framework audit](./docs/design/build-methodology-framework-audit.md) for the current parity assessment and proposed beginner-friendly updates.
+A **methodology pack** is a pack that implements the `build-base` workflow contract — the shared lifecycle of requirements, plan, plan review, decomposition, implementation, review, and finalize — with its own formulas and prompt assets (for example `bmad`, `compound-engineering`, `superpowers`, and `gstack`, alongside the `gascity` base pack's own `build-basic` reference implementation).
+
+If you are creating a build methodology pack like superpowers or gascity, start with the [base requirements](./gascity/REQUIREMENTS.md) — the normative compatibility contract every methodology pack must preserve — then see the [build methodology framework audit](./docs/design/build-methodology-framework-audit.md) for the current parity assessment and proposed beginner-friendly updates.
 
 ## Update the pack's README
 
