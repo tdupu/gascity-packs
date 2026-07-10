@@ -69,7 +69,16 @@ def parse_front_matter(text: str) -> tuple[str, dict[str, Any], str]:
     data = yaml.safe_load(match.group("front")) or {}
     if not isinstance(data, dict):
         raise ValidationError("build artifact front matter must be a mapping")
-    schema_id = required_string(data, "schema")
+    schema_id = data.get("schema")
+    if not isinstance(schema_id, str) or not schema_id.strip():
+        raise ValidationError(
+            "artifact is missing required frontmatter field: 'schema'\n"
+            "  The artifact file must declare its schema type, e.g.:\n"
+            "    schema: gc.build.plan.v1\n"
+            "  (The --schema CLI flag specifies what schema to validate against,\n"
+            "   but the artifact itself must also declare its own 'schema:' field.)"
+        )
+    schema_id = schema_id.strip()
     return schema_id, data, match.group("body")
 
 

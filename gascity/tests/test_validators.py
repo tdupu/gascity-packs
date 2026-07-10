@@ -424,6 +424,52 @@ trace:
             self.assertIn("error:", stderr.getvalue())
             self.assertNotIn("Traceback", stderr.getvalue())
 
+    def test_build_artifact_legacy_plan_format_gives_actionable_error(self) -> None:
+        # Regression test for tdupu/gascity#6: a plan file in legacy
+        # gascity-bead-plan-opus format (plan_slug/phase frontmatter, no
+        # schema: field) used to produce the confusing message
+        # "schema must be a non-empty string", which implied the --schema
+        # CLI argument was wrong rather than the artifact file.
+        # The validator must now emit a message that names the 'schema'
+        # frontmatter field as the missing piece.
+        legacy_plan = (
+            "---\n"
+            "plan_slug: my-plan\n"
+            "phase: implementation-plan\n"
+            "status: approved\n"
+            "---\n\n"
+            "# Implementation Plan\n\nPlan body without schema: field.\n"
+        )
+        with self.assertRaisesRegex(
+            build_artifact_validator.ValidationError,
+            "schema",
+        ) as ctx:
+            build_artifact_validator.validate_artifact_text(
+                legacy_plan, expected_schema="gc.build.plan.v1"
+            )
+        # The error message must mention the artifact's frontmatter field,
+        # not just that the string is missing — so callers can fix the
+        # artifact rather than the CLI invocation.
+        self.assertIn("frontmatter", str(ctx.exception).lower())
+
+        # Confirm the CLI also surfaces a clear error and no traceback.
+        with tempfile.TemporaryDirectory() as tmp:
+            plan_path = pathlib.Path(tmp) / "implementation-plan.md"
+            plan_path.write_text(legacy_plan, encoding="utf-8")
+            stderr = io.StringIO()
+
+            with redirect_stderr(stderr), redirect_stdout(io.StringIO()):
+                code = build_artifact_validator.main(
+                    ["--schema", "gc.build.plan.v1", "--path", str(plan_path)]
+                )
+
+            self.assertEqual(code, 1)
+            self.assertIn("error:", stderr.getvalue())
+            self.assertNotIn("Traceback", stderr.getvalue())
+            # The CLI error must not say just "schema must be a non-empty string"
+            # without further context about what "schema" refers to.
+            self.assertIn("frontmatter", stderr.getvalue().lower())
+
 
 class VerdictReportValidatorTests(unittest.TestCase):
     def test_verdict_report_accepts_pass_and_fail_reports(self) -> None:
