@@ -97,7 +97,7 @@ Contents (5 files):
 **Review/verdict docs (non-pack, reference only — rename prose but low priority):**
 - `mathematics/CODEX-REVIEW-RESPONSE-2026-07-08.md`
 - `mathematics/METHODOLOGY-PACK-VERDICT-2026-07-08.md`
-- `mathematics/README.md`
+- `mathcity/README.md`
 
 **Pack-level file — the registry asset itself gets renamed:**
 - `mathematics/assets/brief-pipeline/gates.toml`  →  `mathematics/assets/brief-pipeline/hurdles.toml`
