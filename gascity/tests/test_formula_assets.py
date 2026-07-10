@@ -1287,7 +1287,7 @@ class FormulaAssetTests(unittest.TestCase):
         self.assertEqual(steps["prepare-plan"]["needs"], ["requirements"])
         self.assertEqual(steps["plan"]["needs"], ["prepare-plan"])
         self.assertEqual(steps["plan-review"]["needs"], ["plan"])
-        self.assertEqual(steps["prepare-decompose"]["needs"], ["plan-review"])
+        self.assertEqual(steps["prepare-decompose"]["needs"], ["plan-review", "prepare-plan"])
         self.assertEqual(steps["decompose"]["needs"], ["prepare-decompose"])
         self.assertEqual(steps["prepare-convoy"]["needs"], ["decompose"])
         self.assertEqual(steps["implement"]["needs"], ["prepare-convoy"])
@@ -4509,6 +4509,49 @@ description = "Override sink that writes the base triage report contract."
             write_report_step["expand_vars"]["artifact_path_keys"],
             artifact_keys,
         )
+
+
+    def test_build_from_plan_base_plan_mode_reuse_skips_design_author(self) -> None:
+        """Contract test for tdupu/gascity#4: plan_mode=reuse must skip gc.design-author.
+
+        When plan_mode='create' (default), the formula routes through
+        gc.design-author. When plan_mode='reuse', the plan and plan-review
+        steps carry a condition and must NOT unconditionally route to
+        gc.design-author.
+        """
+        root = pathlib.Path(__file__).resolve().parents[1]
+        data = load_formula(root, "build-from-plan-base")
+
+        # plan_mode var must exist with default='create'
+        self.assertIn("plan_mode", data["vars"])
+        self.assertEqual(data["vars"]["plan_mode"]["default"], "create")
+
+        step_by_id = {step["id"]: step for step in data["steps"]}
+
+        # plan step: must have condition == "{{plan_mode}} == create"
+        plan_step = step_by_id["plan"]
+        self.assertEqual(
+            plan_step.get("condition"),
+            "{{plan_mode}} == create",
+            "plan step must be conditional on plan_mode==create so that "
+            "gc.design-author is not invoked when plan_mode=reuse",
+        )
+        # plan step still routes to gc.design-author (unchanged when condition met)
+        self.assertEqual(plan_step["metadata"]["gc.run_target"], "gc.design-author")
+
+        # plan-review step: must also be conditional so the reuse path skips it
+        plan_review_step = step_by_id["plan-review"]
+        self.assertEqual(
+            plan_review_step.get("condition"),
+            "{{plan_mode}} == create",
+            "plan-review step must be conditional on plan_mode==create",
+        )
+
+        # prepare-decompose must accept either path (plan-review OR prepare-plan)
+        # so the graph can advance when the conditional steps are skipped.
+        prepare_decompose = step_by_id["prepare-decompose"]
+        self.assertIn("plan-review", prepare_decompose["needs"])
+        self.assertIn("prepare-plan", prepare_decompose["needs"])
 
 
 if __name__ == "__main__":
