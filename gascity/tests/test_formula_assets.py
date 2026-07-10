@@ -1146,11 +1146,13 @@ class FormulaAssetTests(unittest.TestCase):
             "artifact_root",
             "requirements_path",
             "plan_path",
-            "plan_review_path",
         }
         for var_name in required_vars:
             with self.subTest(var=var_name):
                 self.assertTrue(resolved["vars"][var_name]["required"])
+        # plan_review_path is optional (default="") so legacy plans without a
+        # review artifact can proceed. See tdupu/gascity#5.
+        self.assertEqual(resolved["vars"]["plan_review_path"].get("default", None), "")
 
         expected_defaults = {
             "context_path": "",

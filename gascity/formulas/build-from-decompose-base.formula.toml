@@ -50,8 +50,8 @@ description = "Approved implementation plan artifact path."
 required = true
 
 [vars.plan_review_path]
-description = "Approved plan-review artifact path."
-required = true
+description = "Approved plan-review artifact path. Optional — leave blank when no plan-review artifact exists (e.g. legacy plans in gascity-bead-plan-opus format). When empty, the prepare-decompose step proceeds without validating a review verdict and notes that no review document was provided."
+default = ""
 
 [vars.decomposition_path]
 description = "Task decomposition artifact path to create or reuse."

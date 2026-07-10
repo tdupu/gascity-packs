@@ -16,9 +16,22 @@ Validate the prerequisite inputs before any side effects:
 - review_mode: {{review_mode}}
 
 Do not rerun requirements, plan, or plan-review. This continuation is valid
-only when the supplied requirements, implementation plan, and plan-review
-artifacts exist and the plan-review artifact records approval or an equivalent
-pass verdict.
+only when the supplied requirements and implementation plan artifacts exist.
+
+**Plan-review handling:**
+
+If `plan_review_path` is non-empty, verify that the plan-review artifact at
+that path exists and records approval or an equivalent pass verdict before
+proceeding to decomposition.
+
+If `plan_review_path` is empty or blank, no review document was provided.
+Proceed without validating a review verdict — this is expected for legacy plans
+(e.g. gascity-bead-plan-opus format) that predate the plan-review artifact
+schema. Note the absence in the step's closing metadata:
+
+```bash
+bd update "$CLAIMED_BEAD_ID" --set-metadata "gc.build.plan_review_path=none"
+```
 
 Record `gc.build.continuation_entrypoint=decompose` when this suffix is
 launched directly. Close only after the decompose stage can create or reuse the
