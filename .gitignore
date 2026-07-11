@@ -7,8 +7,6 @@
 
 # Gas City
 .beads/*
-!.beads/config.yaml
-!.beads/metadata.json
 
 # bd export artifact auto-staged by pre-commit hook (export.git-add: true in
 # /home/ds/gascity-packs/.beads/config.yaml). Keep it out of repo history —
@@ -21,3 +19,6 @@ __pycache__/
 
 # Beads / Dolt files (added by bd init)
 .beads/proxieddb/
+
+# Gas City
+!.beads/identity.toml
