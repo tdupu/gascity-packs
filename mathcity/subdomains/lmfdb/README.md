@@ -20,14 +20,32 @@ Import alias convention (ADR 0002): skills materialize as
 
 ## Configuration — no private values in the pack
 
-Server- and database-touching skills read a **project-local, gitignored
-conf** (hecke pattern: `magma/scripts/data-generation.conf`). The pack
-ships only [`assets/lmfdb-pipeline.conf.example`](./assets/lmfdb-pipeline.conf.example)
-with placeholder values — copy it into your project, fill it in, and
-gitignore the copy. Hostnames, users, SSH keys, and schema names never
-enter pack content.
+This pack uses **two** project-local, gitignored confs placed at your project
+root. Private values (hostnames, users, SSH keys, schema names) never enter
+pack content or git.
+
+| Conf file | Contains | Template |
+| --- | --- | --- |
+| `lmfdb-server.conf` | SSH/compute-server connection (REMOTE_HOST, REMOTE_USER, etc.) | [`assets/lmfdb-server.conf.example`](./assets/lmfdb-server.conf.example) |
+| `lmfdb-pipeline.conf` | Database and pipeline config (PGDATABASE, PGSCHEMA, DATA_DIR, SCHEMA_MD) | [`assets/lmfdb-pipeline.conf.example`](./assets/lmfdb-pipeline.conf.example) |
+
+Server skills discover `lmfdb-server.conf` at the project root first, then
+fall back to `magma/scripts/data-generation.conf` (hecke's existing convention)
+so hecke works without any migration.
+
+Run `mathcity-lmfdb.configure-server` and `mathcity-lmfdb.configure-database`
+(or `mathcity-lmfdb.setup-lmfdb-pipeline` to run both) to create these files
+interactively on a fresh clone.
 
 ## Skills
+
+### Setup (run once per project)
+
+| Skill | Purpose |
+| --- | --- |
+| `configure-server` | Interactively create `lmfdb-server.conf` at the project root (SSH/compute-server values) |
+| `configure-database` | Interactively create `lmfdb-pipeline.conf` at the project root (database/pipeline values) |
+| `setup-lmfdb-pipeline` | Meta-setup: runs `configure-database` then `configure-server` in sequence |
 
 ### Query & cross-check
 
@@ -62,12 +80,11 @@ edges between them:
 | `update-schema` | Propagate a schema change (add/remove/modify columns or tables) across ALL affected files |
 | `plan-an-lmfdb-webpage` | Task breakdown + PERT chart for adding a new object type to the LMFDB website |
 
-### Remote compute server (conf-driven)
+### Remote compute server (conf-driven, reads `lmfdb-server.conf`)
 
 | Skill | Purpose |
 | --- | --- |
-| `setup-lmfdb-pipeline` | One-time interactive setup: copy `lmfdb-pipeline.conf.example` into the project, fill values, gitignore, verify (the P1.12 companion for the conf-driven skills) |
-| `push-to-server` | SSH to the compute server and `git pull` the latest branch (connection from the project conf) |
+| `push-to-server` | SSH to the compute server and `git pull` the latest branch |
 | `pull-data-from-server` | Fetch computed `DATA/` results back from the compute server |
 | `push-data-to-server` | Ship local `DATA/` files up to the compute server |
 

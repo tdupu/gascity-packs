@@ -1,6 +1,6 @@
 ---
 name: pull-data-from-server
-description: Pull computed flat files from the remote server to local disk — rsync into a timestamped snapshot under magma/DATA/snapshots/, then replace canonical local DATA/ working dirs from the most recent snapshot. Reads connection details from magma/scripts/data-generation.conf. Use whenever the user says "pull data from server", "sync server data locally", "import server results", "get the latest computed data from the server", or any time remote computation results need to be brought to local disk.
+description: Pull computed flat files from the remote server to local disk — rsync into a timestamped snapshot under magma/DATA/snapshots/, then replace canonical local DATA/ working dirs from the most recent snapshot. Reads connection details from lmfdb-server.conf at the project root (falls back to magma/scripts/data-generation.conf for hecke). Use whenever the user says "pull data from server", "sync server data locally", "import server results", "get the latest computed data from the server", or any time remote computation results need to be brought to local disk.
 ---
 
 # pull-data-from-server
@@ -23,7 +23,7 @@ The script `magma/scripts/pull-from-server.sh` handles this entirely. Just run i
 bash magma/scripts/pull-from-server.sh
 ```
 
-That script reads `magma/scripts/data-generation.conf` for connection details. If it does not exist, copy `magma/scripts/data-generation.conf.example` and fill in the values.
+That script reads the conf for connection details — it discovers `lmfdb-server.conf` at the project root first, then falls back to `magma/scripts/data-generation.conf` (hecke convention). If neither exists, run `mathcity-lmfdb.configure-server` or copy `lmfdb-server.conf.example` to your project root.
 
 ## What the script does (for reference)
 

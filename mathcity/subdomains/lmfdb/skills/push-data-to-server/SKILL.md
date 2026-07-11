@@ -1,6 +1,6 @@
 ---
 name: push-data-to-server
-description: rsync canonical local magma/DATA/ working folders to the remote compute server, skipping all snapshot directories (data-*/). Reads connection details from magma/scripts/data-generation.conf. Use whenever the user says "push data to server", "send local DATA to the server", "upload computed data", "sync data to remote", or any time locally-computed flat files need to be available on the remote server.
+description: rsync canonical local magma/DATA/ working folders to the remote compute server, skipping all snapshot directories (data-*/). Reads connection details from lmfdb-server.conf at the project root (falls back to magma/scripts/data-generation.conf for hecke). Use whenever the user says "push data to server", "send local DATA to the server", "upload computed data", "sync data to remote", or any time locally-computed flat files need to be available on the remote server.
 ---
 
 # push-data-to-server
@@ -10,13 +10,21 @@ description: rsync canonical local magma/DATA/ working folders to the remote com
 ## Step 0 — Load config
 
 ```bash
-source magma/scripts/data-generation.conf
+# Discover conf: project-root lmfdb-server.conf first, fall back to hecke convention
+CONF=""
+for candidate in \
+    "$(git rev-parse --show-toplevel 2>/dev/null)/lmfdb-server.conf" \
+    "magma/scripts/data-generation.conf"; do
+  [ -f "$candidate" ] && { CONF="$candidate"; break; }
+done
+[ -n "$CONF" ] || { echo "ERROR: no conf found (lmfdb-server.conf at project root, or magma/scripts/data-generation.conf)"; exit 1; }
+source "$CONF"
 SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=15"
 [[ -n "${SSH_JUMP:-}" ]] && SSH_OPTS="$SSH_OPTS -o ProxyJump=$SSH_JUMP"
 [[ -n "${SSH_KEY:-}"  ]] && SSH_OPTS="$SSH_OPTS -i $SSH_KEY"
 ```
 
-If `data-generation.conf` does not exist, tell the user to copy `data-generation.conf.example` and fill in values.
+If no conf is found, run `mathcity-lmfdb.configure-server` or copy `lmfdb-server.conf.example` to your project root.
 
 ## What gets copied vs. skipped
 

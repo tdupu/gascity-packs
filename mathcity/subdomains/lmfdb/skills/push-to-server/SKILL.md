@@ -1,6 +1,6 @@
 ---
 name: push-to-server
-description: SSH into the remote compute server and git pull the latest master branch. Reads connection details from magma/scripts/data-generation.conf. Use this skill whenever the user says "push to server", "pull on the server", "sync the server", "deploy the changes", "update the server", or any time changes have been committed locally and need to be applied on the remote server before restarting computations.
+description: SSH into the remote compute server and git pull the latest master branch. Reads connection details from lmfdb-server.conf at the project root (falls back to magma/scripts/data-generation.conf for hecke). Use this skill whenever the user says "push to server", "pull on the server", "sync the server", "deploy the changes", "update the server", or any time changes have been committed locally and need to be applied on the remote server before restarting computations.
 ---
 
 # push-to-server
@@ -10,13 +10,21 @@ Pull the latest `master` branch onto the remote compute server.
 ## Step 0 — Load config
 
 ```bash
-source magma/scripts/data-generation.conf
+# Discover conf: project-root lmfdb-server.conf first, fall back to hecke convention
+CONF=""
+for candidate in \
+    "$(git rev-parse --show-toplevel 2>/dev/null)/lmfdb-server.conf" \
+    "magma/scripts/data-generation.conf"; do
+  [ -f "$candidate" ] && { CONF="$candidate"; break; }
+done
+[ -n "$CONF" ] || { echo "ERROR: no conf found (lmfdb-server.conf at project root, or magma/scripts/data-generation.conf)"; exit 1; }
+source "$CONF"
 SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=15"
 [[ -n "${SSH_JUMP:-}" ]] && SSH_OPTS="$SSH_OPTS -o ProxyJump=$SSH_JUMP"
 [[ -n "${SSH_KEY:-}"  ]] && SSH_OPTS="$SSH_OPTS -i $SSH_KEY"
 ```
 
-If `data-generation.conf` does not exist, tell the user to copy `magma/scripts/data-generation.conf.example` to `magma/scripts/data-generation.conf` and fill in their values.
+If no conf is found, tell the user to run `mathcity-lmfdb.configure-server` or copy `lmfdb-server.conf.example` to their project root.
 
 ## Step 1 — Pull latest changes
 
