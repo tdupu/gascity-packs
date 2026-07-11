@@ -67,7 +67,7 @@ metadata = { "gc.run_target" = "{{operator_target}}", "gc.tex.file" = "{{tex_fil
 description = """
 Invoke the check-latex skill against `{{tex_file}}`:
 
-    skills/check-latex/check-latex.sh {{tex_file}} \\
+    subdomains/latex/skills/check-latex/check-latex.sh {{tex_file}} \\
         --base {{base_ref}} --out {{evidence_dir}} --bead {{bead_id}}
 
 This writes `check-latex-report.{json,md}`, `tex.diff`, and `compile.log` under

@@ -54,11 +54,11 @@ Initialize iteration counter to **N = 1**. Stamp `WALL_START=$(date -u +%FT%TZ)`
 
 **Find and read the skill files** you will embed in subagent prompts — do this once before the loop. For each skill, check both locations with Bash, use whichever exists, then Read the file:
 
-    ls ~/repos/agent-skills/skills/critical-review/SKILL.md \
+    ls ~/repos/gascity-packs/mathcity/skills/critical-review/SKILL.md \
       || ls ~/.claude/skills/critical-review/SKILL.md
-    ls ~/repos/agent-skills/skills/create-artifact/SKILL.md \
+    ls ~/repos/gascity-packs/mathcity/skills/create-artifact/SKILL.md \
       || ls ~/.claude/skills/create-artifact/SKILL.md
-    ls ~/repos/agent-skills/skills/revise-artifact/SKILL.md \
+    ls ~/repos/gascity-packs/mathcity/skills/revise-artifact/SKILL.md \
       || ls ~/.claude/skills/revise-artifact/SKILL.md
 
 If a path does not exist, stop and ask. Strip the YAML frontmatter (`---` … `---`) before embedding.
