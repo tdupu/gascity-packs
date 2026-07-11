@@ -67,6 +67,25 @@ upstream; upstream must be *contained in* main (merged), never mirrored
 over it. Remediation: the matching `update-*-from-source` skill; never
 resolve divergence by force-push.
 
+**3a. Upstream contribution hygiene — PRs and issues (P3.1, see `~/gt/POLICY.md`).**
+
+If the build under audit includes any recently created PR or issue targeting
+`gastownhall/gascity`, `gastownhall/gascity-packs`, or `gastownhall/beads`:
+
+- Every PR to those three repos must have been created via `mol-pr-from-issue`
+  (pr-pipeline), NOT by a bare `gh pr create`. Check:
+  ```bash
+  gh pr list --repo gastownhall/gascity-packs --author @me --json title,body,url | head
+  # Look for pipeline-generated body (linked bead, hygiene checklist)
+  ```
+  Hand-crafted PR bodies without the pipeline template → **revise** (P3.1).
+  Reference: https://github.com/tdupu/gascity-packs/blob/main/pr-pipeline/README.md
+
+- Every issue filed against those repos must have been created through the
+  contributing skills, not `gh issue create` directly. A plain issue body
+  missing contributing-skill metadata → flag for remediation (P3.4).
+  Reference: https://github.com/tdupu/gascity-packs/tree/main/contributing
+
 **4. Local-path imports are remote-backed (P1.4).**
 
 ```bash
@@ -99,7 +118,7 @@ git -C ~/repos/gascity-packs status --porcelain -- '*/vendor/' | head
 
 Any modification under a `vendor/**` tree is a violation — no exceptions.
 
-**7. Single source, no secrets, private data plane (P1.9–P1.11).**
+**7. Single source, no secrets, private data plane (P1.9–P1.11, P1.15).**
 
 ```bash
 # P1.9 — duplicate real copies of pack skills in other repos
@@ -118,6 +137,17 @@ for p in ~/gt ~/gt/*/; do [ -d "$p/.beads" ] || continue
   case "$r" in *-dolt.git) ;; "") ;; *) echo "NON-DOLT SYNC TARGET: $p -> $r";; esac
 done
 # then per flagged/new target: gh repo view tdupu/<name>-dolt --json isPrivate (must be true)
+# P1.15 — dolt remote name must be tdupu/<rig-name>-dolt (exception: ~/gt → gascity-dolt)
+for p in ~/gt ~/gt/*/; do [ -d "$p/.beads" ] || continue
+  r=$(cd "$p" && bd config get sync.remote 2>/dev/null)
+  [ -z "$r" ] && continue
+  rig=$(basename "$p")
+  if [ "$p" = "$HOME/gt" ] || [ "$p" = "$HOME/gt/" ]; then
+    expected="tdupu/gascity-dolt"
+  else expected="tdupu/${rig}-dolt"; fi
+  r_base="${r%.git}"
+  [ "$r_base" != "$expected" ] && echo "P1.15 WRONG NAME: $p -> sync.remote=$r (expected ${expected}.git)"
+done
 ```
 
 Duplicates without a tracked follow-up bead, any secret-scan hit, or a
