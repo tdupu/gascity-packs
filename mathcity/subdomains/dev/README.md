@@ -14,11 +14,17 @@ Contents:
   current-state audit). Source-of-truth for the `check-hygiene` gate skill
   and for priming the mathcity mayor.
 
-Planned:
+## Skills
 
-- `skills/check-hygiene/` — the plan/convoy/audit gate built from
-  POLICY.md via skill-creator (materializes as
-  `mathcity-dev.check-hygiene` when this pack is imported).
+| Skill | Purpose |
+| --- | --- |
+| `check-plan-hygiene` | Gate a plan doc or beads convoy against POLICY.md's four pillars before build; verdicts approve/revise/reject/defer with violated P-rules and a re-derivation brief |
+| `check-build-hygiene` | Audit the live install (binaries, repos, imports, skill sinks) against POLICY.md; drift list with per-item remediation |
+| `skill-creator-math` | Create a skill in the mathcity pack family and wire both exposure routes (the sanctioned P1.8 procedure) |
+| `update-README` | Keep the pack family's READMEs + exposure in sync after any owned-pack change — run at the end of every skill-move or pack-change session |
+
+Import alias convention (ADR 0002): skills materialize as
+`mathcity-dev.<skill>`.
 
 Import independently of the parent pack:
 

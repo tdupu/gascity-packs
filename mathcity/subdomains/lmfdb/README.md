@@ -2,6 +2,16 @@
 
 Query the LMFDB and cross-check computed mathematical data.
 
+**What is the LMFDB?** The [LMFDB](https://www.lmfdb.org/) — the database
+of L-functions, Modular Forms, and related objects — is a large
+collaborative database of mathematical objects (elliptic curves, number
+fields, modular and Bianchi modular forms, L-functions, genus 2 curves,
+groups, …) and the connections between them, organized around the
+Langlands program. Each object has a stable label and a webpage; the data
+is computed, verified, and cross-referenced by the community. This
+subdomain's skills query it, cross-check our computed data against it, and
+plan contributions of new object types to it.
+
 Import alias convention (ADR 0002): skills materialize as
 `mathcity-lmfdb.<skill>`.
 
