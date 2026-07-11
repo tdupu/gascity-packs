@@ -145,9 +145,30 @@ done
 A conf-reading skill with no setup companion, or a skill with no README
 row → **revise**.
 
-**8. Replay litmus (P1.1) — judgment call.**
+**8. Dependency pre-flight (P1.14).**
 
-Given checks 1–7, answer: "if I `gc init` a scratch city and replay only
+```bash
+# For each conf-driven skill, look for the "I'm sorry" error pattern
+for skill_dir in ~/repos/gascity-packs/mathcity/subdomains/lmfdb/skills/*/; do
+  skill_name=$(basename "$skill_dir")
+  skill_file="$skill_dir/SKILL.md"
+  [ -f "$skill_file" ] || continue
+  # Only check skills that reference a conf
+  if grep -q 'conf\|CONF\|data-generation' "$skill_file"; then
+    if ! grep -q "I'm sorry" "$skill_file"; then
+      echo "P1.14 FAIL: $skill_name — conf-driven but no graceful error block"
+    fi
+  fi
+done
+```
+
+Fail if any conf-driven skill is missing the `"I'm sorry, I can't do that"` error block.
+Remediation: add the appropriate conf-discovery block with the P1.14 error format (server conf
+→ `/configure-server`; pipeline conf → `/configure-database`).
+
+**9. Replay litmus (P1.1) — judgment call.**
+
+Given checks 1–8, answer: "if I `gc init` a scratch city and replay only
 the declared imports on a fresh machine, do I get this city?" List every
 piece of load-bearing state that would be missing (hand-placed sink
 symlinks are fine — they're encoded in `skill-creator-math`; an

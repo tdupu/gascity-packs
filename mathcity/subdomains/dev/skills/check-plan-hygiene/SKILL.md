@@ -60,6 +60,7 @@ that rule ID plus the file/directory that triggered it.
   does it also add (or extend) the companion `setup-<name>` skill?
 - P1.13 Does the plan include the README table rows for every skill it
   adds, moves, or renames (the update-README same-commit rule)?
+- P1.14 — Dependency pre-flight. Does any new or modified skill read a conf, invoke a tool, connect to a database, or SSH to a server? If yes: does the plan include a pre-flight existence check for each dependency, with a "I'm sorry, I can't do that" error block naming the missing dep, the setup skill to run, and what the dep enables? A plan that adds a conf-driven skill without P1.14 compliance → revise.
 
 **Pillar 2 — ownership:**
 

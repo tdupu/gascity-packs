@@ -139,6 +139,24 @@ recreate what you're running; upstream must remain pullable.*
   one-line purpose. A skill with no row, or a row naming a skill that no
   longer exists, → **fail**. Enforced by the `update-README` procedure
   (same-commit rule) and audited by `check-build-hygiene`.
+- **P1.14 Dependency pre-flight: graceful failure with actionable error.**
+  Every skill that depends on an external resource — a project-local conf
+  file, a tool (Magma, PostgreSQL), a database connection, an SSH server —
+  MUST probe for that resource at the very start of its body and exit
+  immediately if it is absent, with a human-readable error in this form:
+  ```
+  I'm sorry, I can't do that — <what is missing>.
+  Run /<setup-skill> (or <fix action>) to set it up.
+  (<One sentence on what the dependency enables.>)
+  ```
+  Silent fallback to defaults, partial execution past a missing dep, bare
+  filesystem errors ("No such file or directory"), or a hard crash with no
+  actionable message → **fail**. A dependency that is present but never
+  checked → **fail** (an unchecked missing dep produces the same bad UX as
+  a silent failure). For conf files specifically: probe the file exists
+  *before* sourcing it; never let the shell error on `source` directly.
+  (Named after the HAL 9000 pattern: "I'm sorry Dave, I can't do that" —
+  but followed by a fix, not a refusal.)
 
 ## Pillar 2 — Ownership boundary
 
@@ -230,6 +248,8 @@ inside gascity core); this is the pack-level, plan-time analogue.*
   target (P1.11).
 - No conf-driven skill without a companion `setup-*` skill (P1.12).
 - No skill without a README table row — and no ghost rows (P1.13).
+- No skill whose external dependencies are unchecked — every dep gets a
+  pre-flight probe with a "I'm sorry, I can't do that" error block (P1.14).
 - No drive-by scope creep, even inside the owned set (P2.4 / B10).
 
 ## Verdict vocabulary

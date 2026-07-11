@@ -5,6 +5,25 @@ description: Update a stored object in the lmfdb database by pulling it into Mag
 
 # database-update
 
+## Dependency check
+
+```bash
+# Discover conf: project root first, hecke fallback
+CONF=""
+for candidate in \
+    "$(git rev-parse --show-toplevel 2>/dev/null)/lmfdb-pipeline.conf" \
+    "magma/scripts/data-generation.conf"; do
+  [ -f "$candidate" ] && { CONF="$candidate"; break; }
+done
+if [ -z "$CONF" ]; then
+  echo "I'm sorry, I can't do that — no database pipeline conf found."
+  echo "Run /configure-database (mathcity-lmfdb.configure-database) to create lmfdb-pipeline.conf at your project root."
+  echo "(This conf holds your PostgreSQL and DATA_DIR settings for the LMFDB pipeline.)"
+  exit 1
+fi
+source "$CONF"
+```
+
 ```magma
 Z := Integers(); Q := Rationals();
 AttachSpec("hecke.spec");

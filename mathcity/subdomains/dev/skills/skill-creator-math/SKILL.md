@@ -55,6 +55,17 @@ Pack-dev skills (anything derived from
    cd ~/repos/gascity-packs && gitleaks detect --no-git --source <destination>
    ```
    (The repo's pre-push hook re-scans the push range as a second net.)
+3a. **P1.14 dependency pre-flight** — If the skill reads a conf file or depends on an external tool (database, SSH server, etc.):
+   - Add a pre-flight check at the very top of the skill body (before any action) that probes for the dependency with `[ -f "$CONF" ]` or equivalent.
+   - Fail with the standard P1.14 error format:
+     ```
+     I'm sorry, I can't do that — <what is missing>.
+     Run /<setup-skill> (or <fix action>) to set it up.
+     (<One sentence on what the dependency enables.>)
+     ```
+   - Reference the companion setup skill in the error message (`/configure-server` for SSH confs, `/configure-database` for pipeline confs).
+   - Never let a raw `source`, `psql`, or SSH invocation fail with a cryptic OS error — the pre-flight must exit first.
+   - Use the conf-discovery loop pattern (project root first, hecke fallback) when the conf follows the `lmfdb-server.conf` / `lmfdb-pipeline.conf` convention.
 4. **Commit and push to the fork** — fork `tdupu/gascity-packs` is
    canonical and pushing to it is standing-authorized (gt-5cye). NEVER
    open an upstream PR. Commit message ends with the standard

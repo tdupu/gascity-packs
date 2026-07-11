@@ -37,6 +37,15 @@ Run `mathcity-lmfdb.configure-server` and `mathcity-lmfdb.configure-database`
 (or `mathcity-lmfdb.setup-lmfdb-pipeline` to run both) to create these files
 interactively on a fresh clone.
 
+**Graceful errors on missing confs (P1.14):** All conf-driven skills now probe for their
+conf file before taking any action. If `lmfdb-server.conf` is absent, server skills
+(`push-to-server`, `pull-data-from-server`, `push-data-to-server`) stop immediately and
+direct you to run `/configure-server`. If `lmfdb-pipeline.conf` is absent, database and
+conversion-lattice skills (`database-to-magma`, `textfile-to-database`,
+`lmfdb-object-to-database`, `database-to-lmfdb-object`, `database-to-textfile`,
+`database-update`) stop immediately and direct you to run `/configure-database`. No skill
+will produce a cryptic OS error from a missing conf.
+
 ## Skills
 
 ### Setup (run once per project)

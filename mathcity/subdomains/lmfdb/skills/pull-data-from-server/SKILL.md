@@ -5,6 +5,16 @@ description: Pull computed flat files from the remote server to local disk — r
 
 # pull-data-from-server
 
+## Dependency check
+
+Before proceeding, verify that the server conf exists. If `lmfdb-server.conf` is not found at the project root and `magma/scripts/data-generation.conf` is not found, stop and tell the user:
+
+> I'm sorry, I can't do that — no server conf found.
+> Run /configure-server (mathcity-lmfdb.configure-server) to create lmfdb-server.conf at your project root.
+> (This conf holds your SSH connection details for the compute server.)
+
+Do not proceed to run `pull-from-server.sh` if neither conf candidate is present.
+
 **Purpose:** Copy remotely-computed flat files to local disk. The pipeline is:
 
 ```

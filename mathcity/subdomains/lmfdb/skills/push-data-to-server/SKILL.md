@@ -10,21 +10,24 @@ description: rsync canonical local magma/DATA/ working folders to the remote com
 ## Step 0 — Load config
 
 ```bash
-# Discover conf: project-root lmfdb-server.conf first, fall back to hecke convention
+# Discover conf: project root first, hecke fallback
 CONF=""
 for candidate in \
     "$(git rev-parse --show-toplevel 2>/dev/null)/lmfdb-server.conf" \
     "magma/scripts/data-generation.conf"; do
   [ -f "$candidate" ] && { CONF="$candidate"; break; }
 done
-[ -n "$CONF" ] || { echo "ERROR: no conf found (lmfdb-server.conf at project root, or magma/scripts/data-generation.conf)"; exit 1; }
+if [ -z "$CONF" ]; then
+  echo "I'm sorry, I can't do that — no server conf found."
+  echo "Run /configure-server (mathcity-lmfdb.configure-server) to create lmfdb-server.conf at your project root."
+  echo "(This conf holds your SSH connection details for the compute server.)"
+  exit 1
+fi
 source "$CONF"
 SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=15"
 [[ -n "${SSH_JUMP:-}" ]] && SSH_OPTS="$SSH_OPTS -o ProxyJump=$SSH_JUMP"
 [[ -n "${SSH_KEY:-}"  ]] && SSH_OPTS="$SSH_OPTS -i $SSH_KEY"
 ```
-
-If no conf is found, run `mathcity-lmfdb.configure-server` or copy `lmfdb-server.conf.example` to your project root.
 
 ## What gets copied vs. skipped
 
