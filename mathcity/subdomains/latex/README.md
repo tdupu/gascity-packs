@@ -2,11 +2,23 @@
 
 Notes-tier `.tex` screening and literature search.
 
-This sub-namespace (`mathcity.latex.*`) covers two coupled concerns:
-- **check-latex / latex-hurdle**: the five-hurdle formula (compiles, labels-refs,
-  citations, style, Taylor approval) that screens covered `.tex` diffs before push.
-- **lit-search**: arXiv/MathSciNet/citation discovery feeding the citation-hygiene
-  hurdle H3.
+Import alias convention (ADR 0002): skills materialize as
+`mathcity-latex.<skill>`.
 
-The `merge-latex-sections` skill (under `skills/merge-latex-sections/`) is a
-placeholder for the F2 implementation deferred until F1 is complete (see gsp-fby HOLD).
+## Skills
+
+| Skill | Purpose |
+| --- | --- |
+| `check-latex` | The runnable latex-gate (G6/F1b) evidence engine: compile check, semantic diff summary, approve/reject evidence block (`check-latex-report.{json,md}`) |
+| `check-labels-and-refs` | Scan LaTeX files for label/reference consistency, orphan labels/refs, and non-pinpoint cross-references (hurdle H2); composed by `check-latex` |
+| `merge-latex-sections` | PLACEHOLDER — merge/reorder sections preserving label/ref integrity; F2 implementation deferred until F1 completes (gsp-fby HOLD) |
+
+## Concerns
+
+- **check-latex / latex-hurdle**: the five-hurdle formula (compiles,
+  labels-refs, citations, style, Taylor approval) that screens covered
+  `.tex` diffs before push. The parent-pack gate
+  `mathcity/gates/latex-gate.toml` invokes
+  `subdomains/latex/skills/check-latex/check-latex.sh`.
+- **lit-search**: arXiv/MathSciNet/citation discovery feeding the
+  citation-hygiene hurdle H3.
