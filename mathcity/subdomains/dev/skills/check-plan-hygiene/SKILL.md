@@ -56,6 +56,10 @@ that rule ID plus the file/directory that triggered it.
   schema name into pack content fails.
 - P1.11 If the plan touches bead sync configuration, does the target
   match `tdupu/<repo>-dolt` and include an isPrivate verification step?
+- P1.12 If the plan adds a skill that reads a project-local config file,
+  does it also add (or extend) the companion `setup-<name>` skill?
+- P1.13 Does the plan include the README table rows for every skill it
+  adds, moves, or renames (the update-README same-commit rule)?
 
 **Pillar 2 — ownership:**
 

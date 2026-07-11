@@ -38,7 +38,7 @@ Skills currently managed under this policy (all 11 as of 2026-07-07):
 
 ## Skills
 
-Nine skills ship with this pack. They are bare `SKILL.md` composition units — no wrapper scripts. The `grill-with-docs` and its derivatives are based off [Matt Popocock's Skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs). Most of the skill formulas and plans were developed using a ``fixed point finder'' where artifacts (in this case the skill) goes through a comprehensive review until the agents converge on the skill. (The fixed point finder is now deprecated in favor of the gascity native version.)
+These skills ship with the parent pack (subdomain child packs carry their own — see `subdomains/*/README.md`). They are bare `SKILL.md` composition units — no wrapper scripts. The `grill-with-docs` and its derivatives are based off [Matt Popocock's Skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs). Most of the skill formulas and plans were developed using a ``fixed point finder'' where artifacts (in this case the skill) goes through a comprehensive review until the agents converge on the skill. (The fixed point finder is now deprecated in favor of the gascity native version.)
 
 | Skill | Description |
 |---|---|
@@ -51,6 +51,26 @@ Nine skills ship with this pack. They are bare `SKILL.md` composition units — 
 | `is-good-test` | Thin specialization of `is-good-experiment` for test files. Evaluates whether a test's design answers "does X work?" meaningfully. |
 | `present-it` | Produces a decision-ready brief on a code artifact. Enforces the Decision-at-Top invariant. Supports full-form and compact form outputs. |
 | `record-decision` | Records human adjudications, policy locks, and brief-pipeline verdicts using `bd create -t decision`. Refuses non-canonical stores. |
+| `present-briefs` | Batch-presents N briefs in parallel and keeps a hot queue (≥2 pre-presented) with auto-backfill on each decision. |
+| `create-brief` | Produces the durable, gated `.md` brief artifact for the brief stack — the file-artifact sibling of `present-it`. |
+| `create-artifact` | Creator half of the review loop: produces a new artifact from a spec (dispatched by `coordinate-review` or directly). |
+| `revise-artifact` | Applies a list of action items (typically from `critical-review`) to an artifact and outputs the revised version. |
+| `compare-artifacts` | Semantic diff between two text artifacts: similarity score + token-overlap signal for "are these effectively the same?" |
+| `fp-finder-skill` | Fixed-point convergence engine for SKILL.md files: every accepted revision must be strictly shorter AND still APPROVING. |
+| `formula-creator` | Creates a formula TOML in any gascity-packs pack and validates the gc/bd command surface before committing. |
+| `create-convoy` | Creates a properly configured OWNED convoy for an epic bead — the fan-out container for one WIP-dispatcher slot. |
+| `fan-out` | Fans an epic bead out into convoy sub-beads without consuming extra WIP-dispatcher slots; companion of `create-convoy`. |
+| `immediate-work` | In-session synchronous dispatch: spawn the right agent NOW for a specific bead or task (no pool, no queue). |
+| `priority-work` | Async targeted dispatch: bump a bead to P0 and dispatch it to a NAMED agent immediately, bypassing queue order. |
+| `mayor-math` | Supplements `gc.mayor` with rig-scoped sling mechanics for the mathcity workflow. |
+| `authorize-git-operation` | Taylor-authorization gate for irreversible git operations (push, merge, PR, delete, release); records the verdict as a decision bead. |
+| `remember-this` | Routes a mid-session insight to the right durable store (`bd remember`, decision bead, MEMORY.md pointer). |
+| `prime-outsider` | Primes an outside (non-gascity) agent after compaction or a new session: finds beads + handoff, restates standing rules. |
+| `repo-to-city` | Reference map from repository names to city rig (`~/gt/<name>`), working copy (`~/repos/<name>`), and beads prefix. |
+| `dolt-init` | Initializes the bd Dolt database and sets the dolt remote in both `~/gt/<repo>` and `~/repos/<repo>` (HALTs unless the remote is named `<repo>-dolt`). |
+| `dolt-pull` / `dolt-push` | Pull/push the bead database against its private `-dolt` remote (data plane; bans force-push). |
+| `get-best-apis` | Fetches live LLM benchmark rankings + current API pricing across vendors and renders a comparison table. |
+| `get-best-models` | Recommends the best open-weights/local LLM for a hardware constraint and use case. |
 
 ---
 

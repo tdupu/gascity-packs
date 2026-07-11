@@ -66,6 +66,7 @@ edges between them:
 
 | Skill | Purpose |
 | --- | --- |
+| `setup-lmfdb-pipeline` | One-time interactive setup: copy `lmfdb-pipeline.conf.example` into the project, fill values, gitignore, verify (the P1.12 companion for the conf-driven skills) |
 | `push-to-server` | SSH to the compute server and `git pull` the latest branch (connection from the project conf) |
 | `pull-data-from-server` | Fetch computed `DATA/` results back from the compute server |
 | `push-data-to-server` | Ship local `DATA/` files up to the compute server |

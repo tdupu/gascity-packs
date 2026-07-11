@@ -126,6 +126,19 @@ recreate what you're running; upstream must remain pullable.*
   A public target or a code-repo target → **fail and HALT the sync** for
   that rig, never push-then-fix. (Origin: the gascity-packs rig's
   `sync.remote` was found pointing at the public code repo, 2026-07-10.)
+- **P1.12 Every conf-driven skill ships a setup skill.** If a skill reads a
+  project-local configuration file (a `.conf`, env file, or similar), the
+  pack must ship a companion `setup-<name>` skill that creates that file
+  interactively from the `.example` (copy, prompt for values, gitignore
+  the copy, verify) — a fresh machine must go from `git clone` to a
+  working skill without reverse-engineering the conf. A conf-reading
+  skill with no setup skill → **fail**. (First instance:
+  `setup-lmfdb-pipeline` for the lmfdb pipeline conf.)
+- **P1.13 Every skill has a README table row.** Every skill directory in a
+  pack appears exactly once in that pack's README skills table, with a
+  one-line purpose. A skill with no row, or a row naming a skill that no
+  longer exists, → **fail**. Enforced by the `update-README` procedure
+  (same-commit rule) and audited by `check-build-hygiene`.
 
 ## Pillar 2 — Ownership boundary
 
@@ -215,6 +228,8 @@ inside gascity core); this is the pack-level, plan-time analogue.*
   content — conf.example only, scrub on adoption (P1.10).
 - No bead-data push to anything but a verified-private `<repo>-dolt`
   target (P1.11).
+- No conf-driven skill without a companion `setup-*` skill (P1.12).
+- No skill without a README table row — and no ghost rows (P1.13).
 - No drive-by scope creep, even inside the owned set (P2.4 / B10).
 
 ## Verdict vocabulary

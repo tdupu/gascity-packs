@@ -124,6 +124,27 @@ Duplicates without a tracked follow-up bead, any secret-scan hit, or a
 non-`-dolt`/non-private sync target → **revise** (a P1.11 hit also HALTs
 that rig's sync immediately).
 
+```bash
+# P1.12 — conf-reading skills must have a setup-* companion in the same pack
+grep -rl '\.conf\b\|data-generation\.conf\|conf.example' \
+  ~/repos/gascity-packs/mathcity/*/skills/*/SKILL.md \
+  ~/repos/gascity-packs/mathcity/subdomains/*/skills/*/SKILL.md 2>/dev/null \
+  | grep -v '/setup-' | while read f; do
+    pack=$(dirname $(dirname $(dirname "$f")))
+    ls "$pack"/skills/setup-* >/dev/null 2>&1 || echo "NO SETUP SKILL: $f"
+  done
+# P1.13 — every skill dir has a README table row, no ghost rows
+for pack in ~/repos/gascity-packs/mathcity ~/repos/gascity-packs/mathcity/subdomains/*; do
+  [ -d "$pack/skills" ] || continue
+  for s in "$pack"/skills/*/; do n=$(basename "$s")
+    grep -q "\`$n\`" "$pack/README.md" 2>/dev/null || echo "NO README ROW: $pack -> $n"
+  done
+done
+```
+
+A conf-reading skill with no setup companion, or a skill with no README
+row → **revise**.
+
 **8. Replay litmus (P1.1) — judgment call.**
 
 Given checks 1–7, answer: "if I `gc init` a scratch city and replay only
