@@ -1,0 +1,21 @@
+#!/bin/bash
+# lmfdb-pipeline.conf.example — copy to your project (e.g.
+# magma/scripts/data-generation.conf), fill in values, and GITIGNORE the
+# copy. The pack ships only this example; real values never enter git.
+# (Pattern inherited from hecke's data-generation.conf.)
+
+# --- remote compute server (push-to-server / pull-data-from-server / push-data-to-server)
+REMOTE_HOST=compute.example.edu
+REMOTE_USER=youruser
+REMOTE_REPO=/home/youruser/yourproject
+SSH_JUMP=                  # optional jump host, empty if none
+SSH_KEY=~/.ssh/id_ed25519
+
+# --- run limits / notifications
+MAX_PARALLEL=4
+ALERT_EMAILS=you@example.edu
+
+# --- LMFDB pipeline (conversion lattice + database skills)
+PGDATABASE=lmfdb
+PGSCHEMA=lmfdb
+DATA_DIR=DATA              # project-relative flat-file cache
