@@ -47,6 +47,15 @@ that rule ID plus the file/directory that triggered it.
   `.git/info/exclude`?
 - P1.7 Would the plan make a future upstream merge structurally impossible
   (rewriting upstream-owned files in the fork)?
+- P1.9 If the plan adopts skills from another repo, does it include the
+  origin-side dedup (origin becomes a symlink or is removed, or a tracked
+  follow-up bead for that conversion)? Adoption without dedup fails.
+- P1.10 If the plan moves server/database-touching skills into the pack,
+  does it include the privacy scrub (gitleaks + targeted grep) and the
+  `.conf.example` pattern? A plan that would put a hostname, key, or
+  schema name into pack content fails.
+- P1.11 If the plan touches bead sync configuration, does the target
+  match `tdupu/<repo>-dolt` and include an isPrivate verification step?
 
 **Pillar 2 — ownership:**
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Adopted |
-| Date | 2026-07-10 |
+| Date | 2026-07-10 (amended same day: P1.9–P1.11, from the hecke-adoption / server-skills / bead-sync incidents) |
 | Decided | Taylor Dupuy, via grilling session (three open questions resolved; record at bottom) |
 | Applies to | All packs Taylor owns in this repo — the **owned pack set** (§ Scope) |
 | Consumers | `check-hygiene` skill (to be built via skill-creator); mayor priming (`mayor-math`); any agent planning work in this repo |
@@ -97,7 +97,36 @@ recreate what you're running; upstream must remain pullable.*
   (`mathcity.<name>` for the parent pack, `mathcity-<sub>.<name>` for a
   subdomain child pack). The sanctioned procedure is `skill-creator-math`.
   A dangling symlink, a real-dir duplicate, or a pack skill missing either
-  exposure → **fail**.
+  exposure → **fail**. After any skill add/move/rename, run the
+  `update-README` skill (mathcity-dev) — README drift is part of this rule,
+  and README updates land in the same commit as the change.
+- **P1.9 One real copy anywhere — adoption completes with origin dedup.**
+  When a skill is adopted into the pack from another repo (agent-skills,
+  hecke, any project repo), the pack copy becomes the **single real copy**;
+  every consuming repo's copy becomes a relative symlink or is removed.
+  P1.8 states this for agent-skills; this rule extends it to ALL repos.
+  Duplicate real copies across repos → **fail** — unless the duplicate
+  carries a tracked follow-up bead for its conversion (transition state,
+  not an end state). (Origin: the 2026-07-10 hecke adoptions left 25
+  duplicates pending exactly such a pass.)
+- **P1.10 No private values in pack content.** Hostnames, usernames, SSH
+  keys/jump hosts, database/schema names, alert emails, and absolute
+  home-directory paths never enter pack content. Server- or
+  database-touching skills read a **project-local, gitignored conf**; the
+  pack ships only a placeholder `.conf.example` (model:
+  `mathcity-lmfdb/assets/lmfdb-pipeline.conf.example`, inherited from
+  hecke's `data-generation.conf`). Every adoption runs a scrub before
+  commit: `gitleaks detect --no-git` on the adopted paths plus a targeted
+  grep for IPs, `user@host`, `ssh` targets, key material, and absolute
+  paths. Any hit → **fail**.
+- **P1.11 Beads data plane syncs only to dedicated private repos.** A rig's
+  bd `sync.remote` must be a dedicated `tdupu/<repo>-dolt` repo (the
+  `dolt-init` naming invariant — never the code repo), and its
+  `isPrivate=true` must be verified (`gh repo view`) before any data push.
+  A public target or a code-repo target → **fail and HALT the sync** for
+  that rig, never push-then-fix. (Origin: the gascity-packs rig's
+  `sync.remote` was found pointing at the public code repo, 2026-07-10.)
+
 ## Pillar 2 — Ownership boundary
 
 *You own the owned pack set, nothing else.*
@@ -180,6 +209,12 @@ inside gascity core); this is the pack-level, plan-time analogue.*
   committed and pushed to the canonical remote, or it isn't real (P1.4).
 - No real-directory copies of pack skills in agent-skills, no dangling
   exposure symlinks, no un-exposed pack skills (P1.8).
+- No duplicate real copies of a pack skill in ANY repo — adoption isn't
+  done until the origin is a symlink or gone (P1.9).
+- No hostnames, keys, schema names, or other private values in pack
+  content — conf.example only, scrub on adoption (P1.10).
+- No bead-data push to anything but a verified-private `<repo>-dolt`
+  target (P1.11).
 - No drive-by scope creep, even inside the owned set (P2.4 / B10).
 
 ## Verdict vocabulary

@@ -99,9 +99,34 @@ git -C ~/repos/gascity-packs status --porcelain -- '*/vendor/' | head
 
 Any modification under a `vendor/**` tree is a violation — no exceptions.
 
-**7. Replay litmus (P1.1) — judgment call.**
+**7. Single source, no secrets, private data plane (P1.9–P1.11).**
 
-Given checks 1–6, answer: "if I `gc init` a scratch city and replay only
+```bash
+# P1.9 — duplicate real copies of pack skills in other repos
+for s in ~/repos/gascity-packs/mathcity/skills/* ~/repos/gascity-packs/mathcity/subdomains/*/skills/*; do
+  n=$(basename "$s")
+  for r in ~/repos/*/.claude/skills/$n ~/repos/agent-skills/skills/$n; do
+    [ -e "$r" ] && [ ! -L "$r" ] && echo "DUPLICATE REAL COPY: $r"
+  done
+done
+# P1.10 — private values in pack content
+cd ~/repos/gascity-packs && gitleaks detect --no-git --source mathcity | tail -1
+grep -rInE '[a-z0-9_]+@[a-z0-9.-]+\.(edu|com|org|net)|ssh [a-z]+@|BEGIN.*KEY|/Users/[a-z]+/' mathcity --include='*.md' --include='*.example' | grep -vi 'lmfdb.org\|example\.' | head
+# P1.11 — bead sync targets: dedicated -dolt repos, verified private
+for p in ~/gt ~/gt/*/; do [ -d "$p/.beads" ] || continue
+  r=$(cd "$p" && bd config get sync.remote 2>/dev/null)
+  case "$r" in *-dolt.git) ;; "") ;; *) echo "NON-DOLT SYNC TARGET: $p -> $r";; esac
+done
+# then per flagged/new target: gh repo view tdupu/<name>-dolt --json isPrivate (must be true)
+```
+
+Duplicates without a tracked follow-up bead, any secret-scan hit, or a
+non-`-dolt`/non-private sync target → **revise** (a P1.11 hit also HALTs
+that rig's sync immediately).
+
+**8. Replay litmus (P1.1) — judgment call.**
+
+Given checks 1–7, answer: "if I `gc init` a scratch city and replay only
 the declared imports on a fresh machine, do I get this city?" List every
 piece of load-bearing state that would be missing (hand-placed sink
 symlinks are fine — they're encoded in `skill-creator-math`; an
