@@ -1,3 +1,8 @@
+---
+name: profile-magma
+description: Wrap the Magma code the user is working on in a profiling harness to find bottlenecks (slow intrinsics, memory hogs). Trigger when a Magma computation is "slow", "eating memory", "hanging", or "timing out", when the user asks "what's slow here?", "can we profile this?", "which intrinsic is the bottleneck?", or after killing a Magma process to diagnose before rerunning. Do NOT trigger for general Magma scripting help — only performance diagnosis.
+---
+
 # profile-magma
 
 Wrap the Magma code the user is currently working on in a profiling harness
