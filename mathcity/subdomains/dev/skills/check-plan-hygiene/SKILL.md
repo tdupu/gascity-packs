@@ -56,6 +56,11 @@ that rule ID plus the file/directory that triggered it.
   schema name into pack content fails.
 - P1.11 If the plan touches bead sync configuration, does the target
   match `tdupu/<repo>-dolt` and include an isPrivate verification step?
+- P1.15 If the plan creates or configures a dolt sync remote for any rig,
+  does the proposed remote name follow `tdupu/<rig-name>-dolt` exactly?
+  Exception: `~/gt` uses `tdupu/gascity-dolt`. A name that deviates from
+  this pattern (e.g. a generic label, a reuse of another rig's remote, or
+  anything other than `<rig-name>-dolt`) → **revise**.
 - P1.12 If the plan adds a skill that reads a project-local config file,
   does it also add (or extend) the companion `setup-<name>` skill?
 - P1.13 Does the plan include the README table rows for every skill it
@@ -82,6 +87,16 @@ that rule ID plus the file/directory that triggered it.
 - P3.4 Is the upstream need tracked as a bead?
 - P3.5 Is the executing agent context explicit (inside worker vs outside
   agent)? Ambiguity → revise.
+
+> **Upstream contribution policy (see also `~/gt/POLICY.md`):**
+> - PRs to `gastownhall/gascity`, `gastownhall/gascity-packs`, or
+>   `gastownhall/beads` MUST use `mol-pr-from-issue` via the pr-pipeline.
+>   Direct `gh pr create` is forbidden. See:
+>   https://github.com/tdupu/gascity-packs/blob/main/pr-pipeline/README.md
+> - Filing issues against the same three upstream repos MUST go through the
+>   contributing skills (never `gh issue create` directly). See:
+>   https://github.com/tdupu/gascity-packs/tree/main/contributing
+> - Any plan that includes a direct PR or issue creation for these repos → **revise** (cite P3.1).
 
 **Pillar 4 — impact review:**
 

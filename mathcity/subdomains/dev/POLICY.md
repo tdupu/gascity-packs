@@ -157,6 +157,16 @@ recreate what you're running; upstream must remain pullable.*
   *before* sourcing it; never let the shell error on `source` directly.
   (Named after the HAL 9000 pattern: "I'm sorry Dave, I can't do that" —
   but followed by a fix, not a refusal.)
+- **P1.15 Dolt remotes are named after the repo, nowhere else.** Dolt
+  storage is always a *separate, dedicated* GitHub repo; its name is
+  mechanically derived: a code repo named `X` uses `tdupu/X-dolt` and
+  nothing else. Dolt repos are never reused across code repos, renamed for
+  convenience, or aliased to the code remote. Single exception: the gascity
+  root (`~/gt`) predates the convention — its dolt remote is
+  `tdupu/gascity-dolt`. When initialising a new rig's bead sync, derive the
+  remote name as `<rig-name>-dolt`, verify `isPrivate=true` (P1.11), then
+  run `bd backup init`. A dolt remote whose name deviates from
+  `tdupu/<rig-name>-dolt` (outside the `~/gt` exception) → **fail**.
 
 ## Pillar 2 — Ownership boundary
 
