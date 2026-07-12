@@ -114,7 +114,7 @@ or lmfdb or theorem workflow.
   scripts under `assets/scripts/checks/` wired into steps with `max_attempts`.
   It's fully aligned at the primitive level; the import just formalizes the runtime
   it depends on. **Already adopted; no gap.** (One hygiene item: several check
-  paths are hard-coded `/Users/tdupuy/...` absolute paths — a portability defect,
+  paths were hard-coded `/Users/<username>/...` absolute paths — a portability defect,
   not a gascity-coverage gap.)
 
 ### 6. Bead metadata keys

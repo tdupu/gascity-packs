@@ -647,7 +647,7 @@ the document, bead metadata for the index/query).
 5. Update order trigger `check =` conditions (`find $HOME/.gc/mathcity/briefs/.pile
    ...`); consider `scope = "city"` (absolute path resolves identically anywhere).
 6. Update check scripts' `.beads/briefs` references; strip hard-coded
-   `/Users/tdupuy/` prefixes.
+   `/Users/<username>/` prefixes.
 7. `gc lint`, `pytest`, smoke-test one brief through the new root, then delete
    `.beads/briefs/`.
 

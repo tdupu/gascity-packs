@@ -780,17 +780,8 @@ case "$ANCESTOR_STATUS" in
     ;;
 esac
 
-branch_has_real_change "origin/$TARGET" temp
-BHRC_STATUS=$?
-case "$BHRC_STATUS" in
-  0) : ;;  # verified real change -> continue to the merge script below
-  1) halt_false_completion "$BRANCH" "$(git merge-base "origin/$TARGET" temp 2>/dev/null || printf '%s' "origin/$TARGET")" ;;
-  *)
-    echo "branch_has_real_change could not evaluate temp vs origin/$TARGET (tool error, status $BHRC_STATUS). STOP. Do not mutate bead state."
-    gc runtime drain-ack
-    exit 1
-    ;;
-esac
+branch_has_real_change "origin/$TARGET" temp || \
+  halt_false_completion "$BRANCH" "$(git merge-base "origin/$TARGET" temp 2>/dev/null || printf '%s' "origin/$TARGET")"
 ```
 If this block closed the bead as already-merged, the merge is already done:
 SKIP the merge script (step 1 below) and go straight to **2. Cleanup**, then
@@ -871,17 +862,8 @@ PR handoff closes the bead, so an empty PR is the same false completion as
 an empty direct merge. A tool error (status 2) is not an empty branch — stop
 without mutating bead state rather than halt-escalating a healthy branch.
 ```bash
-branch_has_real_change "origin/$TARGET" temp
-BHRC_STATUS=$?
-case "$BHRC_STATUS" in
-  0) : ;;  # verified real change -> continue to publish the PR
-  1) halt_false_completion "$BRANCH" "$(git merge-base "origin/$TARGET" temp 2>/dev/null || printf '%s' "origin/$TARGET")" ;;
-  *)
-    echo "branch_has_real_change could not evaluate temp vs origin/$TARGET (tool error, status $BHRC_STATUS). STOP. Do not mutate bead state."
-    gc runtime drain-ack
-    exit 1
-    ;;
-esac
+branch_has_real_change "origin/$TARGET" temp || \
+  halt_false_completion "$BRANCH" "$(git merge-base "origin/$TARGET" temp 2>/dev/null || printf '%s' "origin/$TARGET")"
 ```
 
 **1. Push the rebased branch back to origin:**

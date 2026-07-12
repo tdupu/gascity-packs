@@ -43,8 +43,8 @@ Below: each finding rated **accurate / partially-accurate / wrong**, with severi
   choice, not a universal GC rule.
 - **`gascity/` `condition=` conditions on `{{vars}}`** (`{{drain_policy}} == separate`,
   `{{pr_mode}} != none`) — **never** on `{{steps.X.exit_code}}`.
-- Absolute `/Users/tdupuy/repos/gascity-packs/mathcity/...` paths appear in **19 files**
-  (all formulas + 4 gates). `gascity/` uses installed-runtime `.gc/scripts/checks/*.sh`.
+- Absolute `/Users/<username>/repos/gascity-packs/mathcity/...` paths appeared in **19 files**
+  (all formulas + 4 gates); now replaced with `~/` or repo-relative paths. `gascity/` uses installed-runtime `.gc/scripts/checks/*.sh`.
 - `mathematics/agents/codex-worker/{prompt.template.md, agent.toml}` is structurally
   identical to `gascity/roles/agents/<role>/{prompt.template.md, agent.toml}` — only the
   parent dir name differs (`agents/` vs `roles/agents/`).

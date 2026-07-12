@@ -320,7 +320,7 @@ Orders to audit:
 
 Scripts under `mathematics/assets/scripts/checks/` that reference
 `.beads/briefs` paths need the same substitution. Also remove any hard-coded
-`/Users/tdupuy/` prefixes (per standing constraint in Phase 1 plan).
+`/Users/<username>/` prefixes (per standing constraint in Phase 1 plan).
 
 ### Step 7 — Verify and cut over
 
@@ -379,5 +379,5 @@ reducing it to a thin wrapper.
 4. **Scope city vs rig post-migration**: after cutover, audit all brief-pipeline
    orders for scope correctness (child of gsp-1pv, can be batched with Step 7).
 5. **brief-prep skill SKILL.md**: the canonical copy references
-   `/Users/tdupuy/gt/hecke/.beads/briefs/` — update to use the artifact_root
-   variable, no hard-coded paths (child of gsp-1pv).
+   `~/gt/hecke/.beads/briefs/` — now uses `~/` prefix; further migration to
+   artifact_root variable is a follow-up (child of gsp-1pv).

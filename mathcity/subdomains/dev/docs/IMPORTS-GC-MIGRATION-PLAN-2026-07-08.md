@@ -386,10 +386,10 @@ of what it decides, and how it interacts with THIS migration:
 
 ## 7. Absolute-path issue (cross-reference)
 
-There are **27 files under `mathcity/` with hard-coded `/Users/tdupuy/` paths**
+There were **27 files under `mathcity/` with hard-coded `/Users/<username>/` paths**
 (check-script paths in `[steps.check].path`, the escalate.sh reference in the
-codex-worker prompt, evidence-dir defaults in latex-gate). The codex-worker
-prompt itself carries an explicit `TODO(Phase 2): absolute path required` note.
+codex-worker prompt, evidence-dir defaults in latex-gate). These have been
+replaced with `~/`, `$HOME/`, or repo-relative paths (bead gsp-n9u).
 
 This migration MUST NOT hard-code new absolute paths, and should de-hardcode
 existing ones as it touches each file (use `{{env.HOME}}`, pack-relative

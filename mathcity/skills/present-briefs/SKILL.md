@@ -51,7 +51,7 @@ bd list --status open --metadata-field brief_status=approved \
 ### Method 2 — directory scan (fallback)
 
 ```bash
-BRIEF_DIR="${BRIEF_QUEUE_PATH:-/Users/tdupuy/gt/hecke/.beads/briefs}"
+BRIEF_DIR="${BRIEF_QUEUE_PATH:-$HOME/gt/hecke/.beads/briefs}"
 find "$BRIEF_DIR" -maxdepth 1 -name "*.md" \
   | xargs grep -l "^status: approved" 2>/dev/null \
   | while read f; do

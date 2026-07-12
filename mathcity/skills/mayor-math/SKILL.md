@@ -58,9 +58,9 @@ via `defaults.rig.imports.gc` in city.toml — NOT at HQ.
 **Fix (Phase 0):** Add these to `~/gt/pack.toml` and run `gc import install && gc supervisor reload`:
 ```toml
   [imports.gc-roles]
-    source = "/Users/tdupuy/repos/gascity-packs/gascity/roles"
+    source = "~/repos/gascity-packs/gascity/roles"
   [imports.pr-pipeline]
-    source = "/Users/tdupuy/repos/gascity-packs/pr-pipeline"
+    source = "~/repos/gascity-packs/pr-pipeline"
 ```
 
 Until that fix is applied, file work that needs `build-basic` in rigs that have workers:
@@ -106,9 +106,9 @@ mkdir -p ~/gt/<rig>/plans/<slug>
 
 # Step 5 — Sling with rig-scoped coordinator
 gc sling <rig>/gc.run-operator <convoy-id> --on build-basic \
-  --var artifact_root=/Users/tdupuy/gt/<rig>/plans/<slug> \
-  --var requirements_path=/Users/tdupuy/gt/<rig>/plans/<slug>/requirements.md \
-  --var plan_path=/Users/tdupuy/gt/<rig>/plans/<slug>/implementation-plan.md \
+  --var artifact_root=~/gt/<rig>/plans/<slug> \
+  --var requirements_path=~/gt/<rig>/plans/<slug>/requirements.md \
+  --var plan_path=~/gt/<rig>/plans/<slug>/implementation-plan.md \
   --var drain_policy=separate \
   --var interaction_mode=interactive \
   --var review_mode=agent \
