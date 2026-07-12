@@ -72,6 +72,8 @@ These skills ship with the parent pack (subdomain child packs carry their own �
 | `dolt-pull` / `dolt-push` | Pull/push the bead database against its private `-dolt` remote (data plane; bans force-push). |
 | `get-best-apis` | Fetches live LLM benchmark rankings + current API pricing across vendors and renders a comparison table. |
 | `get-best-models` | Recommends the best open-weights/local LLM for a hardware constraint and use case. |
+| `gate-test-execution-silent` | G14 gate — pure PASS/FAIL check: verifies that a brief carries a non-silent test-execution tri-state declaration (`test-execution: PASSED/NOT APPLICABLE/REQUIRED`) and, when PASSED is claimed, that §5 contains command + exit code + wall time evidence. Auto-throwback gate; no Taylor adjudication. |
+| `improve-test-execution-silent` | G14 improve step — auto-repair companion to `gate-test-execution-silent`. Adds `test-execution: REQUIRED — not yet run` when the brief is silent (Case A); emits ESCALATE when evidence is incomplete (Case B). Identity on passing input. |
 
 ---
 

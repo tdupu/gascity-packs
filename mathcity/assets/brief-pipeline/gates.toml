@@ -132,7 +132,9 @@ kind = "mechanical"
 required = true
 evidence_key = "G14 Test-execution-silent"
 policy = "test-execution-request-brief-type.md"
-description = "Risky or high-cost test execution must be requested explicitly instead of silently run."
+gate_skill = "gate-test-execution-silent"
+improve_skill = "improve-test-execution-silent"
+description = "Brief must carry a non-silent test-execution tri-state declaration (PASSED/NOT APPLICABLE/REQUIRED). Silent or absent declaration auto-throwbacks the brief. Source: he-8akk."
 
 [[gates]]
 id = "G15"
