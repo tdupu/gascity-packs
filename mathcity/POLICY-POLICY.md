@@ -73,6 +73,7 @@ Governs what a policy document IS, how policy domains are structured, how rules 
 | Dev / build hygiene | P | `subdomains/dev/POLICY.md` | Adopted |
 | Agent skills | SK | `agent-skills/POLICY.md` | Pending (not yet written) |
 | Bead policy | BP | `BEADPOLICY.md` (pack root — provisional; see PP3.2) | Draft (2026-07-12) |
+| LaTeX subdomain | LX | `subdomains/latex/POLICY.md` | Draft (2026-07-12) |
 
 The canonical prefix registry is at `mathcity/docs/rule-prefix-registry.md` (PP5.2). The table above is a summary; the registry is authoritative.
 

@@ -6,11 +6,11 @@
 | Date | 2026-07-12 |
 | Decided | Taylor Dupuy |
 | Applies to | All bead creation, typing, labeling, memory use, and bead removal in the mathcity ecosystem (all rigs, all agents) |
-| Consumers | `record-decision`, `gc-recycle-bead`, `remember-this`, `brief-prep`, `create-convoy`, `fan-out`, any sweeper/reaper skill, Mayor dispatch |
+| Consumers | `record-decision`, `gc-recycle-bead`, `remember-this`, `brief-prep`, `create-convoy`, `fan-out`, `catch-no-brainer`, `check-math-bead-hygiene`, `new-math-bead-policy`, any sweeper/reaper skill, Mayor dispatch |
 
 Governs how beads are typed, how research beads are protected, when knowledge goes into `bd remember` versus a bead, and when an old bead may be removed. Companion reference (non-normative): [README-beads.md](README-beads.md). On conflict with POLICY-POLICY.md, POLICY-POLICY.md wins.
 
-Rule prefix: **BP** (pending reservation in `mathcity/docs/rule-prefix-registry.md` per PP5.2 — see Change Log).
+Rule prefix: **BP** (reserved in `mathcity/docs/rule-prefix-registry.md` per PP5.2).
 
 ---
 
@@ -74,6 +74,226 @@ Rule prefix: **BP** (pending reservation in `mathcity/docs/rule-prefix-registry.
 
 ---
 
+# Mathematical Items Lifecycle System (Pillars 5–9)
+
+Pillars 5–9 govern the four mathematical item kinds — **research beads**
+(`[MATH_RESEARCH]`), **literature reviews** (`[LIT_REVIEW]`), **LaTeX beads**
+(`[LATEX]` / covered-`.tex` work), and **claim beads** (`[MATH_CLAIM]`) — from
+creation through the terminal states, and how each kind routes through the
+classifier (catch-no-brainer / full brief pipeline / direct dispatch). The
+design goal is stated once, up front:
+
+> **Research must never get spiked.** "Spiked" means either (a) mistyped as a
+> `spike` bead and time-boxed to death (BP1.4), or (b) silently dying — no
+> progress, no CLOSED, no ARCHIVED, just staleness. Every rule in Pillar 5
+> exists to make one of those two failure modes mechanically detectable.
+
+Field precedent: bead `he-66vr` (hecke rig) is the reference instance of the
+interim ARCHIVED protocol — labels `archived-research`, metadata
+`lifecycle: archived` + `research_ledger: docs/research-ledger/...`, notes
+prefixed `ARCHIVED <date>:`, protected via defer. BP5.2 codifies exactly that
+shape.
+
+---
+
+## Pillar 5 — Research bead lifecycle & anti-spike (BP5.x)
+
+- **BP5.1 Every math item bead declares a lifecycle state in metadata.** The
+  bd metadata key is `lifecycle`, with values `active | parked | archived`.
+  A `[MATH_RESEARCH]`, `[LIT_REVIEW]`, or `[MATH_CLAIM]` bead with no
+  `lifecycle` key is treated as `active`. State transitions are always
+  explicit (BP5.3) and recorded in bead notes with a date.
+- **BP5.2 The ARCHIVED state gap and the interim protocol.** bd has no
+  first-class state between OPEN and CLOSED, but research journals need one:
+  they are not actionable as tasks right now, yet they are not done and must
+  never be destructively closed (B3.7, BP2.3). Until upstream bd ships a
+  first-class ARCHIVED status (feature request tracked as a brief-system open
+  item), the **interim ARCHIVED protocol** is, in full (he-66vr precedent):
+  - (a) label `[RESEARCH_JOURNAL]` (legacy label `archived-research` is
+    recognized by checkers but new beads use `[RESEARCH_JOURNAL]`);
+  - (b) `bd defer <id> --reason="research journal — ARCHIVED-equivalent, do not close"`
+    so the bead leaves `bd ready` but stays in `bd list`;
+  - (c) metadata `lifecycle: archived`;
+  - (d) when the journal content is mirrored to a durable file, metadata
+    `research_ledger: <repo-relative path>` (e.g.
+    `docs/research-ledger/gamma0-repair-335.md`);
+  - (e) a bead note prefixed `ARCHIVED <date>:` stating why it is a journal
+    and where the content lives.
+  A bead satisfying only part of (a)–(c) is malformed-archived and gets a
+  **revise** verdict from `check-math-bead-hygiene`.
+- **BP5.3 Anti-spike invariant: no silent death.** A math research bead may
+  leave the active flow only through one of three explicit transitions:
+  - **close** — the work product is absorbed into a durable home (notes-tier
+    LaTeX, paper, package code) and the close reason names that home;
+  - **archive** — the BP5.2 protocol, for permanent-reference journals;
+  - **park** — the BP5.5 protocol, for deliberately suspended work.
+  A bead that is none of {progressing, closed, archived, parked} for more
+  than **30 days** (no note, no next-step activity, no state change) is
+  **stalled** — a BP5.3 finding. Stalled beads are surfaced as **revise** in
+  the hygiene sweep and triaged to Taylor; they are NEVER auto-closed
+  (BP4.4a) and never auto-archived. Staleness is a signal to triage, not a
+  license to reap.
+- **BP5.4 Every active research bead maintains a live next-step.** An
+  `active` `[MATH_RESEARCH]` bead must have, at all times, at least one of:
+  - an OPEN, dispatchable child or dep-linked bead representing the next
+    concrete action (preferred — this is what actually gets dispatched, per
+    BP9.5), or
+  - a `next step:` line in its notes updated within the BP5.3 window.
+  When the last next-step child closes, the finishing session must either
+  mint the next one or transition the parent (close / archive / park). A
+  research bead with no next-step and no transition is the canonical
+  "quietly dying" shape this pillar exists to catch.
+- **BP5.5 Parking is explicit and reviewable.** Suspending research is legal
+  but never implicit: set `lifecycle: parked` and
+  `bd defer <id> --reason="parked: <why> — review by <YYYY-MM-DD>"`. The
+  review date is mandatory; a parked bead with no review date is malformed
+  (**revise**). `check-math-bead-hygiene` surfaces parked beads whose review
+  date has passed as **defer** items for Taylor (resume / re-park / archive).
+- **BP5.6 Progress lands in the bead.** A session that advances a math item
+  records the advance in the bead itself — a dated note, an updated
+  next-step, a linked artifact, or an update to the `research_ledger` file
+  named in metadata. Progress that exists only in a session transcript or a
+  scratch file is invisible to the staleness clock and will produce a false
+  BP5.3 finding; it has not happened, policy-wise.
+
+---
+
+## Pillar 6 — Literature review beads (BP6.x)
+
+- **BP6.1 One bead per review question, not per paper.** A literature review
+  bead is `type: task` with label `[LIT_REVIEW]` (plus `[MATH_RESEARCH]` when
+  the review serves ongoing original research and should inherit its
+  protections). The title states the question the review answers ("what is
+  known about X"), never "read papers".
+- **BP6.2 Paper entries are structured.** Each tracked paper appears in the
+  bead description or notes as a structured entry:
+  `citation-key · locator (arXiv id / DOI / URL) · status · one-line relevance`,
+  with `status ∈ {queued, skimmed, read, annotated, cited}`. The set of
+  entries IS the reading queue.
+- **BP6.3 Deep reads atomize; skims stay bundled.** A paper that needs
+  detailed working-through (reproducing a proof, extracting a technique)
+  gets its own child task naming the paper and the specific extraction
+  question; it becomes a BP5.4 next-step of the review bead. Skim-level
+  tracking never atomizes — a bead-per-skim is noise.
+- **BP6.4 Terminal state is journal, not close-and-lose.** A completed
+  review with permanent reference value takes the BP2.2 → BP5.2 archive
+  transition. Before a review bead may leave `active`: citations destined
+  for a paper must land in the rig's bibliography / notes-tier (the
+  `check-citations` surface), and standalone persistent facts route per
+  BP3.4. A lit-review bead closed with its findings nowhere durable is a
+  BP2.5-analogue violation.
+- **BP6.5 The reading queue lives in the bead.** Not in `bd remember`, not
+  in a markdown TODO file, not in a transcript (cross-ref BP3.1). Queue
+  reshuffles are note updates and count as BP5.6 progress.
+
+---
+
+## Pillar 7 — LaTeX beads (BP7.x)
+
+> Scope note: the `LX` prefix (`subdomains/latex/POLICY.md`, registered
+> 2026-07-12, file not yet written) will own detailed LaTeX-workflow rules.
+> BP7 covers only the BEAD side — what makes a LaTeX bead well-formed and
+> when to atomize. On conflict once LX is adopted, LX wins for LaTeX
+> mechanics; BP wins for bead lifecycle.
+
+- **BP7.1 A well-formed LaTeX bead names its targets and declares coverage.**
+  It lists the target `.tex` file(s) and states whether each is **covered**
+  by the LaTeX HARD GATE (notes-tier scope per he-jwmy: `notes.tex` at any
+  depth, anything under `latex/notes/`, or `\input`/`\include`-reachable at
+  depth ≤ 2). A LaTeX bead that doesn't say what files it touches or whether
+  the gate applies is malformed.
+- **BP7.2 Acceptance criteria are gate evidence, not vibes.** A LaTeX bead's
+  acceptance criteria must include: compile status via `check-latex`
+  (`toolchain-unavailable` honestly reported is acceptable; a faked compile
+  result never is), a `check-labels-and-refs` pass for touched labels/refs,
+  and a semantic diff summary. For covered files, acceptance additionally
+  requires Taylor's approval of the **specific diff** (the hard gate) —
+  approval is per-diff, not per-bead.
+- **BP7.3 Atomize vs. bundle.** One LaTeX bead = one semantic unit (one
+  theorem + its proof + its refs; one section restructure; one notation
+  migration). **Atomize** when: edits span sections that are independently
+  reviewable, edits target different adjudications, or the change mixes
+  covered and uncovered files — never mix coverage classes in one bead;
+  split so gate scope is uniform. **Keep bundled** when splitting would
+  create intermediate states with dangling refs or a non-compiling document
+  — a bead whose midpoint can't pass BP7.2 was atomized too far.
+- **BP7.4 LaTeX beads link their mathematical provenance.** A LaTeX bead
+  writing up a tracked claim dep-links the `[MATH_CLAIM]` bead (Pillar 8) so
+  gate review sees where the mathematics came from and claim status
+  (`written-up`) can advance when the diff lands.
+
+---
+
+## Pillar 8 — Mathematical claim beads (BP8.x)
+
+- **BP8.1 One claim bead per tracked claim.** A conjecture, result, or proof
+  fragment worth tracking gets its own bead: `type: task` (or `feature` when
+  it implies a shippable writeup), label `[MATH_CLAIM]`, with the claim
+  stated **verbatim** in the description (LaTeX notation welcome). A vague
+  paraphrase is not a claim statement.
+- **BP8.2 Claim status is metadata and moves explicitly.** Metadata key
+  `claim_status: conjectured | evidence | proved | written-up | refuted`.
+  Progression is monotone left-to-right except `refuted`, which may occur
+  from any state. Every transition is recorded in notes with a date and an
+  evidence pointer (the computation, the proof location, the counterexample).
+- **BP8.3 Proved is not done.** A `proved` claim bead stays open until the
+  proof is written up in the notes-tier (linked BP7.4 LaTeX bead, or a cited
+  notes location). The close reason must point at where the writeup lives.
+  Closing a proved-but-unwritten claim is how results evaporate.
+- **BP8.4 Refuted claims archive, never delete.** A refutation is a negative
+  result and negative results are journal content: set
+  `claim_status: refuted`, record the counterexample/contradiction pointer,
+  then take the BP5.2 archive transition. Deleting or bare-closing a refuted
+  claim destroys exactly the information that prevents re-deriving the dead
+  end.
+- **BP8.5 Claim dependencies are bead dependencies.** If claim A's proof
+  depends on claim B, record it with `bd dep`. A claim marked `proved` while
+  depending on a non-`proved` claim is a conditional result and its
+  statement must say so explicitly; `check-math-bead-hygiene` flags the
+  mismatch as **revise**.
+
+---
+
+## Pillar 9 — Classifier routing for math items (BP9.x)
+
+How mathematical items split across the three dispatch paths:
+**catch-no-brainer** (mechanical, Taylor-bypass), the **full brief pipeline**
+(brief-prep → adjudication), and **direct dispatch** (sling to a worker, no
+brief).
+
+- **BP9.1 Math-content dispositions are never no-brainers.** Any brief whose
+  disposition would change mathematical content — the body/notes of a
+  `[MATH_RESEARCH]`, `[MATH_CLAIM]`, or `[LIT_REVIEW]` bead, a claim status,
+  or any covered `.tex` file — is not compact-eligible and never routes
+  through the catch-no-brainer bypass. `catch-no-brainer` must treat these
+  as a safety override (same mechanism as its server-touching and
+  user-skill-touching overrides): emit `no_brainer:false`,
+  `compact_eligible:false`, and route to the full brief pipeline.
+- **BP9.2 Covered-`.tex` adjudication is a Taylor hard gate.** Route:
+  full-form brief with the `check-latex` evidence block attached (BP7.2).
+  Never direct dispatch to merge, never compact form, regardless of how
+  small the diff looks (he-jwmy: approval is of the specific diff).
+- **BP9.3 Mechanical math-adjacent chores may go catch-no-brainer.**
+  Bibliography formatting, label renames carrying a `check-labels-and-refs`
+  PASS report, research-ledger file moves, and similar record-keeping are
+  no-brainer-eligible PROVIDED the diff touches no covered `.tex`, no claim
+  statement, and no research-bead body — evidence attached, standard
+  overrides checked first.
+- **BP9.4 Direct dispatch is for well-formed atomized work.** A bead may be
+  slung directly (no brief) when it has concrete acceptance criteria, writes
+  no covered `.tex`, and sits behind no open Taylor gate. Computations
+  serving a research bead are the standard case — and when the work is an
+  experiment, it passes `is-good-experiment` first (one falsifiable
+  question, or no dispatch; results feed the research bead per E7, not the
+  void).
+- **BP9.5 Research beads are never dispatched as units.** You dispatch a
+  research bead's next-step children (BP5.4), never the parent itself. The
+  parent is the journal and coordination point; handing a months-scale
+  open-ended bead to a time-boxed worker is a category error that produces
+  either a fake close or an abandoned claim — both BP5.3 failure shapes.
+
+---
+
 ## Verdict vocabulary (shared, per POLICY-POLICY)
 
 | Verdict | Meaning |
@@ -82,7 +302,7 @@ Rule prefix: **BP** (pending reservation in `mathcity/docs/rule-prefix-registry.
 | **revise** | Drift found; each item listed with the rule violated and one-line remediation |
 | **defer** | A human call is needed; the open question is stated explicitly |
 
-A future `check-bead-policy` skill never emits **reject** (reject applies only to artifacts, not to audits of running state).
+A future `check-bead-policy` skill never emits **reject** (reject applies only to artifacts, not to audits of running state). The same constraint applies to `check-math-bead-hygiene` (the Pillar 5–9 auditor).
 
 ---
 
@@ -91,3 +311,4 @@ A future `check-bead-policy` skill never emits **reject** (reject applies only t
 | Date | Change | Rationale |
 | --- | --- | --- |
 | 2026-07-12 | Initial draft (BP1–BP4) | Taylor decree: distinguish mathematical research from technical investigation; codify memory routing and old-bead reaping. NOTE: `mathcity/docs/rule-prefix-registry.md` does not yet exist, so the BP prefix is provisionally claimed here pending registry creation (PP5.2). BP2.4 flags a needed B3.7 amendment via `new-brief-policy`. Trinity incomplete: `check-bead-policy` / `new-bead-policy` skills not yet scaffolded (PP1.1). |
+| 2026-07-12 | Added Pillars 5–9 (BP5–BP9): Mathematical Items Lifecycle System — research-bead anti-spike rules and interim ARCHIVED protocol (BP5, codifying the he-66vr field precedent), literature-review beads (BP6), LaTeX beads and the atomize/bundle rule (BP7), mathematical claim beads with `claim_status` metadata (BP8), classifier routing across catch-no-brainer / brief pipeline / direct dispatch (BP9). Registry note resolved: BP prefix now reserved in `mathcity/docs/rule-prefix-registry.md`. | Outside-agent initial pass at the math-items lifecycle, per Taylor's request: ensure research never gets spiked (mistyped as `spike` OR silently dying with no progress / no CLOSED / no ARCHIVED — the state-gap identified via he-66vr). Companion tools drafted: `check-math-bead-hygiene` (read-only BP5–BP9 auditor) and `new-math-bead-policy` (well-formed math-bead creator) in `~/repos/agent-skills/skills/`; these partially satisfy the PP1.1 trinity for the math-item subset — full `check-bead-policy` / `new-bead-policy` still pending. Still Draft; governs nothing until Taylor adopts (PP2.1/PP2.2). BP9.1 flags a needed `catch-no-brainer` safety-override extension. |

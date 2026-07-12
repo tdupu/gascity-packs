@@ -46,6 +46,30 @@ bd memories <keyword>                  # search memories
 bd list -t decision                    # adjudication history (decisions are beads, not memories)
 ```
 
+## Formula dispatch: which types work with build-basic?
+
+`build-basic` (and `build-base`) impose **no type filter** — the formula accepts any bead. The constraint is fit-to-shape: the formula runs a full lifecycle (requirements → plan → plan-review → decompose → implement → review → publish), so the bead must warrant that treatment.
+
+| Type | Fit for `build-basic`? | Notes |
+|---|---|---|
+| `epic` | **Best fit** | Designed to be decomposed; build-basic fans out into tasks |
+| `feature` | **Good fit** | New capability with PR outcome; full lifecycle applies |
+| `task` | **Good fit** | Use when scope is pre-defined and requirements are clear |
+| `chore` | Marginal | Skip if no review/PR needed; prefer `do-work` |
+| `story` | Marginal | Prefer `feature`; only if "As a…" framing adds value |
+| `bug` | **Wrong formula** | Use `fix-loop-base` or `github-issue-fix` — bug lifecycle is root-cause+fix, not requirements→plan→decompose |
+| `spike` | **Wrong shape** | Spikes produce findings, not implementations; build-basic produces artifacts + PRs |
+| `decision` | **Never** | Briefs/adjudications are not buildable work |
+| `milestone` | **Never** | Aggregate goal; no concrete implementation |
+
+When a brief recommends `gc sling … --formula build-basic`, it must state `interaction_mode` explicitly:
+
+- `autonomous` (default) — unconditional execution authority; no mid-lifecycle human checkpoints
+- `interactive` — human gates between lifecycle stages; required when Taylor needs to approve intermediate artifacts
+- `headless` — all inputs fully pre-specified; blocks with `methodology_incompatible` if any required input is missing
+
+**The brief header must surface the intended `interaction_mode`** (see bead `gsp-galk`). Omitting it silently defaults to `autonomous`, which bypasses human checkpoints.
+
 ## Full rules
 
 See [BEADPOLICY.md](BEADPOLICY.md) for the binding policy: type selection (BP1.x), research bead protection (BP2.x), memory policy (BP3.x), and old/stale bead removal (BP4.x).

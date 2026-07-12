@@ -18,6 +18,19 @@ contribute new object types to it.
 Import alias convention (ADR 0002): skills materialize as
 `mathcity-lmfdb.<skill>`.
 
+## Policy
+
+[POLICY.md](./POLICY.md) (LM-rules) governs this subdomain: **LM1** what
+makes a good LMFDB label (deterministic, machine-safe, structure-over-hash,
+parent-prefix namespacing, migration-not-edit stability), **LM2** what makes
+a good experiment (`is-good-experiment` gate, reproducibility artifacts,
+results enter the DB only through the conversion lattice), **LM3** server
+usage (reads/dry-runs free; writes gated, tagged, and authorized by decision
+bead before execution; idempotency preconditions; pull-before-push), **LM4**
+type creation (justification, naming, full seven-file wiring, label-first,
+webpage decision). Enforced by `check-lmfdb-hygiene`; new types are created
+through `new-lmfdb-type-policy`.
+
 ## Configuration — no private values in the pack
 
 This pack uses **two** project-local, gitignored confs placed at your project
@@ -80,6 +93,13 @@ edges between them:
 | `lmfdb-object-to-database` / `database-to-lmfdb-object` | LMFDB wrapper object ⇄ PostgreSQL row (insert/update and lookup) |
 | `textfile-to-database` / `database-to-textfile` | Bulk-load flat files into the schema and dump rows back out |
 | `database-update` | Refresh existing database rows after recomputation |
+
+### Policy & hygiene
+
+| Skill | Purpose |
+| --- | --- |
+| `check-lmfdb-hygiene` | Audit an LMFDB-type bead/diff/experiment/type against POLICY.md (labels valid, experiment reproducible, server ops authorized, type fully wired); read-only, brief-cycle verdict |
+| `new-lmfdb-type-policy` | Policy-gated type creation: justification gate, label scheme designed and Taylor-approved BEFORE code, then drives `create-lmfdb-type` + `update-schema`, ends with a `check-lmfdb-hygiene` audit |
 
 ### Contributing new object types
 

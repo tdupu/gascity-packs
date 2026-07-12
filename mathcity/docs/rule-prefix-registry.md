@@ -9,6 +9,9 @@ All rule ID prefixes for mathcity policies are reserved here. Rule IDs are globa
 | SK | Agent skills | `agent-skills/POLICY.md` | Pending (file not yet written) | SK1.1 |
 | BP | Bead policy | `BEADPOLICY.md` (pack root) | Draft (2026-07-12) | BP1.1, BP4.3 |
 | PP | Policy-policy (meta) | `POLICY-POLICY.md` (pack root) | Draft (2026-07-12) | PP1.1, PP3.2 |
+| LX | LaTeX subdomain (bead-side LaTeX work) | `subdomains/latex/POLICY.md` | Draft (2026-07-12) | LX1.1, LX4.6 |
+| M | Magma packages (naming, READMEs, testing, bead lifecycle, profiling, pipelines) | `subdomains/magma/POLICY.md` | Draft (2026-07-12) | M1.3, M7.5 |
+| LM | LMFDB subdomain (labels, experiments, server usage, type creation) | `subdomains/lmfdb/POLICY.md` | Draft (2026-07-12) | LM1.3, LM3.4 |
 
 ## Rules
 
