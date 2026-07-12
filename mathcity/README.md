@@ -65,7 +65,7 @@ These skills ship with the parent pack (subdomain child packs carry their own â€
 | `mayor-math` | Supplements `gc.mayor` with rig-scoped sling mechanics for the mathcity workflow. |
 | `authorize-git-operation` | Taylor-authorization gate for irreversible git operations (push, merge, PR, delete, release); records the verdict as a decision bead. |
 | `remember-this` | Routes a mid-session insight to the right durable store (`bd remember`, decision bead, MEMORY.md pointer). |
-| `recycle-bead` | Graceful lifecycle transitions for research beads: ABSORB (merge unique content into canonical bead, close with `absorbed_by` metadata), ARCHIVE (add `archived-research` label + defer to prevent dispatch), MATERIALIZE (write key content to versioned file). |
+| `gc-recycle-bead` | Graceful lifecycle transitions for research beads: ABSORB (merge unique content into canonical bead, close with `absorbed_by` metadata), ARCHIVE (add `archived-research` label + defer to prevent dispatch), MATERIALIZE (write key content to versioned file). |
 | `prime-outsider` | Primes an outside (non-gascity) agent after compaction or a new session: finds beads + handoff, restates standing rules. |
 | `repo-to-city` | Reference map from repository names to city rig (`~/gt/<name>`), working copy (`~/repos/<name>`), and beads prefix. |
 | `dolt-init` | Initializes the bd Dolt database and sets the dolt remote in both `~/gt/<repo>` and `~/repos/<repo>` (HALTs unless the remote is named `<repo>-dolt`). |
