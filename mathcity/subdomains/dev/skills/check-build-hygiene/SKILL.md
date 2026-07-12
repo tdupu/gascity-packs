@@ -238,6 +238,51 @@ piece of load-bearing state that would be missing (hand-placed sink
 symlinks are fine — they're encoded in `skill-creator-math`; an
 undocumented manual step is not).
 
+**11. Workspace context files: live CLI only (P5.2).**
+
+Scoped files: `~/gt/AGENTS.md`, `~/gt/CONTEXT.md`, `~/gt/CLAUDE.md` (if
+separate), and any AGENTS.md in any rig the workspace owns.
+
+(a) Command-block probe:
+
+```bash
+# Extract all command blocks from scoped files and check each verb
+for f in ~/gt/AGENTS.md ~/gt/CONTEXT.md; do
+  grep -E '^\s+(gc|bd|gt|gt\s)' "$f" | grep -v '^\s*#' | while read -r line; do
+    verb=$(echo "$line" | awk '{print $1, $2}')
+    # Flag any gt verb (disabled CLI)
+    echo "$line" | grep -qE '^\s*gt ' && echo "P5.2 FAIL dead CLI: $f: $line"
+  done
+done
+```
+
+(b) Identity assertion probe:
+
+```bash
+# Check if any gastown.* identity is asserted as live
+grep -n 'gastown\.' ~/gt/AGENTS.md ~/gt/CONTEXT.md | grep -v '#.*historical\|HISTORICAL\|removed\|dead\|was formerly' \
+  && echo "P5.2: check if any gastown.* claim contradicts gc agent list"
+gc agent list 2>/dev/null | grep gastown && echo "P5.2 FAIL: live gastown agents found"
+```
+
+(c) Path probe:
+
+```bash
+grep -oE '~/repos/[a-z0-9_-]+' ~/gt/AGENTS.md ~/gt/CONTEXT.md | sort -u | while read p; do
+  eval [ -d "$p" ] || echo "P5.2 FAIL broken path: $p"
+done
+```
+
+(d) Inside/outside distinction present:
+
+```bash
+grep -q 'outside agent\|inside agent\|GC agent\|GASCITY AGENT' ~/gt/AGENTS.md \
+  || echo "P5.2 FAIL: no inside/outside agent distinction in AGENTS.md"
+```
+
+Findings → revise. Add to the Non-negotiable checklist: "No dead CLI verbs
+(gt) or broken pack paths in workspace context files — P5.2."
+
 ## Output format
 
 ```
