@@ -78,7 +78,7 @@ Draft the brief per [[create-brief]] — the gated `.md`-artifact producer (fron
 
 **Decision-at-Top INVARIANT — enforced in BOTH shapes.** The FIRST content after the artifact header MUST be "What is being decided." Not origin, not math, not timeline, not gates. This is codified in [[present-it]] and re-checked in Phase 4 self-review.
 
-**Invokability fallback**: if your session cannot invoke the Skill tool (e.g., running in an environment without subagent dispatch like overnight-supervisor mode), inline-compose the sections per the [[present-it]] full-form template directly. The 7 grill-ordered sections are: §1 What is being decided, §2 Recommended answer + rationale, §3 Assumptions surfaced, §4 Alternatives named, §5 Risks foregrounded, §6 Supporting evidence (why-created, LoC, tests, math, timeline), §7 Plan membership + required gates. Do not skip sections; if a section is genuinely empty, write "None surfaced" + 1-line reason.
+**Invokability fallback**: if your session cannot invoke the Agent tool (e.g., in polecat/overnight-supervisor sessions where Agent/Task/Workflow dispatch is stripped — note: Skill tool remains available in polecats and should be used normally), inline-compose the sections per the [[present-it]] full-form template directly. The 7 grill-ordered sections are: §1 What is being decided, §2 Recommended answer + rationale, §3 Assumptions surfaced, §4 Alternatives named, §5 Risks foregrounded, §6 Supporting evidence (why-created, LoC, tests, math, timeline), §7 Plan membership + required gates. Do not skip sections; if a section is genuinely empty, write "None surfaced" + 1-line reason.
 
 Save to: `/Users/tdupuy/gt/hecke/.beads/briefs/<artifact-safe-name>-brief.md`.
 
