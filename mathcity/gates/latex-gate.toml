@@ -51,7 +51,7 @@ default = "{{env.HOME}}/gt/tmp-for-taylor/{{bead_id}}"
 
 [vars.operator_target]
 description = "Run target for the mechanical gate check."
-default = "gastown.dog"
+default = "gc.run-operator"
 
 [vars.review_target]
 description = "Run target for the Taylor-only approval routing."

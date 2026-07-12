@@ -12,6 +12,6 @@ scope = "city"
 formula = "brief-archive-sweep"
 trigger = "event"
 on = "brief.archive_requested"
-pool = "gastown.dog"
+pool = "gc.run-operator"
 timeout = "60s"
 idempotent = true

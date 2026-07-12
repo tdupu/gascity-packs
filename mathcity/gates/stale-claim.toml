@@ -37,7 +37,7 @@ default = "3600"
 
 [vars.operator_target]
 description = "Run target for mechanical staleness detection."
-default = "gastown.dog"
+default = "gc.run-operator"
 
 [vars.mayor_target]
 description = "Run target for re-dispatch routing on stale detection."
