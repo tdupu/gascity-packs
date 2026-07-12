@@ -48,7 +48,7 @@ default = "gastown.dog"
 
 [vars.artifact_root]
 description = "Brief pipeline artifact root relative to the city or rig root."
-default = ".beads/briefs"
+default = "~/.gc/mathcity/briefs"
 
 [[steps]]
 id = "scan-and-record"

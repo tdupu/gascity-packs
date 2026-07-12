@@ -27,7 +27,7 @@ required = true
 
 [vars.artifact_root]
 description = "Brief pipeline artifact root."
-default = ".beads/briefs"
+default = "~/.gc/mathcity/briefs"
 
 [vars.experiment_target]
 description = "Run target for experiment qualification and handoff."

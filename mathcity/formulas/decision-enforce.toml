@@ -55,7 +55,7 @@ default = ""
 
 [vars.artifact_root]
 description = "Brief pipeline artifact root (for brief-pipeline decision files)."
-default = ".beads/briefs"
+default = "~/.gc/mathcity/briefs"
 
 [vars.expected_verdict]
 description = "Expected verdict from the decision record (approve/reject/revise/defer). Leave empty to accept any recorded verdict — CHECK-B then only verifies internal consistency (bead state matches the RECORDED verdict, whatever it is)."

@@ -18,7 +18,7 @@ description = "Promote or reject one brief from .pile according to the gate regi
 [vars]
 [vars.artifact_root]
 description = "Brief pipeline artifact root."
-default = ".beads/briefs"
+default = "~/.gc/mathcity/briefs"
 
 [vars.operator_target]
 description = "Run target for shuffler bookkeeping."
@@ -30,7 +30,7 @@ title = "Acquire the shuffler lock"
 metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
 Acquire `{{artifact_root}}/.shuffle.lock` before touching `.pile`, `stack`, or
-`stack/manifest.jsonl`. If the lock is held by a live run, stop cleanly. If it
+`stack/.index.jsonl`. If the lock is held by a live run, stop cleanly. If it
 is stale, record why it is stale before taking over.
 """
 
@@ -76,7 +76,7 @@ metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artif
 description = """
 For `Disposition: promote`, move the brief to
 `{{artifact_root}}/stack/<slug>.md` and append one JSON object to
-`{{artifact_root}}/stack/manifest.jsonl` with EXACTLY these keys (the drain
+`{{artifact_root}}/stack/.index.jsonl` with EXACTLY these keys (the drain
 reader brief-drain-manifest.sh keys on `slug`, `gate_profile`, and
 `unlock_count`; the others are consumed downstream):
 
@@ -111,7 +111,7 @@ needs = ["write-disposition"]
 metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
 Release `{{artifact_root}}/.shuffle.lock`. If the selected item was promoted,
-ensure `stack/manifest.jsonl` is still valid JSONL and sorted consumers can
+ensure `stack/.index.jsonl` is still valid JSONL and sorted consumers can
 select by unlock count.
 """
 

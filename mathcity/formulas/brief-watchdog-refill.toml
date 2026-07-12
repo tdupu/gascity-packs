@@ -18,7 +18,7 @@ description = "Keep the brief stack above the configured low-water mark."
 [vars]
 [vars.artifact_root]
 description = "Brief pipeline artifact root."
-default = ".beads/briefs"
+default = "~/.gc/mathcity/briefs"
 
 [vars.operator_target]
 description = "Run target for watchdog bookkeeping."
@@ -27,10 +27,10 @@ default = "gastown.dog"
 [[steps]]
 id = "measure-stack"
 title = "Measure stack depth"
-metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}", "gc.brief.manifest" = "{{artifact_root}}/stack/manifest.jsonl" }
+metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}", "gc.brief.manifest" = "{{artifact_root}}/stack/.index.jsonl" }
 description = """
 Read `assets/brief-pipeline/thresholds.toml` and
-`{{artifact_root}}/stack/manifest.jsonl`. Count non-archived stack entries that
+`{{artifact_root}}/stack/.index.jsonl`. Count non-archived stack entries that
 are ready to present. Record the count in the watchdog run notes.
 """
 

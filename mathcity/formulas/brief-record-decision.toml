@@ -28,7 +28,7 @@ default = ""
 
 [vars.artifact_root]
 description = "Brief pipeline artifact root."
-default = ".beads/briefs"
+default = "~/.gc/mathcity/briefs"
 
 [vars.operator_target]
 description = "Run target for decision bookkeeping."
@@ -49,7 +49,7 @@ Write `{{artifact_root}}/decisions/{{brief_slug}}.toml` with:
 - stack path
 - artifact paths
 - `source_bead` — the id of the bead this brief decides on. Copy it from the
-  brief's manifest entry: find the line in `{{artifact_root}}/stack/manifest.jsonl`
+  brief's manifest entry: find the line in `{{artifact_root}}/stack/.index.jsonl`
   whose `slug` equals `{{brief_slug}}` and read its `source` field (the shuffle
   manifest's `source` key carries the source bead id, propagated from the
   brief-prep intake `source` var). Write it verbatim as

@@ -33,7 +33,7 @@ enum = ["standard", "test-execution", "experiment", "no-brainer", "decision"]
 
 [vars.artifact_root]
 description = "Brief pipeline artifact root relative to the city or rig root."
-default = ".beads/briefs"
+default = "~/.gc/mathcity/briefs"
 
 [vars.prep_target]
 description = "Run target for deterministic brief setup and bookkeeping."
@@ -53,7 +53,7 @@ Create or reuse `{{artifact_root}}/.staging/{{brief_slug}}/`.
 Record the source `{{source}}`, the brief type `{{brief_type}}`, and the
 expected brief path in the staging directory. Do not write directly into the
 stack. Producers only stage and submit to `.pile`; the shuffler is the single
-writer that promotes stack entries and appends `manifest.jsonl`.
+writer that promotes stack entries and appends `.index.jsonl`.
 """
 
 [[steps]]
@@ -138,7 +138,7 @@ Move the completed staged brief into `{{artifact_root}}/.pile/{{brief_slug}}.md`
 using an atomic rename or copy-and-rename. Keep staged artifacts in
 `{{artifact_root}}/.staging/{{brief_slug}}/` until the decision/archive step.
 
-Do not edit `{{artifact_root}}/stack/manifest.jsonl`; only `brief-shuffle`
+Do not edit `{{artifact_root}}/stack/.index.jsonl`; only `brief-shuffle`
 owns stack promotion and manifest appends.
 """
 

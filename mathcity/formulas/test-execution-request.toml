@@ -32,7 +32,7 @@ default = ""
 
 [vars.artifact_root]
 description = "Brief pipeline artifact root."
-default = ".beads/briefs"
+default = "~/.gc/mathcity/briefs"
 
 [vars.operator_target]
 description = "Run target for deterministic request bookkeeping."

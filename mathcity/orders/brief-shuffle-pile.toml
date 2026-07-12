@@ -1,13 +1,11 @@
 [order]
 description = "Promote or reject one brief whenever the pile has pending markdown briefs"
-# gsp-fqo: scope=rig so the condition check runs from each rig's root directory
-# and .beads/briefs/.pile resolves correctly. City-scope was causing exits 1
-# (path relative to ~/gt, not the rig) and silently disabling the order.
-scope = "rig"
+# gsp-1pv: migrated artifact_root to ~/.gc/mathcity/briefs (absolute home-relative path);
+# scope changed from rig to city since the path no longer needs rig-root resolution.
+scope = "city"
 formula = "brief-shuffle"
 trigger = "condition"
-check = "find .beads/briefs/.pile -mindepth 1 -maxdepth 1 -type f -name '*.md' 2>/dev/null | grep -q ."
+check = "find $HOME/.gc/mathcity/briefs/.pile -mindepth 1 -maxdepth 1 -type f -name '*.md' 2>/dev/null | grep -q ."
 pool = "gastown.dog"
 timeout = "60s"
 idempotent = true
-

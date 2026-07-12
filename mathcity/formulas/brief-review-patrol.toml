@@ -37,7 +37,7 @@ description = "Auto-advance stack briefs stuck at review_gate: pending through P
 [vars]
 [vars.artifact_root]
 description = "Brief pipeline artifact root."
-default = ".beads/briefs"
+default = "~/.gc/mathcity/briefs"
 
 [vars.operator_target]
 description = "Run target for patrol scan, frontmatter patching, and bookkeeping."
