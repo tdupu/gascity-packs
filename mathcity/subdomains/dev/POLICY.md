@@ -164,9 +164,39 @@ recreate what you're running; upstream must remain pullable.*
   convenience, or aliased to the code remote. Single exception: the gascity
   root (`~/gt`) predates the convention — its dolt remote is
   `tdupu/gascity-dolt`. When initialising a new rig's bead sync, derive the
-  remote name as `<rig-name>-dolt`, verify `isPrivate=true` (P1.11), then
-  run `bd backup init`. A dolt remote whose name deviates from
-  `tdupu/<rig-name>-dolt` (outside the `~/gt` exception) → **fail**.
+  remote name as `<rig-name>-dolt` **using the DoltHub slug form** — DoltHub
+  normalizes underscores to hyphens, so rig names with underscores use
+  hyphens in the remote (e.g., `agent_skills` → `tdupu/agent-skills-dolt`,
+  `magma_diff_alg` → `tdupu/magma-diff-alg-dolt`). Verify `isPrivate=true`
+  (P1.11), then run `bd backup init`. A dolt remote whose name deviates from
+  `tdupu/<rig-slug>-dolt` (outside the `~/gt` exception) → **fail**.
+- **P1.16 Repo-local skills stay repo-accessible.** Work for a repository
+  must assume that collaborators of that repo do **not** have mathcity (or
+  any Taylor-owned pack) installed. A skill that repo collaborators use must
+  remain discoverable inside that repo's own `.claude/skills/` directory
+  without requiring mathcity — either as a real copy in the repo or via a
+  mechanism the repo commits directly. Adoption into mathcity (P1.9) is only
+  valid for such a skill when one of the following holds: (a) every current
+  collaborator of the repo has mathcity installed, or (b) the repo retains a
+  non-mathcity-dependent copy (a justified exception to P1.9's single-real-
+  copy rule, noted in the commit). A plan that migrates a collaborator-facing
+  skill *exclusively* to mathcity and removes the repo-local copy — making
+  collaborators silently lose the skill — → **fail**. (Origin: 2026-07-11,
+  hecke `textfile-to-magma` migration; Adam does not have mathcity.)
+- **P1.17 Plans fix root causes; workarounds must be named and tracked.**
+  A "hack" is a one-off fix that addresses a symptom without removing the
+  mechanism that produces it — so the same class of problem can resurface
+  without a new root-cause change. Plans **must never** present a hack as a
+  fix. The test: can the plan state the invariant the fix establishes that
+  prevents recurrence? If not, the plan is a hack.
+  *Allowed exception — named workaround:* a temporary measure is permitted
+  only when (a) the root cause is explicitly identified in the plan text,
+  (b) a follow-up bead is filed or included in the convoy for the root-cause
+  fix, and (c) the measure is explicitly labeled "workaround" (not "fix") in
+  the plan. An unnamed workaround presented as a fix → **fail**. A resolution
+  with no stated recurrence-prevention invariant → **revise** (state the
+  invariant, or reclassify under the named-workaround path with a root-cause
+  bead).
 
 ## Pillar 2 — Ownership boundary
 
@@ -260,6 +290,12 @@ inside gascity core); this is the pack-level, plan-time analogue.*
 - No skill without a README table row — and no ghost rows (P1.13).
 - No skill whose external dependencies are unchecked — every dep gets a
   pre-flight probe with a "I'm sorry, I can't do that" error block (P1.14).
+- No migration of a collaborator-facing repo skill exclusively to mathcity
+  without a repo-local fallback or confirmed mathcity adoption by every
+  collaborator (P1.16).
+- No plan that presents a hack as a fix — every resolution must state the
+  invariant that prevents recurrence, or be explicitly named a workaround
+  with a root-cause follow-up bead (P1.17).
 - No drive-by scope creep, even inside the owned set (P2.4 / B10).
 
 ## Verdict vocabulary

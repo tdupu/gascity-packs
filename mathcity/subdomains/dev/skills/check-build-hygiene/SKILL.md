@@ -137,14 +137,16 @@ for p in ~/gt ~/gt/*/; do [ -d "$p/.beads" ] || continue
   case "$r" in *-dolt.git) ;; "") ;; *) echo "NON-DOLT SYNC TARGET: $p -> $r";; esac
 done
 # then per flagged/new target: gh repo view tdupu/<name>-dolt --json isPrivate (must be true)
-# P1.15 — dolt remote name must be tdupu/<rig-name>-dolt (exception: ~/gt → gascity-dolt)
+# P1.15 — dolt remote name must be tdupu/<rig-slug>-dolt (exception: ~/gt → gascity-dolt)
+# DoltHub normalizes underscores to hyphens — compare slug-normalized form
 for p in ~/gt ~/gt/*/; do [ -d "$p/.beads" ] || continue
   r=$(cd "$p" && bd config get sync.remote 2>/dev/null)
   [ -z "$r" ] && continue
   rig=$(basename "$p")
+  rig_slug="${rig//_/-}"   # normalize underscores to hyphens (DoltHub slug form)
   if [ "$p" = "$HOME/gt" ] || [ "$p" = "$HOME/gt/" ]; then
     expected="tdupu/gascity-dolt"
-  else expected="tdupu/${rig}-dolt"; fi
+  else expected="tdupu/${rig_slug}-dolt"; fi
   r_base="${r%.git}"
   [ "$r_base" != "$expected" ] && echo "P1.15 WRONG NAME: $p -> sync.remote=$r (expected ${expected}.git)"
 done
@@ -178,12 +180,12 @@ row → **revise**.
 **8. Dependency pre-flight (P1.14).**
 
 ```bash
-# For each conf-driven skill, look for the "I'm sorry" error pattern
+# For each conf-driven skill (including setup-* skills), look for the "I'm sorry" error pattern
 for skill_dir in ~/repos/gascity-packs/mathcity/subdomains/lmfdb/skills/*/; do
   skill_name=$(basename "$skill_dir")
   skill_file="$skill_dir/SKILL.md"
   [ -f "$skill_file" ] || continue
-  # Only check skills that reference a conf
+  # Check all skills that reference a conf — setup-* skills included
   if grep -q 'conf\|CONF\|data-generation' "$skill_file"; then
     if ! grep -q "I'm sorry" "$skill_file"; then
       echo "P1.14 FAIL: $skill_name — conf-driven but no graceful error block"
@@ -192,11 +194,43 @@ for skill_dir in ~/repos/gascity-packs/mathcity/subdomains/lmfdb/skills/*/; do
 done
 ```
 
-Fail if any conf-driven skill is missing the `"I'm sorry, I can't do that"` error block.
+Fail if any conf-driven skill (including `setup-*` skills — they also read or probe conf files)
+is missing the `"I'm sorry, I can't do that"` error block.
 Remediation: add the appropriate conf-discovery block with the P1.14 error format (server conf
 → `/configure-server`; pipeline conf → `/configure-database`).
 
-**9. Replay litmus (P1.1) — judgment call.**
+**9. Repo-accessible skills (P1.16).**
+
+For each mathcity skill that was adopted from a project repo (hecke, homog,
+diff-alg, etc.), check whether that repo still has a non-mathcity-dependent
+copy in its own `.claude/skills/` (real copy or repo-committed symlink that
+does not point into `~/repos/gascity-packs/mathcity`):
+
+```bash
+# List mathcity-adopted skills that came from project repos (convention: check
+# agent-skills and then each known project repo for symlinks pointing into mathcity)
+for repo in ~/repos/hecke ~/repos/homog ~/repos/diff_alg_public; do
+  [ -d "$repo/.claude/skills" ] || continue
+  for l in "$repo/.claude/skills/"*; do
+    [ -L "$l" ] || continue
+    target=$(readlink -f "$l" 2>/dev/null)
+    case "$target" in */mathcity/*)
+      echo "MATHCITY-ONLY: $l -> $target (collaborators need a non-mathcity copy)";;
+    esac
+  done
+done
+```
+
+For each hit: is every known collaborator of that repo confirmed to have
+mathcity installed? If not, the symlink-only arrangement violates P1.16 —
+the repo must also contain a real copy (or a symlink to a non-mathcity
+location) so collaborators can run the skill without Taylor's pack config.
+
+Findings: symlinks in project repos that point exclusively into mathcity, where
+no collaborator-facing fallback exists → **revise** (each listed with the repo,
+the skill name, and the collaborators who would lose access).
+
+**10. Replay litmus (P1.1) — judgment call.**
 
 Given checks 1–8, answer: "if I `gc init` a scratch city and replay only
 the declared imports on a fresh machine, do I get this city?" List every
