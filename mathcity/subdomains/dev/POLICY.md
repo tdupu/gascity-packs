@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Adopted |
-| Date | 2026-07-10 (amended 2026-07-12: P5.1 — vocabulary & terminology, from gastown-removal audit) |
+| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files) |
 | Decided | Taylor Dupuy, via grilling session (three open questions resolved; record at bottom) |
 | Applies to | All packs Taylor owns in this repo — the **owned pack set** (§ Scope) |
 | Consumers | `check-hygiene` skill (to be built via skill-creator); mayor priming (`mayor-math`); any agent planning work in this repo |
@@ -285,6 +285,28 @@ inside gascity core); this is the pack-level, plan-time analogue.*
   identity strings outside exceptions (a)–(d). Fail: any usage of `gastown.*`
   as a live identity or routing target → **revise**.
 
+- **P5.2 Workspace context files reflect live CLI and runtime state.**
+  Workspace context files — `AGENTS.md`, `CONTEXT.md`, `CLAUDE.md`, and any
+  file loaded automatically into agent context — must describe only the *current*
+  CLI surface and live runtime state. Specifically:
+  (a) Every shell command block must resolve against the live `gc`/`bd` CLI
+      (`gc <subcmd> --help` exits 0). Dead `gt` CLI verbs → **revise**.
+  (b) No assertion about agent identity, pack import, or runtime infrastructure
+      may contradict `gc agent list` / `gc prime` output.
+  (c) The inside/outside agent distinction must be explicit: inside (GC) agents
+      prime with `gc prime`; outside agents (Claude Code session, helping Taylor)
+      prime with `/prime-outsider`. Files that conflate the two → **revise**.
+  (d) Paths to pack directories must resolve on disk. A path that moved
+      (e.g. `mathematics/` → `mathcity/`) → **revise**.
+  Scope: `~/gt/AGENTS.md`, `~/gt/CONTEXT.md`, `~/gt/CLAUDE.md`, and any rig
+  `AGENTS.md` that agents in this workspace read automatically.
+  Allowed exceptions: historical content explicitly fenced with a "Historical"
+  heading or `DEPRECATED — <date>` marker is exempt from (a)–(c).
+  Pass: every command block uses live `gc`/`bd` verbs; no identity claim
+  contradicts live agent list; inside/outside distinction present; all paths exist.
+  Fail: any dead CLI verb, contradicted identity assertion, missing
+  inside/outside distinction, or broken path → **revise**.
+
 ## Non-negotiables (quick checklist)
 
 - No hand-edited `city.toml`, and no hand-edited `pack.toml` outside the
@@ -319,6 +341,8 @@ inside gascity core); this is the pack-level, plan-time analogue.*
 - No drive-by scope creep, even inside the owned set (P2.4 / B10).
 - No "gastown" as a live agent identity, routing target, or plan vocabulary —
   `gastown.*` agents are dead; use `gc.*` / `mathcity.*` replacements (P5.1).
+- No dead CLI verbs (`gt`), broken pack paths, or missing inside/outside agent
+  distinction in workspace context files (`AGENTS.md`, `CONTEXT.md`) — P5.2.
 
 ## Verdict vocabulary
 
@@ -369,6 +393,14 @@ no parallel vocabulary is introduced:
 ---
 
 ## Change Log
+
+### 2026-07-12 — P5.2 added: workspace context files reflect live CLI
+Opens P5.2. Codifies that AGENTS.md/CONTEXT.md must use live `gc`/`bd` verbs,
+must not contradict `gc agent list`, must include inside/outside agent distinction
+(inside→`gc prime`; outside→`/prime-outsider`), and must have valid pack paths.
+Triggered by: Fable structural audit + Taylor directive that check-build-hygiene
+must cover workspace context files. Enforcement: check-build-hygiene §11 (gs- bead
+filed by Fable agent). Exceptions: explicitly fenced historical sections.
 
 ### 2026-07-12 — P5.1 added: "gascity is the name" (vocabulary & terminology)
 Opens Pillar 5. Codifies that "gastown" is no longer a valid runtime identity or
