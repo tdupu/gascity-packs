@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Adopted |
-| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files) |
+| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet) |
 | Decided | Taylor Dupuy, via grilling session (three open questions resolved; record at bottom) |
 | Applies to | All packs Taylor owns in this repo — the **owned pack set** (§ Scope) |
 | Consumers | `check-hygiene` skill (to be built via skill-creator); mayor priming (`mayor-math`); any agent planning work in this repo |
@@ -197,6 +197,24 @@ recreate what you're running; upstream must remain pullable.*
   with no stated recurrence-prevention invariant → **revise** (state the
   invariant, or reclassify under the named-workaround path with a root-cause
   bead).
+- **P1.18 City root imports the named-session fleet.** When the city is
+  expected to process city-scope work (e.g. `gt-` prefix beads assigned to
+  build-basic workers), the city root `pack.toml` (`~/gt/pack.toml`) must
+  explicitly import a pack that provides `[[named_session]]` entries for the
+  build-basic worker fleet (implementation-worker, requirements-planner,
+  task-decomposer, design-author, implementation-reviewer, and peers). Child
+  rigs receive this fleet via `defaults.rig.imports` in `city.toml`; the root
+  pack is separate and not covered by that default — it requires its own
+  `[imports.*]` entry. A city root missing this import will show 0 named
+  worker sessions in the root scope: `bd ready` accumulates `gt-` beads with
+  no consumers indefinitely, silently. *Allowed exception:* a city that
+  deliberately routes ALL work to child rigs and has no city-scope build-basic
+  usage may omit the import — but must declare this in `pack.toml` with a
+  comment: `# No city-scope build-basic — HQ worker fleet intentionally
+  omitted.` Pass: `~/gt/pack.toml` contains an import whose resolved
+  `pack.toml` has at least one `[[named_session]] template =
+  "implementation-worker"`. Fail: no such import exists AND `gc session list`
+  shows 0 HQ-scope named worker sessions → **revise**.
 
 ## Pillar 2 — Ownership boundary
 
@@ -338,6 +356,9 @@ inside gascity core); this is the pack-level, plan-time analogue.*
 - No plan that presents a hack as a fix — every resolution must state the
   invariant that prevents recurrence, or be explicitly named a workaround
   with a root-cause follow-up bead (P1.17).
+- City root `pack.toml` must import a pack providing the named-session fleet
+  (implementation-worker etc.) when city-scope (gt-) build-basic work is
+  expected; omission silently starves the gt- queue (P1.18).
 - No drive-by scope creep, even inside the owned set (P2.4 / B10).
 - No "gastown" as a live agent identity, routing target, or plan vocabulary —
   `gastown.*` agents are dead; use `gc.*` / `mathcity.*` replacements (P5.1).
@@ -393,6 +414,14 @@ no parallel vocabulary is introduced:
 ---
 
 ## Change Log
+
+### 2026-07-12 — P1.18 added: city root imports the named-session fleet
+City root `pack.toml` must explicitly import a pack providing `[[named_session]]`
+entries for the build-basic worker fleet when city-scope work is expected.
+Triggered by: gastown pack removal (ba2ff381) silently dropped named sessions from
+HQ; 99 gt- beads accumulated with 0 consumer sessions. Child rigs get the fleet
+via `defaults.rig.imports` in `city.toml`; root pack requires its own import.
+Exception: cities with no city-scope build-basic usage may omit with a comment.
 
 ### 2026-07-12 — P5.2 added: workspace context files reflect live CLI
 Opens P5.2. Codifies that AGENTS.md/CONTEXT.md must use live `gc`/`bd` verbs,
