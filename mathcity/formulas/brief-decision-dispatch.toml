@@ -93,22 +93,23 @@ id = "scan-and-dispatch"
 title = "Scan for undispatched decisions and execute routing actions"
 metadata = { "gc.brief.root" = "{{artifact_root}}", "gc.brief.dispatch_ledger" = "{{artifact_root}}/decisions-dispatched.jsonl" }
 description = """
-Run everything in ONE shell session so derived values (PENDING_SLUGS per rig
-root) survive from scan to dispatch without crossing step boundaries.
+Run everything in ONE shell session so derived values (PENDING_SLUGS)
+survive from scan to dispatch without crossing step boundaries.
 
-**Phase 1 — scan.** Find decision records that have not yet been dispatched,
-across ALL rigs. A record is UNDISPATCHED when
-`<rig>/{{artifact_root}}/decisions/<slug>.toml` exists but no SUCCESS line
-in `<rig>/{{artifact_root}}/decisions-dispatched.jsonl` carries that slug.
+**Phase 1 — scan.** Find decision records that have not yet been dispatched.
+A record is UNDISPATCHED when `{{artifact_root}}/decisions/<slug>.toml` exists
+but no SUCCESS line in `{{artifact_root}}/decisions-dispatched.jsonl` carries
+that slug. The artifact_root is a global path (W2 migration); the `~` prefix
+is expanded to $HOME at runtime.
 
-This wisp is claimed by a CITY dog; discover rig brief roots explicitly from
-the city root (brief.decided does not say which rig decided; scanning every
-rig is idempotent and the ledger makes repeats safe).
+This wisp is claimed by a CITY dog; the global artifact_root is the single
+scan point. The ledger makes repeat runs safe (idempotent).
 
-**Phase 2 — dispatch.** For each rig root with pending slugs: read the
-decision record, execute the routing action, and append one JSONL line to the
-ledger. The rig checkout RIG_DIR derives from ROOT (two levels above the
-brief root: `RIG_DIR=$(dirname "$(dirname "$ROOT")")`).
+**Phase 2 — dispatch.** For each pending slug: read the decision record,
+execute the routing action, and append one JSONL line to the ledger. The rig
+checkout RIG_DIR is derived from the source_bead ID prefix (W2: global
+artifact_root no longer encodes the rig in its path): `he-*` → hecke,
+`as-*` → agent_skills, `gsp-*` → gascity-packs.
 
 **Retry semantics (C3c):** the ledger is append-only with two line shapes. A
 SUCCESS line has `"dispatched_at"` set — treated as dispatched, never
@@ -145,7 +146,7 @@ DEFAULT_BRANCH="${GC_DEFAULT_BRANCH:-{{default_branch}}}"
 ESCALATE=".gc/scripts/escalate.sh"
 WORK_BEAD="${GC_BEAD_ID:-}"
 
-# Helper functions use ROOT, LEDGER, RIG_DIR set per-rig in the main loop.
+# Helper functions use ROOT, LEDGER, RIG_DIR set in the main scan block.
 
 # Detect the SOURCE RIG's actual default branch. Hardcoded "main" is wrong for
 # repos whose default is master (gt-vtab dud-2 bug B2): prefer origin/HEAD,
@@ -245,6 +246,18 @@ dispatch_slug() {
 
   case "$decision" in
     approve)
+      # Derive rig checkout from source_bead prefix (W2: global artifact_root).
+      bead_prefix="$(printf '%s' "$source_bead" | cut -d- -f1)"
+      case "$bead_prefix" in
+        he)  RIG_DIR="$CITY/hecke" ;;
+        as)  RIG_DIR="$CITY/agent_skills" ;;
+        gsp) RIG_DIR="$CITY/gascity-packs" ;;
+        *)   RIG_DIR="" ;;
+      esac
+      if [ -z "$RIG_DIR" ] || [ ! -d "$RIG_DIR" ]; then
+        outcome="failure"
+        action_taken="approve failed: unknown rig for source_bead $source_bead (prefix=$bead_prefix)"
+      else
       # Approval = merge back edge. Do NOT guess a branch: polecat already
       # wrote the real branch metadata (with cycle suffix). Read the bead's
       # existing metadata, fill target only if missing, reuse the existing
@@ -296,6 +309,7 @@ dispatch_slug() {
           action_taken="approve failed: bd update error (branch=$existing_branch target=$set_target)"
         fi
       fi
+      fi  # close RIG_DIR check
       ;;
     reject|revise)
       # Follow-up bead carries the decision context. bd create takes metadata as
@@ -355,26 +369,25 @@ dispatch_slug() {
   fi
 }
 
-# Main scan+dispatch loop — discover every rig's brief root from the city dir.
+# Main scan+dispatch — global brief root (W2: absolute artifact_root).
 overall_dispatched=0
 overall_pending_retry=0
 
-for ROOT in "$CITY"/*/{{artifact_root}}; do
-  [ -d "$ROOT/decisions" ] || continue
-  LEDGER="$ROOT/decisions-dispatched.jsonl"
-  # The rig repo checkout sits two levels above the brief root.
-  RIG_DIR="$(cd "$ROOT/../.." 2>/dev/null && pwd)"
+ROOT="{{artifact_root}}"
+ROOT="${ROOT/#\\~/$HOME}"
+LEDGER="$ROOT/decisions-dispatched.jsonl"
 
+if [ -d "$ROOT/decisions" ]; then
   pending=""
   for f in "$ROOT/decisions/"*.toml; do
     [ -f "$f" ] || continue
     slug="$(basename "$f" .toml)"
     if is_dispatched "$slug"; then
-      echo "already dispatched: $slug ($ROOT)"
+      echo "already dispatched: $slug"
       continue
     fi
     pending="$pending $slug"
-    echo "undispatched: $slug ($ROOT)"
+    echo "undispatched: $slug"
   done
 
   for slug in $pending; do
@@ -382,7 +395,7 @@ for ROOT in "$CITY"/*/{{artifact_root}}; do
     dispatch_slug "$slug"
     overall_dispatched=$((overall_dispatched + 1))
   done
-done
+fi
 
 echo "scan-and-dispatch complete: dispatched=$overall_dispatched"
 
