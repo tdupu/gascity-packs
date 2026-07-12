@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Adopted |
-| Date | 2026-07-10 (amended same day: P1.9–P1.11, from the hecke-adoption / server-skills / bead-sync incidents) |
+| Date | 2026-07-10 (amended 2026-07-12: P5.1 — vocabulary & terminology, from gastown-removal audit) |
 | Decided | Taylor Dupuy, via grilling session (three open questions resolved; record at bottom) |
 | Applies to | All packs Taylor owns in this repo — the **owned pack set** (§ Scope) |
 | Consumers | `check-hygiene` skill (to be built via skill-creator); mayor priming (`mayor-math`); any agent planning work in this repo |
@@ -265,6 +265,26 @@ inside gascity core); this is the pack-level, plan-time analogue.*
   *and* once over the union of all beads' scopes — cross-bead interactions
   count.
 
+## Pillar 5 — Vocabulary & terminology
+
+- **P5.1 "gascity" is the name.** All plans, skill docs, AGENTS.md/CONTEXT.md,
+  formulas, orders, and agent identities use "Gas City"/"gascity"/`gc.*`. The
+  string "gastown" is permitted only as: (a) the GitHub org `gastownhall/*` in
+  URLs, remotes, and import sources — never rewrite; (b) the upstream community
+  pack name `gascity-packs/gastown/` and the CLI literal `--template gastown` —
+  may be referenced as the upstream pack, never adopted; (c) upstream public-docs
+  migration pages (`coming-from-gastown`, `gastown-*`) per the gc-docs style guide;
+  (d) read-only historical artifacts (git history, `usage.jsonl`,
+  `.gc/agents/dogs/gastown.*` state, forensic `rigs.json`/`town.json`).
+  `gastown.*` agent identities (e.g. `gastown.polecat`, `gastown.mayor`) are NOT
+  a runtime contract — the gastown pack import was removed 2026-07-09 (ba2ff381)
+  and no `gastown.*` agent exists. Any `pool=`, run-target `default=`, assignee,
+  or `$GC_AGENT` example using `gastown.*` is a dangling reference tracked in
+  `mathcity/subdomains/dev/docs/IMPORTS-GC-MIGRATION-PLAN-2026-07-08.md`.
+  Pass: no "gastown" in plan prose, skill docs, formulas, orders, or agent
+  identity strings outside exceptions (a)–(d). Fail: any usage of `gastown.*`
+  as a live identity or routing target → **revise**.
+
 ## Non-negotiables (quick checklist)
 
 - No hand-edited `city.toml`, and no hand-edited `pack.toml` outside the
@@ -297,6 +317,8 @@ inside gascity core); this is the pack-level, plan-time analogue.*
   invariant that prevents recurrence, or be explicitly named a workaround
   with a root-cause follow-up bead (P1.17).
 - No drive-by scope creep, even inside the owned set (P2.4 / B10).
+- No "gastown" as a live agent identity, routing target, or plan vocabulary —
+  `gastown.*` agents are dead; use `gc.*` / `mathcity.*` replacements (P5.1).
 
 ## Verdict vocabulary
 
@@ -343,3 +365,16 @@ no parallel vocabulary is introduced:
 - [gascity/REQUIREMENTS.md](../../../gascity/REQUIREMENTS.md) — the `build-base` contract (Pillar 3/4 downstream surface)
 - [contributing/skills/review](../../../contributing/skills/review/SKILL.md) (B10) and [map-blast-radius](../../../contributing/skills/map-blast-radius/SKILL.md) — the PR-time gates this plan-time gate complements
 - `~/.claude/skills/update-{gascity,beads,gascity-packs}-from-source` — the sanctioned update procedures whose invariants P1.6/P1.7 encode
+
+---
+
+## Change Log
+
+### 2026-07-12 — P5.1 added: "gascity is the name" (vocabulary & terminology)
+Opens Pillar 5. Codifies that "gastown" is no longer a valid runtime identity or
+plan vocabulary — the gastown pack was removed 2026-07-09 (ba2ff381) and all
+`gastown.*` agents are dangling references. Triggered by: Fable terminology audit
+that found the `reference.gc-cli` memory was stale (incorrectly asserted "gastown.*
+is a runtime contract"). Exceptions: (a) `gastownhall/*` org in URLs, (b) upstream
+pack/template name as a proper noun, (c) gc-docs migration pages, (d) read-only
+historical artifacts. Migration tracked in `mathcity/subdomains/dev/docs/IMPORTS-GC-MIGRATION-PLAN-2026-07-08.md`.
