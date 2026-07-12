@@ -1,5 +1,5 @@
 ---
-name: recycle-bead
+name: gc-recycle-bead
 description: >-
   Handle graceful lifecycle transitions for research beads — beads that contain
   mathematical decisions, session notes, or research context rather than purely
@@ -14,7 +14,7 @@ description: >-
   unique content", "research journal bead", "lifecycle transition".
 ---
 
-# recycle-bead
+# gc-recycle-bead
 
 Beads accumulate three kinds of content that don't fit the normal close/done
 lifecycle: **unique findings** that belong in a canonical bead, **research

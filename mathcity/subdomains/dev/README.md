@@ -22,6 +22,7 @@ Contents:
 | `check-build-hygiene` | Audit the live install (binaries, repos, imports, skill sinks) against POLICY.md; drift list with per-item remediation |
 | `skill-creator-math` | Create a skill in the mathcity pack family and wire both exposure routes (the sanctioned P1.8 procedure) |
 | `update-README` | Keep the pack family's READMEs + exposure in sync after any owned-pack change — run at the end of every skill-move or pack-change session |
+| `new-hygiene-policy` | Propose and apply an amendment to `mathcity/subdomains/dev/POLICY.md`; gates every change on Taylor approval and records it in a Change Log before the rule becomes enforceable |
 
 Import alias convention (ADR 0002): skills materialize as
 `mathcity-dev.<skill>`.

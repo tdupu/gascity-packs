@@ -43,12 +43,15 @@ fi
 # to an enclosing repository (e.g. the city root) and every worktree created
 # here registers in the wrong repo — wrong branches, wrong pushes, cross-rig
 # leakage (gt-4rn).
+# Resolve symlinks: on macOS /var/folders/ is a symlink to /private/var/folders/,
+# so cd -P is needed for the pattern match to work against git's resolved GITDIR.
+RIG_ROOT_REAL=$(cd -P "$RIG_ROOT" 2>/dev/null && pwd) || RIG_ROOT_REAL="$RIG_ROOT"
 GITDIR=$(git -C "$RIG_ROOT" rev-parse --absolute-git-dir 2>/dev/null) || {
     echo "worktree-setup: $RIG_ROOT is not a git repository" >&2
     exit 1
 }
 case "$GITDIR" in
-    "$RIG_ROOT"/*) : ;;  # .repo.git or .git inside the rig — OK
+    "$RIG_ROOT_REAL"/*) : ;;  # .repo.git or .git inside the rig — OK
     *)
         echo "worktree-setup: REFUSING to create worktree for $RIG_ROOT:" >&2
         echo "  its git dir resolves OUTSIDE the rig ($GITDIR)." >&2
