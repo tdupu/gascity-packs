@@ -2,7 +2,7 @@
 # Idempotency check for brief-decision-dispatch.
 #
 # Verifies that every pending slug has been appended to the dispatch ledger
-# (.beads/briefs/decisions-dispatched.jsonl). Used as the step check for
+# ($HOME/.gc/mathcity/briefs/decisions-dispatched.jsonl). Used as the step check for
 # the dispatch-decisions step — ensures the dispatched record is durable
 # before the step completes, and prevents re-dispatch of the same slug.
 #
@@ -17,12 +17,12 @@
 # wake (up to the 3-retry limit enforced by the dispatch step itself).
 #
 # Inputs (env):
-#   BRIEF_ROOT            brief pipeline artifact root (default: .beads/briefs)
+#   BRIEF_ROOT            brief pipeline artifact root (default: $HOME/.gc/mathcity/briefs)
 #   PENDING_SLUGS         space-separated list of slugs that were dispatched
 #                         (set by scan-undispatched step); if empty, exit 0
 set -eu
 
-ROOT="${BRIEF_ROOT:-.beads/briefs}"
+ROOT="${BRIEF_ROOT:-$HOME/.gc/mathcity/briefs}"
 LEDGER="$ROOT/decisions-dispatched.jsonl"
 PENDING="${PENDING_SLUGS:-}"
 

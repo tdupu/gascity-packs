@@ -7,7 +7,7 @@ if [ -z "$COMMAND" ]; then
   exit 2
 fi
 
-ROOT="${BRIEF_ROOT:-.beads/briefs}"
+ROOT="${BRIEF_ROOT:-$HOME/.gc/mathcity/briefs}"
 
 fail() {
   echo "brief-check: $*" >&2
@@ -139,12 +139,12 @@ check_shuffle_result() {
   rejected_count="$(find "$ROOT/.pile/.rejected" -mindepth 1 -maxdepth 2 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
   [ "${stack_count:-0}" -gt 0 ] || [ "${rejected_count:-0}" -gt 0 ] ||
     fail "no promoted or rejected brief found"
-  check_jsonl "$ROOT/stack/manifest.jsonl"
+  check_jsonl "$ROOT/stack/.index.jsonl"
 }
 
 check_manifest() {
   mkdir -p "$ROOT/stack"
-  check_jsonl "$ROOT/stack/manifest.jsonl"
+  check_jsonl "$ROOT/stack/.index.jsonl"
 }
 
 check_decision_record() {
@@ -201,8 +201,8 @@ check_no_brainer_safety() {
 
 check_no_brainer_execute_safety() {
   check_no_brainer_safety
-  [ -f "$ROOT/ALLOW_NO_BRAINER_AUTO_EXECUTE" ] ||
-    fail "missing no-brainer auto-execute kill switch: $ROOT/ALLOW_NO_BRAINER_AUTO_EXECUTE"
+  [ -f "$HOME/.gc/mathcity/ALLOW_NO_BRAINER_AUTO_EXECUTE" ] ||
+    fail "missing no-brainer auto-execute kill switch: $HOME/.gc/mathcity/ALLOW_NO_BRAINER_AUTO_EXECUTE"
 }
 
 check_archive_sweep_record() {

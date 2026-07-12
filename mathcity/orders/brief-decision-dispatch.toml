@@ -19,7 +19,7 @@
 #   defer    → mark dispatched, no further action
 #
 # The formula is idempotent: it compares decision/*.toml slugs against
-# .beads/briefs/decisions-dispatched.jsonl and skips already-dispatched
+# ~/.gc/mathcity/briefs/decisions-dispatched.jsonl and skips already-dispatched
 # entries. Coalesced or repeated events are therefore safe.
 #
 # If gc event emit is unavailable in a given environment, the condition

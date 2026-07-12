@@ -27,7 +27,7 @@
 # callers can attach it verbatim as the event payload.
 set -eu
 
-ROOT="${BRIEF_ROOT:-.beads/briefs}"
+ROOT="${BRIEF_ROOT:-$HOME/.gc/mathcity/briefs}"
 THRESHOLD="${STACK_LOW_THRESHOLD:-1}"
 
 approved=0

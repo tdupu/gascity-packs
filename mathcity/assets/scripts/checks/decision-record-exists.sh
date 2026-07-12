@@ -13,14 +13,14 @@
 # Environment (set by gc from formula vars):
 #   GC_VAR_SOURCE_BEAD   — bead ID of the adjudicated work item (required)
 #   GC_VAR_BRIEF_SLUG    — brief slug to check the brief-pipeline record (optional)
-#   GC_VAR_ARTIFACT_ROOT — brief pipeline root, default .beads/briefs
+#   GC_VAR_ARTIFACT_ROOT — brief pipeline root, default $HOME/.gc/mathcity/briefs
 #   GC_CITY_PATH         — city root (default ~/gt)
 
 set -eu
 
 SOURCE_BEAD="${GC_VAR_SOURCE_BEAD:-}"
 BRIEF_SLUG="${GC_VAR_BRIEF_SLUG:-}"
-ARTIFACT_ROOT="${GC_VAR_ARTIFACT_ROOT:-.beads/briefs}"
+ARTIFACT_ROOT="${GC_VAR_ARTIFACT_ROOT:-$HOME/.gc/mathcity/briefs}"
 CITY="${GC_CITY_PATH:-${GC_CITY:-$HOME/gt}}"
 
 fail_block() {

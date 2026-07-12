@@ -5,7 +5,7 @@ Covers:
   pending briefs.
 - The formula TOML: step structure, drain-all semantics, no-brainer grouping,
   per-brief presentation records.
-- The drain-manifest helper script: reads manifest.jsonl, filters decided/
+- The drain-manifest helper script: reads .index.jsonl, filters decided/
   archived, sorts by unlock_count, splits into no-brainer and full-brief files.
 """
 
@@ -40,7 +40,7 @@ FORMULA_PATH = FORMULAS / "brief-present-next.toml"
 
 
 def write_manifest(root: Path, entries: list[dict]) -> Path:
-    manifest = root / ".beads" / "briefs" / "stack" / "manifest.jsonl"
+    manifest = root / ".beads" / "briefs" / "stack" / ".index.jsonl"
     manifest.parent.mkdir(parents=True, exist_ok=True)
     manifest.write_text(
         "".join(json.dumps(e) + "\n" for e in entries), encoding="utf-8"
@@ -128,7 +128,7 @@ def test_drain_creates_output_files_when_manifest_missing(tmp_path: Path) -> Non
 
 def test_drain_empty_manifest(tmp_path: Path) -> None:
     """Empty manifest file → both output files are empty."""
-    manifest = tmp_path / ".beads" / "briefs" / "stack" / "manifest.jsonl"
+    manifest = tmp_path / ".beads" / "briefs" / "stack" / ".index.jsonl"
     manifest.parent.mkdir(parents=True, exist_ok=True)
     manifest.write_text("", encoding="utf-8")
     out = tmp_path / "out"

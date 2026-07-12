@@ -1,6 +1,6 @@
 # File-or-sendback decision-review log — format spec
 
-Canonical path: `.beads/briefs/decisions/file-or-sendback.jsonl`
+Canonical path: `~/.gc/mathcity/briefs/decisions/file-or-sendback.jsonl`
 (registered as `route_log` in `assets/brief-pipeline/paths.toml`).
 
 Append-only JSONL: one JSON object per line, one line per routed brief

@@ -14,7 +14,7 @@
 #   GC_VAR_SOURCE_BEAD       — bead ID of the adjudicated work item (required)
 #   GC_VAR_BRIEF_SLUG        — brief slug for follow-up bead title checks
 #   GC_VAR_EXPECTED_VERDICT  — expected verdict; empty = read from bd decision bead
-#   GC_VAR_ARTIFACT_ROOT     — brief pipeline root, default .beads/briefs
+#   GC_VAR_ARTIFACT_ROOT     — brief pipeline root, default $HOME/.gc/mathcity/briefs
 #   GC_CITY_PATH             — city root (default ~/gt)
 
 set -eu
@@ -22,7 +22,7 @@ set -eu
 SOURCE_BEAD="${GC_VAR_SOURCE_BEAD:-}"
 BRIEF_SLUG="${GC_VAR_BRIEF_SLUG:-}"
 EXPECTED_VERDICT="${GC_VAR_EXPECTED_VERDICT:-}"
-ARTIFACT_ROOT="${GC_VAR_ARTIFACT_ROOT:-.beads/briefs}"
+ARTIFACT_ROOT="${GC_VAR_ARTIFACT_ROOT:-$HOME/.gc/mathcity/briefs}"
 CITY="${GC_CITY_PATH:-${GC_CITY:-$HOME/gt}}"
 
 fail_misaligned() {

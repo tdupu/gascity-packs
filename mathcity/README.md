@@ -13,7 +13,7 @@
 
 The brief system is a structured decision pipeline for math research work. When an agent completes a branch, closes a bead, or proposes an experiment, it does not automatically merge or act. Instead it produces a brief — a formatted document that describes the artifact, the work done, the gate evidence, and a clear statement of what decision is needed. Briefs are the unit of work that flows between automated agents and human user.
 
-The pipeline has two main phases. In the production phase, `brief-prep` (a skill that composes `grill-and-present`, `coordinate-review`, and the gate runner) prepares the brief from the source artifact, runs all required gates, and deposits the result into the `.pile` at `.beads/briefs/.pile/`. The `brief-shuffle-pile` order fires on condition, picks up pile items one at a time, applies gate-keep rules, and either promotes each brief to the `.beads/briefs/stack/` with a manifest entry or rejects it to `.pile/.rejected/`.
+The pipeline has two main phases. In the production phase, `brief-prep` (a skill that composes `grill-and-present`, `coordinate-review`, and the gate runner) prepares the brief from the source artifact, runs all required gates, and deposits the result into the `.pile` at `~/.gc/mathcity/briefs/.pile/`. The `brief-shuffle-pile` order fires on condition, picks up pile items one at a time, applies gate-keep rules, and either promotes each brief to the `~/.gc/mathcity/briefs/stack/` with a manifest entry or rejects it to `.pile/.rejected/`.
 
 In the adjudication phase, `brief-present-next` drains the stack and presents briefs to human. No-brainer-classified briefs are collapsed into a single one-line block; full briefs are rendered through `grill-and-present`. human adjudicates — approve, reject, defer, or revise. `brief-record-decision` records the verdict as a `bd decision` record. Then two event-driven orders fire on `brief.decided`: `brief-decision-dispatch` acts on the decision (merges the branch, creates a follow-up bead, or marks defer), and `post-decision-file-or-sendback` routes the brief itself to either a successor re-briefing or archive. The `brief-archive-sweep` cooldown order handles residual cleanup.
 
@@ -107,7 +107,7 @@ Orders wire formulas to triggers. Nine orders are registered in `orders/`.
 | `brief-archive-sweep` | cooldown 24h | Archives decided and rejected brief artifacts without deleting decision records. |
 | `brief-decision-dispatch` | event (`brief.decided`) | Dispatches the approval/merge back-edge after a brief decision is recorded. |
 | `brief-present-next` | manual | Drains all pending stack briefs: no-brainers as one-line items, full briefs via `grill-and-present`. Pool: mayor. |
-| `brief-shuffle-pile` | condition | Fires whenever `.beads/briefs/.pile/` contains at least one `.md` file. Promotes or rejects one brief per run. Pool: gastown.dog. |
+| `brief-shuffle-pile` | condition | Fires whenever `~/.gc/mathcity/briefs/.pile/` contains at least one `.md` file. Promotes or rejects one brief per run. Pool: gastown.dog. |
 | `brief-watchdog-refill` | cooldown 30m | Checks whether the brief stack needs refill work and routes brief-prep tasks. |
 | `no-brainer-process` | manual | Manually classifies one no-brainer candidate under the shortcut policy. |
 | `on-merge-brief-record` | event (`bead.closed`) | Files a brief-record after the refinery closes a bead carrying `needs-decision`. Rig-scoped because work beads are rig-local. |
@@ -179,9 +179,9 @@ A single brief cycle from artifact to decision proceeds as follows.
 
 2. **brief-prep fires.** The `brief-prep` skill (or the `on-merge-brief-record` order + formula chain) runs. It calls `grill-and-present` to gather all 10 brief sections, grills on ambiguity, runs tests, FP-converges the brief through `coordinate-review`, and checks `catch-no-brainer` to determine output shape (compact or full-form).
 
-3. **Brief lands in .pile.** The finished brief markdown is written to `.beads/briefs/.pile/<run-id>/brief.md` with gate evidence in `evidence.toml`. The `brief-shuffle-pile` order's condition check (`find .beads/briefs/.pile -name '*.md'`) becomes true.
+3. **Brief lands in .pile.** The finished brief markdown is written to `~/.gc/mathcity/briefs/.pile/<run-id>/brief.md` with gate evidence in `evidence.toml`. The `brief-shuffle-pile` order's condition check (`find ~/.gc/mathcity/briefs/.pile -name '*.md'`) becomes true.
 
-4. **brief-shuffle promotes or rejects.** The single-writer shuffler picks up the pile item, runs `brief-gate-keep` against the gate registry, and either promotes the brief to `.beads/briefs/stack/` (appending to `manifest.jsonl`) or rejects it to `.pile/.rejected/` with a reason.
+4. **brief-shuffle promotes or rejects.** The single-writer shuffler picks up the pile item, runs `brief-gate-keep` against the gate registry, and either promotes the brief to `~/.gc/mathcity/briefs/stack/` (appending to `manifest.jsonl`) or rejects it to `.pile/.rejected/` with a reason.
 
 5. **brief-present-next drains the stack.** human or the mayor triggers this manual order. All pending stack briefs are presented. No-brainer-classified briefs appear as a single collapsed block; full briefs are rendered one at a time through `present-it`. The Decision-at-Top invariant ensures the first content human sees is what is being decided.
 
@@ -189,7 +189,7 @@ A single brief cycle from artifact to decision proceeds as follows.
 
 7. **Two event-driven orders fire in parallel.** `brief-decision-dispatch` acts on the verdict — merging the source branch on approve, creating a follow-up work bead on reject/revise, or recording a defer marker. `post-decision-file-or-sendback` routes the brief itself: FILE (a successor bead gets re-briefed) or SEND-BACK (the brief archives and the work returns to the originator).
 
-8. **Brief archives.** Either `brief-archive-on-request` fires immediately on a SEND-BACK event, or `brief-archive-sweep` picks up the brief in its next 24h cooldown run. Decision records are never deleted; only the working artifacts move to `.beads/briefs/archive/`.
+8. **Brief archives.** Either `brief-archive-on-request` fires immediately on a SEND-BACK event, or `brief-archive-sweep` picks up the brief in its next 24h cooldown run. Decision records are never deleted; only the working artifacts move to `~/.gc/mathcity/briefs/archive/`.
 
 ---
 

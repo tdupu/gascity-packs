@@ -12,7 +12,7 @@
 #
 set -eu
 
-ROOT="${BRIEF_ROOT:-.beads/briefs}"
+ROOT="${BRIEF_ROOT:-$HOME/.gc/mathcity/briefs}"
 
 fail() {
   echo "gate-test-execution-evidence: $*" >&2

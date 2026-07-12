@@ -1,7 +1,7 @@
 #!/bin/sh
 # brief-drain-manifest.sh — emit pending manifest entries in unlock order.
 #
-# Reads stack/manifest.jsonl (relative to BRIEF_ROOT, default .beads/briefs),
+# Reads stack/.index.jsonl (relative to BRIEF_ROOT, default $HOME/.gc/mathcity/briefs),
 # filters out entries that are already decided/archived, then sorts by
 # unlock_count (ascending) and writes two output files:
 #
@@ -12,14 +12,14 @@
 # Exit 1 if the manifest is missing or contains invalid JSON lines.
 #
 # Environment:
-#   BRIEF_ROOT   Root of the brief pipeline artifact tree. Default: .beads/briefs
+#   BRIEF_ROOT   Root of the brief pipeline artifact tree. Default: $HOME/.gc/mathcity/briefs
 #   OUT_DIR      Directory to write output files into. Default: $BRIEF_ROOT/.drain-run
 #
 # Requires: sort, awk (POSIX); jq optional (used when available for validation).
 set -eu
 
-BRIEF_ROOT="${BRIEF_ROOT:-.beads/briefs}"
-MANIFEST="$BRIEF_ROOT/stack/manifest.jsonl"
+BRIEF_ROOT="${BRIEF_ROOT:-$HOME/.gc/mathcity/briefs}"
+MANIFEST="$BRIEF_ROOT/stack/.index.jsonl"
 OUT_DIR="${OUT_DIR:-${BRIEF_ROOT}/.drain-run}"
 
 fail() {
