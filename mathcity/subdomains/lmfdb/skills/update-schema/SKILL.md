@@ -3,6 +3,24 @@ name: update-schema
 description: Update the LMFDB database schema across ALL affected files for the hecke/Clifford-Bianchi codebase. Use this skill whenever the user wants to add, remove, or modify columns, table definitions, storage paths, label schemes, or LMFDB object attributes — even if they just say "add X to the schema" or "schema needs a column for Y". Touches schema.md, package-LMFDB.mag, package-IO.mag, db_schema_staging.sql, db_schema_lmfdb.sql, db_load.py, and db_migrate.py to keep everything in sync. After editing, commits and pushes via the claude-commit skill.
 ---
 
+## Dependency check
+
+```bash
+CONF=""
+for candidate in \
+    "$(git rev-parse --show-toplevel 2>/dev/null)/lmfdb-pipeline.conf" \
+    "magma/scripts/data-generation.conf"; do
+  [ -f "$candidate" ] && { CONF="$candidate"; break; }
+done
+if [ -z "$CONF" ]; then
+  echo "I'm sorry, I can't do that — no database pipeline conf found."
+  echo "Run /configure-database (mathcity-lmfdb.configure-database) to create lmfdb-pipeline.conf at your project root."
+  echo "(This conf holds your PostgreSQL and DATA_DIR settings for the LMFDB pipeline.)"
+  exit 1
+fi
+source "$CONF"
+```
+
 ## Overview
 
 A schema change touches **seven files** that must all stay in sync. This skill walks through every one. Never update just `schema.md` in isolation — a column added to the documentation but missing from `package-IO.mag` or `db_load.py` will silently break serialization or loading.

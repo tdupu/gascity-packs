@@ -17,6 +17,24 @@ See `references/schema-template.md` for the schema section template. The best
 reference implementation in the codebase is `LMFDBPSL2GrpCliffSub` in
 `package-LMFDB.mag` (subgroups section of `schema.md`).
 
+## Dependency check
+
+```bash
+CONF=""
+for candidate in \
+    "$(git rev-parse --show-toplevel 2>/dev/null)/lmfdb-pipeline.conf" \
+    "magma/scripts/data-generation.conf"; do
+  [ -f "$candidate" ] && { CONF="$candidate"; break; }
+done
+if [ -z "$CONF" ]; then
+  echo "I'm sorry, I can't do that — no database pipeline conf found."
+  echo "Run /configure-database (mathcity-lmfdb.configure-database) to create lmfdb-pipeline.conf at your project root."
+  echo "(This conf holds your PostgreSQL and DATA_DIR settings for the LMFDB pipeline.)"
+  exit 1
+fi
+source "$CONF"
+```
+
 ## Inputs to collect from the user
 
 Before writing any code, confirm you have all of:

@@ -7,6 +7,18 @@ description: Query the LMFDB (L-functions and Modular Forms Database) via its MC
 
 The LMFDB MCP server gives read-only SQL access to the LMFDB's PostgreSQL devmirror. Tools are available as `mcp__lmfdb__*`.
 
+## Dependency check
+
+The lmfdb MCP server must be connected. Verify with `claude mcp list` — should show `lmfdb: ✓ Connected`.
+
+If the `mcp__lmfdb__overview` tool is not available in this session:
+
+```
+I'm sorry, I can't do that — the lmfdb MCP server is not connected.
+Configure it once with: claude mcp add --transport http lmfdb https://mcp.lmfdb.org/mcp
+Then restart your Claude Code session.
+```
+
 ## Prerequisites
 
 The MCP must be configured. If tools aren't available, run once per project:
