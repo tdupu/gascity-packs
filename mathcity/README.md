@@ -196,6 +196,12 @@ A single brief cycle from artifact to decision proceeds as follows.
 
 ---
 
+## Bead types
+
+See [README-beads.md](README-beads.md) for bead type reference and bead policy.
+
+---
+
 ## Bead Backup Setup
 
 This section is intended to provide some documentation for how you can backup your beads directly on github by making new repositories and so you don't need to purchase a dolthub account. I haven't shared beads yet so I don't know who this works. This described my personal setup which you can adapt. If you read this and end up using something like this, please modify these instructions to remove my name and make them more general. Also, if you find a better solution please update this and make a PR. 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Adopted |
-| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet) |
+| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only) |
 | Decided | Taylor Dupuy, via grilling session (three open questions resolved; record at bottom) |
 | Applies to | All packs Taylor owns in this repo — the **owned pack set** (§ Scope) |
 | Consumers | `check-hygiene` skill (to be built via skill-creator); mayor priming (`mayor-math`); any agent planning work in this repo |
@@ -325,6 +325,8 @@ inside gascity core); this is the pack-level, plan-time analogue.*
   Fail: any dead CLI verb, contradicted identity assertion, missing
   inside/outside distinction, or broken path → **revise**.
 
+- **P5.3 Use only real, documented bd types.** Any policy document, skill file, AGENTS.md, plan, or bead-touching code that references a bead type must use only the types documented in `bd create --help` (`--type` flag): `bug`, `feature`, `task`, `epic`, `chore`, `decision`, `spike`, `story`, `milestone`, `event`. Undocumented types (e.g., `research-journal`, `brief`) are hallucinated — they cannot be executed and produce silent failures when passed to `bd create -t`. Custom types require explicit `types.custom` configuration in bd and a documented approval bead before they may appear in any policy pass/fail criterion. The canonical check: `bd create --help | grep -- '--type'` lists the live type set; any type string not in that list with no corresponding `types.custom` config entry → **fail**. (Origin: 2026-07-12 grilling — `type: research-journal` appeared in brief-system POLICY.md B3.7; replaced with `type: spike` + `[RESEARCH_JOURNAL]` label.)
+
 ## Non-negotiables (quick checklist)
 
 - No hand-edited `city.toml`, and no hand-edited `pack.toml` outside the
@@ -364,6 +366,9 @@ inside gascity core); this is the pack-level, plan-time analogue.*
   `gastown.*` agents are dead; use `gc.*` / `mathcity.*` replacements (P5.1).
 - No dead CLI verbs (`gt`), broken pack paths, or missing inside/outside agent
   distinction in workspace context files (`AGENTS.md`, `CONTEXT.md`) — P5.2.
+- No hallucinated bd types in policy prose, skill docs, or mechanical checks —
+  only documented types (`bug|feature|task|epic|chore|decision|spike|story|milestone|event`);
+  custom types require `types.custom` config + approval bead (P5.3).
 
 ## Verdict vocabulary
 
