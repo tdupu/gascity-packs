@@ -179,6 +179,64 @@ wc -l ~/gt/hecke/.beads/briefs/decisions.jsonl
 ls ~/gt/hecke/.beads/briefs/decisions/ | wc -l
 ```
 
+### 8. Gate registry join-layer (PP1.7, PP4.1)
+
+The gate-inventory table in POLICY.md is **authoritative for gate
+definitions**; `mathcity/assets/brief-pipeline/gates.toml` is the machine
+join-layer and must match it. Mechanically diff the two — per gate:
+(a) the gate exists on both sides, (b) `kind` matches, (c) the `rules`
+field matches the table's rules column ("Enforces"). Any mismatch →
+**revise**, citing PP1.7; the remediation is always "repair gates.toml to
+match the policy table" — never the reverse.
+
+```bash
+python3 - <<'EOF'
+import re, tomllib, pathlib
+home = pathlib.Path.home()
+policy = (home / "repos/gascity-packs/mathcity/subdomains/brief-system/POLICY.md").read_text()
+reg = tomllib.loads((home / "repos/gascity-packs/mathcity/assets/brief-pipeline/gates.toml").read_text())
+
+def expand(cell):
+    # "T1, T3" -> [T1, T3]; "L1-L4" / "L1–L4" -> [L1, L2, L3, L4]
+    out = []
+    for part in re.split(r"[,;]", cell):
+        part = part.strip()
+        m = re.fullmatch(r"([A-Z]+)(\d+)[–-]\1?(\d+)", part)
+        if m:
+            out += [f"{m.group(1)}{i}" for i in range(int(m.group(2)), int(m.group(3)) + 1)]
+        elif part:
+            out.append(part)
+    return sorted(out)
+
+table = {}
+for row in re.finditer(r"^\| (G\d+b?) \| ([\w-]+) \| (\w+) \| (.*?) \| ([^|]+) \|\s*$", policy, re.M):
+    table[row.group(1)] = {"name": row.group(2), "kind": row.group(3), "rules": expand(row.group(5))}
+
+toml_gates = {g["id"]: g for g in reg["gates"]}
+drift = []
+for gid in sorted(set(table) | set(toml_gates)):
+    p, t = table.get(gid), toml_gates.get(gid)
+    if p is None:
+        drift.append(f"{gid}: in gates.toml but NOT in the POLICY.md table"); continue
+    if t is None:
+        drift.append(f"{gid}: in the POLICY.md table but NOT in gates.toml"); continue
+    if t.get("name") != p["name"]:
+        drift.append(f"{gid}: name {t.get('name')!r} != table {p['name']!r}")
+    if t.get("kind") != p["kind"]:
+        drift.append(f"{gid}: kind {t.get('kind')!r} != table {p['kind']!r}")
+    if sorted(t.get("rules", [])) != p["rules"]:
+        drift.append(f"{gid}: rules {sorted(t.get('rules', []))} != table {p['rules']}")
+print("\n".join(drift) if drift else f"JOIN-LAYER CLEAN: {len(table)} gates match the policy table")
+EOF
+```
+
+Also spot-check gate *purpose* wording (table "Demands" column vs the toml
+`description`) for semantic drift — this is a judgment read, flagged the
+same way — and confirm the **Profiles** paragraph in POLICY.md lists the
+same gate sets as `[profiles.*]` in gates.toml. Report every mismatch as
+revise citing PP1.7. This audit is read-only: never edit gates.toml or
+POLICY.md here; the repair goes through `new-brief-policy`.
+
 ---
 
 ## Verdict
@@ -217,6 +275,9 @@ verdict: approve | revise | defer
 ...
 
 ### Decision records (B3.x)
+...
+
+### Gate registry join-layer (PP1.7, PP4.1)
 ...
 
 ## Overall: approve | revise | defer

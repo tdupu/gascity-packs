@@ -80,10 +80,14 @@ store is the source of truth; the filesystem is a cache.*
 
 ## Gate inventory
 
-The machine-readable registry lives at
-`mathcity/assets/brief-pipeline/gates.toml`; that file must agree with this
-table, and each gate's `rules` field must name the rule IDs listed here
-(reverse traceability). The table below is the human-readable source of truth.
+**The table below is authoritative for gate definitions** — id, name, kind,
+purpose, and rules mapping. The machine-readable registry at
+`mathcity/assets/brief-pipeline/gates.toml` is the machine join-layer only
+(PP4.1): executable configuration (profiles, required flags, `rules` wiring)
+that MUST match this table, with each gate's `rules` field naming the rule IDs
+listed here (reverse traceability). Any mismatch is PP1.7 drift: gates.toml is
+repaired to match the table (never the reverse), and `check-brief-policy`
+audits the diff mechanically.
 
 | Gate | Name | Kind | Demands | Enforces |
 | --- | --- | --- | --- | --- |
@@ -213,8 +217,7 @@ by what adjudication unlocks, not by arrival time.*
 - **B2.5 Ordering = unlock count.** Briefs are ordered for presentation by
   `priority(brief) = unlock_count` — the number of downstream beads that
   adjudicating this brief unblocks (transitively, via the dependency graph).
-  Largest-unblock first: the constraint is Taylor's decision budget, and
-  everything subordinates to the constraint. Ties break by bead priority
+  Largest-unblock first. Ties break by bead priority
   field, then age (oldest first). Mechanical check: the presenter computes
   unlock_count from live dependency data at presentation time and records the
   computed ordering in the docket.
@@ -323,9 +326,7 @@ test scripts.*
   intrinsics are still in test scripts is not done.
 - **B4.2 Dead code is removed at promotion time.** When a new algorithm
   replaces an old one, the old code is removed in the same commit that adds
-  the new code. Leaving the old code behind for "reference" creates drift —
-  the production path and the legacy path coexist, and the next worker won't
-  know which is current. Exception: the old code is labeled
+  the new code. Exception: the old code is labeled
   `// legacy: kept for offline diagnostics` and tracked by a follow-up
   cleanup bead.
 - **B4.3 README coverage after every intrinsic change.** Any commit that
@@ -411,9 +412,8 @@ default; the kill switch is a brake, not a parking brake.*
     routes to the pile in compact form (not dropped silently).
 - **N6 Surfacing a no-brainer at Taylor is a regression.** If a brief reaches
   the human-review layer and Taylor's immediate reaction is "this is obvious,
-  why am I seeing it?" → that is a classifier regression, not a scheduling
-  slip. The fix is in the classifier prompt or category definitions, not in
-  asking Taylor to accept more noise.
+  why am I seeing it?" → that is a classifier regression. The fix is in the
+  classifier prompt or category definitions.
 - **N7 Auto-execution leaves a full audit trail.** Every auto-executed
   no-brainer must have: the classifier output (category, **confidence
   score**, stop-gate flags) staged as evidence, the verdict recorded on the
@@ -463,8 +463,7 @@ wrong sign in the notes outlives every session that touched it.*
   review-only → G6 FAIL.
 - **L4 Primary mathematical documentation is never a no-brainer.** Changes to
   a repo's primary mathematical documentation (the `notes.tex` convention)
-  always route full-form to Taylor regardless of size — a one-character sign
-  change is exactly the case the gate exists for. The classifier treats
+  always route full-form to Taylor regardless of size. The classifier treats
   `notes.tex` (and paper `.tex`) diffs as a stop condition equivalent to N3.
 
 ---
@@ -512,9 +511,13 @@ question wastes compute.*
   and produces no brief → G7 FAIL (no artifacts staged). Deferred or
   abandoned experiments leave a durable breadcrumb (D4/G11).
 - **E7 Experiment results feed research beads, not the void.** Experiment
-  outputs with interpretive value (logs, tables, negative results) are
-  attached to a research bead or the source bead's notes; research beads so
-  created fall under B3.7 protection (ARCHIVED, never destructively closed).
+  outputs with interpretive value (logs, tables, negative results) live in
+  the filesystem, staged and keyed by bead ID per the breadcrumb/staging
+  conventions (D4/E6/G7); the research bead or source bead's notes carry the
+  verdict/summary line plus a pointer to those files. Bulky output pasted
+  into a bead body, or output files no bead points at, → E7 FAIL. Research
+  beads so created fall under B3.7 protection (ARCHIVED, never destructively
+  closed).
 
 ---
 
@@ -718,10 +721,11 @@ the brief bead and the bead is closed (B2.2).
   actionable, not dispatchable, permanently searchable) for research-journal
   beads is an upstream `bd` feature request; tracked as its own bead. Interim
   protocol in B3.7.
-- **gates.toml G12 wording** — the registry currently states fail-closed
-  automation semantics; it must be revised to the N5 default-ON /
-  kill-switch-as-brake semantics. Tracked as a follow-up bead. Until updated,
-  this document governs semantics (per the Authority section).
+- **gates.toml G12 wording** — RESOLVED 2026-07-12: the registry's G12
+  description now states the N5 default-ON / kill-switch-as-brake semantics;
+  verified during the gate-table authority amendment (this document governs
+  on any future divergence, per the Authority section and the gate-inventory
+  authority statement).
 
 ---
 
@@ -737,3 +741,6 @@ the brief bead and the bead is closed (B2.2).
 | 2026-07-12 | Adopted | Adopted per Taylor D1 verdict, gt-83um7, findings fixed per 19:25 verdict (executed under gsp-bf9x) |
 | 2026-07-12 | **Self-contained rewrite.** Restructured as a standalone source of truth per Taylor directive: Authority section added (this document defines, others implement); gate inventory + profiles inlined as a human-readable table; full-form (§1–§7 grill order) and compact templates inlined; skill-file, memory, and script references removed from rule bodies (rules now state their criteria directly); References section removed. All rule IDs (B1.1–B4.6, N1–N8, L1–L4, E1–E7, T1–T7, D1–D4, S1–S7) and their substance unchanged — gates.toml `rules` mappings remain valid. | Taylor directive 2026-07-12: "the policy needs to be the source of truth and not farm out to other documents" |
 | 2026-07-12 | One-bead model: brief bead IS the decision bead (type=decision); verdict recorded on the brief bead; B2.2/B2.3/B2.4/B2.9 + G8 reworded; separate attached decision beads abolished | Taylor verdict (grilling Q4): "the brief itself is the thing"; PP1.9 bead-bloat minimization |
+| 2026-07-12 | Gate-table authority: the gate-inventory table declared authoritative for gate definitions (id, name, kind, purpose, rules mapping); `gates.toml` demoted to machine join-layer (PP4.1) that must match it, mismatch = PP1.7 drift; gates.toml repaired to match (header comment, G2/G4/G8 stale descriptions, stale G3/G9/G13 derivation comments); check-brief-policy gains a mechanical table-vs-registry diff audit; Known-drift G12 entry marked RESOLVED (registry wording verified to match N5) | Taylor verdict "POLICY" (POLICY-TABLE-AUTHORITATIVE) 2026-07-12; PP1.2/PP1.7 derivation |
+| 2026-07-12 | PP1.8 concision: rationale clauses moved out of rule bodies into this row — B2.5 "the constraint is Taylor's decision budget, and everything subordinates to the constraint"; B4.2 "Leaving the old code behind for 'reference' creates drift — the production path and the legacy path coexist, and the next worker won't know which is current"; L4 "a one-character sign change is exactly the case the gate exists for"; N6 "not a scheduling slip" and "not in asking Taylor to accept more noise" (N6's fix-location sentence kept — load-bearing remediation routing). Pass/fail outcomes unchanged | Taylor verdict "adopt" 2026-07-12; decision bead gsp-pxcu |
+| 2026-07-12 | E7 amended to file-plus-pointer (PP1.9): bulky experiment outputs live in the filesystem keyed by bead ID (D4/E6/G7 staging conventions); the bead carries the verdict/summary line plus a pointer; original intent (results feed research beads, not the void) and pass/fail shape retained | Taylor verdict "adopt" 2026-07-12; decision bead gsp-pxcu |

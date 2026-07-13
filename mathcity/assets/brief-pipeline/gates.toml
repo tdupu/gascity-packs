@@ -1,7 +1,14 @@
+# MACHINE JOIN-LAYER ONLY (PP4.1). Gate DEFINITIONS — id, name, kind,
+# purpose, rules mapping — are owned by the gate-inventory table in
+# mathcity/subdomains/brief-system/POLICY.md; that table is authoritative.
+# This file carries only the executable wiring (profiles, required flags,
+# `rules` join keys, evidence keys) and MUST match the policy table. Any
+# mismatch is PP1.7 drift: repair THIS file to match the table (never the
+# reverse). check-brief-policy audits the diff mechanically.
 [registry]
 name = "brief-pipeline-gates"
 version = 1
-source = "agent-skills/docs/brief-bundle plus he-xkq3 gate registry"
+source = "mathcity/subdomains/brief-system/POLICY.md gate-inventory table (definitions); historically derived from agent-skills/docs/brief-bundle plus he-xkq3 gate registry"
 default_profile = "standard"
 fail_closed = true
 evidence_heading = "Gate Evidence"
@@ -24,18 +31,17 @@ required = true
 rules = ["T6"]
 evidence_key = "G2 Good-test"
 policy = "is-good-test/SKILL.md"
-description = "A reviewer must judge whether the evidence is a meaningful test of the claimed behavior."
+description = "A named reviewer judges that the test meaningfully tests the claimed behavior."
 
 [[gates]]
 id = "G3"
 name = "shell-scripts-testable"
 kind = "mechanical"
 required = true
-# rules derived from gate description (no POLICY.md rule names G3 directly):
-# shell-script validation is T1-class test evidence; explicit-N/A discipline is B1.4
+# rules per the POLICY.md gate-inventory table (G3 -> T1, B1.4)
 rules = ["T1", "B1.4"]
 evidence_key = "G3 Shell-scripts-testable"
-description = "Shell-script changes must name runnable validation or explicitly state why no script surface is touched."
+description = "Shell-script changes name runnable validation, or explicitly state that no script surface is touched."
 
 [[gates]]
 id = "G4"
@@ -45,7 +51,7 @@ required = true
 rules = ["B1.6"]
 evidence_key = "G4 Critical-review"
 policy = "critical-review/SKILL.md"
-description = "A critical review pass must look for correctness risks, policy misses, and missing evidence."
+description = "An external critical-review pass hunting correctness risks, policy misses, missing evidence, and forced follow-up questions."
 
 [[gates]]
 id = "G5"
@@ -91,15 +97,14 @@ kind = "mechanical"
 required = true
 rules = ["B1.7", "B2.9", "B3.3", "N7"]
 evidence_key = "G8 Brief-record"
-description = "The pile, stack, manifest, and decision/archive records must remain consistent."
+description = "Bead records (brief bead type=decision), source links, pile membership, and recorded-verdict/archive records all consistent (one-bead model)."
 
 [[gates]]
 id = "G9"
 name = "no-brainer-filter"
 kind = "review"
 required = true
-# rules derived from gate description (no POLICY.md rule names G9 directly):
-# explicit shortcut classification = N1/N2; stop-gate supremacy = N3; blocker routing = N4
+# rules per the POLICY.md gate-inventory table (G9 -> N1-N4)
 rules = ["N1", "N2", "N3", "N4"]
 evidence_key = "G9 No-brainer-filter"
 policy = "no-brainer-brief-filter.md"
@@ -143,8 +148,7 @@ id = "G13"
 name = "stale-claim"
 kind = "mechanical"
 required = true
-# rules derived from gate description (no POLICY.md rule names G13 directly):
-# claim freshness before deposit is B1.5 preflight discipline (assemble -> gate-check -> deposit)
+# rules per the POLICY.md gate-inventory table (G13 -> B1.5)
 rules = ["B1.5"]
 evidence_key = "G13 Stale-claim"
 description = "Briefs must not rely on stale claims; claim freshness or revalidation must be recorded."
