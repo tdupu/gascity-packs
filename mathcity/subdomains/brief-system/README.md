@@ -1,169 +1,296 @@
-# mathcity-brief-system
+# The Brief System — a walkthrough for mathematicians
 
-The spine of the mathcity decision pipeline: brief formulas, the 16-hurdle
-registry, orders, and the review agents that drive the brief → decision workflow.
-
-This sub-namespace (`mathcity-brief-system.*` (ADR 0002 alias)) governs how raw artifacts enter
-the pipeline, pass through hurdles, and become closed decisions. The other four
-subdomains produce artifacts that feed into this pipeline.
-
-See `mathcity/formulas/` (cross-cutting pipeline formulas) and
-`mathcity/assets/brief-pipeline/` (hurdle registry, paths, thresholds).
+This document explains, in plain language, the decision pipeline Taylor uses
+to review work produced by AI agents. It assumes zero prior knowledge of Gas
+City, beads, or any of the local tooling. The formal rulebook is
+[POLICY.md](./POLICY.md) in this directory; this README is the guided tour.
+(A glossary of jargon is at the bottom — consult it freely.)
 
 ---
 
-## Skills
+## What this system is
 
-| Skill | Purpose |
-|---|---|
-| `check-brief-policy` | Audit the live brief pipeline against brief-system POLICY.md (B/N/L/E/T/D/S rules). Read-only: reports approve / revise / defer. |
-| `new-brief-policy` | Sole write path for brief-system rules. Proposes and commits Taylor-approved amendments to POLICY.md; records each change in the Change Log. |
+Agents (automated workers) constantly produce artifacts: code branches,
+computations, LaTeX edits, cleanup proposals. Every artifact eventually needs
+a human decision — merge it? reject it? redo it? Taylor is one person; the
+brief system is the queue that rations his attention.
 
----
+The central object is a **brief**: a structured presentation of exactly one
+decision ("What is being decided" always comes first), with the evidence,
+alternatives, and risks assembled in advance so the decision takes seconds,
+not a research session.
 
-## The brief system as a scheduling problem
+**Decisions-as-beads, the one-bead model.** Everything here is tracked in an
+issue database whose records are called *beads* (think: numbered index cards
+with links between them, like `he-x8dk`). A brief **is** a bead of type
+`decision`. It is in exactly one of two states — *adjudicated* (a verdict is
+recorded on it and it is closed) or *not adjudicated* (still open, waiting).
+The markdown file you actually read is only a **presentation artifact** — a
+printout. The bead is the mathematical object; the file is a rendering of it.
 
-Taylor is the shared serial resource. Every artifact the pipeline produces must
-eventually pass through Taylor's review before closing — structurally identical
-to how an observatory's data reduction pipeline is the one instrument all
-observations must pass through. The brief system is the queue management layer
-for that resource.
+Why this design?
 
-This framing has concrete consequences. A factory that models token cost but not
-attention has priced the cheap resource and ignored the scarce one. The
-no-brainer layer (N-rules, `catch-no-brainer`) routes low-stakes items away from
-Taylor automatically — this is the primary lever for protecting review bandwidth.
-The pile ordering (B2.5) determines which of the remaining items Taylor sees
-first.
-
-Reference: Jarmak (2026), *Operations research as a framework for software-factory
-scheduling* — frames the brief-review queue as the "one shared serial instrument"
-in the observatory-factory correspondence, and proposes human attention as a
-quantity that should be explicitly priced and managed.
-
----
-
-## Pile ordering (B2.5) — current rule and planned improvements
-
-**Current rule:** `priority(brief) = unlock_count` (downstream beads transitively
-unblocked by adjudicating this brief). Ties break by bead priority field, then
-age (oldest first).
-
-This captures the core industrial-engineering insight: subordinate to the
-constraint, maximize throughput by adjudicating the highest-unlock item first.
-But it has five documented gaps:
-
-### 1. Age as a weighted component, not a tiebreaker
-
-Age only resolves exact ties today. A 30-day-old brief with the same unlock_count
-as a fresh brief ranks identically until the tie-break fires.
-
-Fix: `score = unlock_count + 0.06 × normalized_age`
-
-Borrowed from the LSST feature scheduler (Naghib 2019): declared priority
-dominates at weight 1.0, secondary features (age, urgency) at 0.06–0.10 each,
-normalized to [0,1] so the ordering within a priority band is well-defined.
-
-### 2. Attention-cost denominator within a band
-
-Not all briefs cost Taylor equal time. Within a priority tier, order by
-`unlock_count / attention_cost`:
-
-| Brief class | attention_cost |
-|---|---|
-| Standard (no stop gates) | 1.0 |
-| LaTeX/L4 (requires math review) | 2.0 |
-| Server-touching S-rule (dry-run + smoke + per-item OK) | 5.0 |
-
-High-unlock cheap briefs surface before high-unlock expensive briefs.
-
-### 3. Urgency step-function from due-date metadata
-
-The due-date metadata key is the one schema gap worth closing early. Add it as a
-bead metadata convention key (not a new bd type). Score becomes:
-
-`score = unlock_count + 0.10 × urgency`
-
-where urgency = 1.0 if due ≤24h, 0.5 if ≤3 days, 0.0 otherwise. A full Whittle
-index (urgency × completion probability) requires the replay harness; this
-step-function gets most of the value immediately.
-
-### 4. Starvation floor (DSN fairness)
-
-Pure unlock_count starves small programs. The DSN scheduling model writes
-fairness as a coefficient in the objective, not an afterthought. Simpler
-equivalent as a hard constraint:
-
-**Rule B2.5.1 (proposed):** Any brief aged ≥7 days in the pile is promoted into
-the next docket regardless of unlock_count. `present-briefs` checks `bead_age ≥
-7d` before sorting and inserts those briefs at the front.
-
-### 5. Context affinity tiebreaker (slew cost)
-
-After unlock_count and age, break remaining ties by `source_rig` matching the
-most recently adjudicated brief. If Taylor just approved a hecke brief, show the
-next hecke brief before switching to gascity-packs. Context-switch cost is real;
-eliminating it at the tiebreak level costs nothing to implement.
-
-### 6. Historical approval-rate weight (requires replay harness — Phase 0)
-
-`score = approval_rate(class) × unlock_count`
-
-A brief class that gets rejected 60% of the time is worth 0.4× its nominal
-unlock_count — Taylor should see higher-confidence unlocks first. The data is
-already in the audit ledgers. Do not implement until the Phase 0 replay harness
-exists to query it.
-
-**Not yet:** Whittle index, bandit-tuned weights, multi-objective dominance
-ranking. All three require the replay harness baseline.
+- **Minimal bead bloat.** There is no separate "decision record" bead
+  attached to each brief; the verdict is written onto the brief bead itself
+  and the bead is closed. One object per decision, not two.
+- **Decisions are queryable forever.** Every verdict Taylor has ever rendered
+  is a closed `decision` bead with verdict, rationale, authorizer, and date —
+  searchable with one command, years later.
+- **The bead store is canonical; files are cache** (rule B2.8). Any
+  directory of brief files can be regenerated from the beads. If they
+  disagree, the beads win.
 
 ---
 
-## No-brainer threshold — the math
+## How work is launched
 
-The question of how strict to be with no-brainer auto-execution has a
-determinate answer once you know the classifier error rate.
+A brief always decides the fate of some **source** — another bead or set of
+beads describing actual work. Sources come into existence several ways:
 
-**Setup:** N items in queue, fraction α get the wrong recommendation under
-auto-execute, Taylor always gets it right. Each item takes time T to execute and
-time S for Taylor to decide (not counting execution — that happens either way).
+- **By hand:** `bd create --type=task --title "Merge branch feat/he-wzn"`
+  creates a bead directly.
+- **The handoff-bead skill:** an interactive session packages its findings
+  into a structured bead for later dispatch.
+- **`gc sling`:** the command that throws a unit of work at an agent — this
+  can create and assign the bead in one step.
+- **Order triggers:** standing automation. For example, when an agent closes
+  a bead labeled `needs-decision`, the `on-merge-brief-record` order
+  automatically starts a brief for it.
 
-**Auto-execute everything:**
-Correct completions at rate `(1−α)/T`, capped at `(1−α)N` total.
+Once a source exists, the **brief-prep** formula (a scripted multi-step
+recipe an agent follows) turns it into a brief:
 
-**Taylor reviews everything:**
-Correct completions at rate `1/(S+T)`, eventually reaches N.
+1. stage a draft under `.beads/briefs/.staging/<slug>/`,
+2. write the brief with the decision at the top (seven sections: decision →
+   recommendation → assumptions → alternatives → risks → evidence → gates),
+3. attach evidence for every **gate** — the 17 named checkpoints G1–G16 +
+   G5b (test evidence, external critical review, LaTeX correctness, etc.,
+   defined in POLICY.md and machine-wired in
+   `mathcity/assets/brief-pipeline/gates.toml`),
+4. pass an external critical review, and
+5. deposit the finished brief into the **pile**.
 
-**Breakeven: S = T**
+Concretely:
 
-| Condition | Rate winner | Total-count winner |
+```bash
+gc sling hecke/gc.run-operator brief-prep --formula \
+  --var source=he-x8dk --var brief_slug=he-x8dk-merge
+```
+
+---
+
+## Where it goes: pile → shuffle → stack
+
+- **The pile** (`.beads/briefs/.pile/`) is the single accumulation point for
+  briefs that are written but not yet vetted. Canonically the pile is a bead
+  query — "all open `decision` beads not under an active defer" — and the
+  directory is its cache.
+- **The shuffle** is the gatekeeper. A background order
+  (`brief-shuffle-pile`) notices a non-empty pile and runs the
+  `brief-shuffle` formula: take one brief, check every required gate against
+  the registry, and either **promote** it or **reject** it (rejects go to
+  `.pile/.rejected/` with a reason; nothing is silently dropped). The shuffle
+  is the *single writer* to the stack — producers may never skip it.
+- **The stack** (`.beads/briefs/stack/`) holds gate-clean briefs awaiting
+  Taylor, indexed in `stack/.index.jsonl`. Ordering is by **unlock count**:
+  the number of downstream beads that adjudicating this brief would unblock,
+  computed from the dependency graph — largest first. The idea: Taylor's
+  attention is the scarce resource, so spend it where one verdict releases
+  the most stalled work. Ties break by priority, then age.
+
+Presentation then drains the stack (next section).
+
+---
+
+## How one adjudicates
+
+**Reading the stack.** Two routes:
+
+- The **brief-present-next** formula (run manually) drains every pending
+  stack brief in one session: trivial "no-brainer" items are collapsed into
+  one-line `DECISION / CONTEXT / RECOMMEND / CONFIRM: y/n` entries, and full
+  briefs are presented one at a time in their seven-section form.
+
+  ```bash
+  gc sling mayor brief-present-next --formula
+  ```
+
+- The **present-it** skill, interactively: say "present he-x8dk-merge" in a
+  session and get the same decision-first dump in conversation.
+
+**Recording a verdict.** Under the one-bead model, adjudication means writing
+the verdict fields **onto the brief bead itself** — verdict, one-line
+rationale, authorizer, date — and then **closing the bead**. That is the
+whole canonical act. The `brief-record-decision` formula does it and also
+writes a redundant `.toml` record and rings the `brief.decided` event bell:
+
+```bash
+gc sling gc.run-operator brief-record-decision --formula \
+  --var brief_slug=he-x8dk-merge --var decision=approve \
+  --var reason="clean merge, tests green"
+```
+
+**The verdict vocabulary** (four words, three of which are final):
+
+| Verdict | Meaning | Effect |
 |---|---|---|
-| S > T (Taylor slow relative to execution) | Auto | Taylor (N vs αN) |
-| S < T (Taylor fast relative to execution) | Taylor | Taylor |
-| S = T | Equal | Taylor |
+| **approve** | Do it. | Verdict recorded on the bead; bead closed; work proceeds. |
+| **revise** | Fixable problems; here's what to fix. | Bead closed with the named defects; the fixed artifact returns later as a *new* brief. |
+| **reject** | The approach itself is wrong. | Bead closed; a different approach needs a new brief. |
+| **defer** | Ask me again in X days. | *Not* an adjudication — the bead stays open but hidden until the window expires. |
 
-N only determines when the auto cap is hit, not the rate comparison.
+---
 
-**Current estimates for Taylor:**
-- N ≈ 20–40 (pile as of 2026-07-12)
-- S ≈ 30 seconds/item in docket mode; 10–30 min for standalone full-form briefs
-- T ≈ 5–20 min for true cat-A/B/C/D items
+## What happens after
 
-With S ≈ 30s and T ≈ 10 min: S/T ≈ 0.05. Taylor review is ~20× more efficient
-at producing correct outcomes per unit Taylor-time than auto-execute at α = 0.5.
+Recording a verdict rings the `brief.decided` bell, and two automatic
+consumers act on it:
 
-**The critical number:** Auto-execute beats Taylor review when α < S/(S+T) ≈ 0.05
-for these item types. If the classifier achieves fewer than ~5% wrong on
-confident cat-A/B/C/D past all stop gates, auto-execute wins. If more than 5%
-wrong, Taylor review wins.
+- **brief-decision-dispatch** executes the verdict:
+  - *approve* → the source bead is pushed into the owning repository's merge
+    queue (branch published, merge target set, reassigned to the merge
+    agent);
+  - *reject* / *revise* → a follow-up bead titled `[rejected] <slug>` or
+    `[revise] <slug>` is created carrying Taylor's reason, so the feedback
+    is actionable work, not a lost comment;
+  - *defer* → no action beyond bookkeeping.
 
-**The missing measurement is α.** The current N5 default-ON policy is the right
-prior when α is unknown — designed for α up to 0.5, which is conservative.
-Once the Phase 0 replay harness exists, α can be estimated from audit ledger
-replay and the threshold can be calibrated. The N7 `classifier_accuracy` field in
-no-brainer audit trails should be populated so this estimate is available.
+  Every action is logged to an append-only ledger
+  (`decisions-dispatched.jsonl`), with bounded retries and escalation to a
+  human if a dispatch can never succeed.
+- **file-or-sendback routing** decides whether the decision spawns a
+  follow-up brief (FILE) or simply archives (SEND-BACK).
 
-**The question is not "should I be less strict?"** It is "what is the empirical
-wrong rate on confident classifications?" That answer changes the policy
-derivation. At α < 0.05, relaxing is correct. At α > 0.05, the current
-strictness is correct. The math is determinate; the measurement is missing.
+The brief's markdown document is then archived under
+`.beads/briefs/archive/`, and the **no-resurface guarantee** (rule B2.3)
+applies: an adjudicated brief can *never* be presented again. If reality
+changes later, the remedy is a new brief bead linking the old one — the old
+verdict stands as history.
+
+---
+
+## When things circulate: the orders
+
+An **order** is a standing rule of the form "when *trigger*, run *formula*."
+The brief system's orders:
+
+| Order | Trigger | What it does |
+|---|---|---|
+| `brief-shuffle-pile` | condition: pile non-empty | Vet and promote (or reject) one pile brief per run. |
+| `brief-review-patrol` | every 30 min, per rig | Rescue briefs stuck at a pending external review; run the missing review or escalate. |
+| `brief-watchdog-refill` | every 30 min | If the stack is below the low-water mark (2), commission up to 3 new brief-preps from ready source work; target depth 5. |
+| `brief-watchdog-refill-on-stack-low` | event: `brief.stack-low` | Same refill, fired instantly when a decision empties the stack. |
+| `brief-present-next` | manual | Drain and present all pending stack briefs (Taylor-initiated). |
+| `brief-decision-dispatch` | event: `brief.decided` | Execute the verdict (see previous section). |
+| `post-decision-file-or-sendback` | event: `brief.decided` | Route follow-up briefing: FILE vs SEND-BACK. |
+| `brief-archive-on-request` | event: `brief.archive_requested` | Archive a sent-back brief immediately. |
+| `brief-archive-sweep` | every 24 h | Tidy decided/rejected artifacts into `archive/` (never deletes records). |
+| `on-merge-brief-record` | event: bead closed, per rig | If the closed bead is labeled `needs-decision`, start a brief for it. |
+| `no-brainer-process` | manual | Classify one candidate under the no-brainer shortcut policy. |
+
+The design principle is "ring the bell": decisions emit events and consumers
+wake immediately; the timed sweeps are backstops for lost events.
+
+---
+
+## How to check on work
+
+```bash
+bd show he-x8dk              # one bead in full (description, links, status)
+bd list --type decision      # all brief/decision beads
+bd search "merge feat"       # full-text search across beads
+gc bd show he-x8dk           # same, via the city tooling
+```
+
+- **Dashboard:** <http://127.0.0.1:8372/city/gt/runs> shows live and recent
+  formula runs.
+- **Audit:** the `check-brief-policy` skill audits the live pipeline against
+  every rule in POLICY.md and reports approve / revise / defer with specific
+  violations.
+- **Remember:** the bead store is canonical. The directories under
+  `.beads/briefs/` (pile, stack, archive — layout in
+  `mathcity/assets/brief-pipeline/paths.toml`) are a regenerable cache; if a
+  file and a bead disagree, trust the bead (B2.8).
+
+---
+
+## A worked example, end to end
+
+Suppose an agent finished a branch `feat/he-wzn` and you want it reviewed.
+
+```bash
+# 1. Launch: a source bead exists (or create one).
+bd create --type=task --title "Merge feat/he-wzn: FD side-pairing fix"
+#    -> created he-q7r2
+
+# 2. Brief-prep: produce the gated brief and deposit it in the pile.
+gc sling hecke/gc.run-operator brief-prep --formula \
+  --var source=he-q7r2 --var brief_slug=he-q7r2-merge
+
+# 3. Shuffle: happens automatically (brief-shuffle-pile order fires on a
+#    non-empty pile). Check the outcome:
+ls ~/gt/hecke/.beads/briefs/stack/          # promoted
+ls ~/gt/hecke/.beads/briefs/.pile/.rejected # or rejected, with reasons
+
+# 4. Present: drain the stack.
+gc sling mayor brief-present-next --formula
+#    ...Taylor reads the seven sections and says: approve.
+
+# 5. Record the verdict ON the brief bead and close it.
+gc sling gc.run-operator brief-record-decision --formula \
+  --var brief_slug=he-q7r2-merge --var decision=approve \
+  --var reason="side-pairing fix verified, tests green"
+
+# 6. Dispatch: automatic (brief.decided event). The source bead he-q7r2 is
+#    reassigned to the merge queue; the brief document is archived.
+bd show he-q7r2      # watch it move through the merge lane
+```
+
+Steps 3 and 6 involve no human at all; steps 4–5 are the only places
+Taylor's time is spent.
+
+---
+
+## Glossary
+
+| Term | One-liner |
+|---|---|
+| **bead** | A record in the local issue database — a numbered index card (`he-x8dk`) with typed links to other cards. |
+| **brief** | A bead of type `decision`: one question about one artifact, with pre-assembled evidence. The `.md` file is just its printout. |
+| **gate** | A named checkpoint (G1–G16, G5b) a brief must satisfy with evidence or an explicit N/A — e.g. "tests actually ran," "an external reviewer looked." |
+| **pile** | Where finished-but-unvetted briefs accumulate; canonically a bead query, cached as a directory. |
+| **stack** | The vetted, presentation-ready queue, ordered by unlock count (biggest unblock first). |
+| **adjudication** | Taylor (or authorized automation) rendering a verdict: recorded on the brief bead, bead closed, never resurfaces. |
+| **rig** | One managed repository inside the city (e.g. `hecke`, `gascity-packs`), with its own beads. |
+| **sling** | To throw a unit of work at an agent: `gc sling <rig>/<agent> <formula> --formula --var k=v`. |
+| **formula** | A scripted multi-step recipe (a TOML file) that an agent executes — the brief system's formulas live in `mathcity/formulas/brief-*.toml`. |
+| **order** | A standing rule "when trigger, run formula" — the automation that keeps briefs circulating without anyone remembering to. |
+| **convoy** | A group of related beads shipped and tracked together; it lands only when every member is closed. |
+
+---
+
+## Current status (honesty section, 2026-07-13)
+
+This system is newly assembled from adopted policy plus formulas; parts have
+not yet carried live traffic. Known state:
+
+- **Shuffle empty-pile deadlock fix in flight** (bead `gsp-3al3`): when the
+  pile is empty the shuffle formula's step graph deadlocks (a step closes
+  "no-changes" but its successor blocks), stranding a lock and a worker per
+  run. Priority-bumped; fix in progress. Related: a global-vs-rig-relative
+  path split (`~/.gc/mathcity/briefs` vs `.beads/briefs`) awaits one ruling.
+- **`brief-present-next` has never yet been run as a formula** — all
+  presentation to date has gone through the interactive skills.
+- **`brief-decision-dispatch` has never run** — no verdict has yet flowed
+  through the automatic approve/reject/revise executor.
+- **First end-to-end pass pending:** the pipeline awaits Taylor's first
+  verdict recorded under the one-bead model to exercise steps 4–6 of the
+  worked example for real.
+- **Legacy backfill running** (bead `he-irjq9`): 46 pre-existing open brief
+  beads, 10 stack documents, and a 318-line verdict ledger are being
+  reconciled into the adopted system (verdict backfill onto beads, document
+  repair, manifest resort).
+
+For the scheduling-theory analysis behind the pile ordering (weighted age,
+attention-cost denominators, starvation floors) and the no-brainer breakeven
+mathematics, see this file's git history (versions prior to 2026-07-13).
