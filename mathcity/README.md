@@ -261,6 +261,38 @@ Both the Gas City copy (`~/gt/X`) and the working copy (`~/repos/X`) point their
 
 Critical: bead data must NEVER be pushed to the code repositories. Ensure that neither `~/repos/X` nor `~/gt/X` carry `refs/dolt/data` or `__dolt_remote_info__` on their code remotes (the remotes that point at `tdupu/X`, not `tdupu/X-dolt`).
 
+### Dolt server mode for working copies (~/repos)
+
+Embedded mode (each `bd` invocation opening `.beads/embeddeddolt/<db>` in-process) has a dangerous failure class: mutations can land in bd's live layer without reaching the Dolt tables, so `bd dolt push` silently syncs stale data and closes/updates evaporate on the next pull (observed as beads-1.1.0 P1, tracked as gsp-2v6). The fix is **server mode**: one long-running `dolt sql-server` owns every store, and every `bd` write goes through SQL straight into the Dolt layer.
+
+The ~/repos setup (adapt paths/names to your machine):
+
+```
+~/repos/.bd-dolt/
+  dolt-config.yaml          # listener 127.0.0.1:3309, data_dir below
+  server.log
+  data/
+    <db>/                   # the real Dolt database dirs, one per repo
+```
+
+- The database dirs were **physically moved** out of each repo's `.beads/embeddeddolt/<db>` into `data/` (dolt's `data_dir` scan does not follow symlinks), and a symlink left at the old path for compatibility.
+- The server runs under launchd as `com.tdupu.repos-dolt` (`RunAtLoad` + `KeepAlive`), binary `/opt/homebrew/bin/dolt`.
+- Each repo's `.beads/metadata.json` gets: `"dolt_mode": "server"`, `"dolt_server_host": "127.0.0.1"`, `"dolt_server_port": 3309` (the explicit port classifies the server as *external*, which stops bd auto-starting per-repo shadow servers), plus `dolt.auto-start: "false"` in `.beads/config.yaml` (required for `bd dolt status` to take the external-ping path).
+- `bd dolt push` / `bd dolt pull` are **unchanged** — both modes route through the same `CALL DOLT_PUSH`/`DOLT_FETCH` SQL layer, executed inside the server process (so the launchd server needs SSH access to GitHub; macOS gui launchd provides `SSH_AUTH_SOCK`).
+
+Ops one-liners:
+
+```bash
+launchctl list | grep repos-dolt                       # server up?
+/opt/homebrew/opt/mysql-client/bin/mysql -h127.0.0.1 -P3309 -uroot -e "SHOW DATABASES"
+bd dolt status                                          # per repo: "running (external)"
+launchctl kickstart -k gui/$UID/com.tdupu.repos-dolt    # restart server
+```
+
+Adding a new repo's store: move its `.beads/embeddeddolt/<db>` into `data/`, symlink back, flip the three `metadata.json` keys, add the config.yaml line. Rollback per repo: revert the metadata keys to `"dolt_mode": "embedded"`, move the db dir back, remove its symlink, restart the server so it releases the locks.
+
+**Gotcha — `.beads/dolt-server.port`:** bd treats this file as the *primary* port source, overriding metadata.json. bd writes it itself on connect (fine), but if a foreign process writes a different port there, every `bd` command in that repo silently talks to the wrong server — cross-store reads and writes with no warning. If a repo's counts look alien, check this file first.
+
 ### Restore from backup
 
 To restore a rig's bead store from its private GitHub backup into a fresh directory:
