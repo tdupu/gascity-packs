@@ -201,8 +201,25 @@ check_no_brainer_safety() {
 
 check_no_brainer_execute_safety() {
   check_no_brainer_safety
-  [ -f "$HOME/.gc/mathcity/ALLOW_NO_BRAINER_AUTO_EXECUTE" ] ||
-    fail "missing no-brainer auto-execute kill switch: $HOME/.gc/mathcity/ALLOW_NO_BRAINER_AUTO_EXECUTE"
+  # N5 kill-switch hierarchy (POLICY.md N5, Adopted 2026-07-12): auto-execute
+  # is the DEFAULT. A kill switch halts automation only when its flag file
+  # EXISTS and reads `false`; absent or `true` proceeds. Check order:
+  # city-wide first, then rig-level (paths.toml: kill_switch_city,
+  # kill_switch_rig). Supersedes the opt-in ALLOW_NO_BRAINER_AUTO_EXECUTE
+  # existence check.
+  city_flag="${GC_CITY:-$HOME/gt}/.beads/auto_merge_enabled"
+  rig_root="${GC_RIG_ROOT:-}"
+  if [ -z "$rig_root" ]; then
+    # BRIEF_ROOT is <rig_root>/.beads/briefs, so the rig root is two up.
+    rig_root="$(cd "$ROOT/../.." 2>/dev/null && pwd || true)"
+  fi
+  rig_flag="$rig_root/.beads/auto_merge_enabled"
+  for flag in "$city_flag" "$rig_flag"; do
+    [ -f "$flag" ] || continue
+    if [ "$(head -n 1 "$flag" | tr -d '[:space:]')" = "false" ]; then
+      fail "kill switch ENGAGED ($flag reads false) — auto-execution halted (N5); route brief to the pile in compact form"
+    fi
+  done
 }
 
 check_archive_sweep_record() {

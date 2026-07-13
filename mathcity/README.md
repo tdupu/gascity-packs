@@ -153,7 +153,7 @@ Gates have developed into four kinds (so far):
 | G9 | no-brainer-filter | review | Shortcut classification must be explicit and cannot override stop gates or human-only decisions. |
 | G10 | improve-readme | mechanical | Each qualifying iteration must show the README improvement or explain why no README surface exists. |
 | G11 | breadcrumb | mechanical | Experiment or deferred work must leave a durable breadcrumb to the source, artifacts, and next owner. |
-| G12 | auto-merge-kill-switch | stop | Automation must fail closed unless the local kill switch (`ALLOW_NO_BRAINER_AUTO_EXECUTE`) explicitly permits the shortcut. |
+| G12 | auto-merge-kill-switch | stop | Automation checks the two-level N5 kill-switch hierarchy (city `~/gt/.beads/auto_merge_enabled`, then rig `<rig_root>/.beads/auto_merge_enabled`) before executing; a switch that exists and reads `false` halts auto-execution — absent or `true` proceeds (auto-execute is the default per N5). |
 | G13 | stale-claim | mechanical | Briefs must not rely on stale claims; claim freshness or revalidation must be recorded. |
 | G14 | test-execution-silent | mechanical | Risky or high-cost test execution must be requested explicitly rather than silently run. |
 | G15 | improve-readme-silent | mechanical | A missing README improvement cannot be silent; the brief must record applied or N/A evidence. |

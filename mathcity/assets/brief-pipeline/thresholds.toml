@@ -13,8 +13,14 @@ lock_timeout = "10m"
 fail_closed = true
 
 [no_brainer]
-enabled = false
-require_kill_switch = true
+# N5 (POLICY.md, Adopted 2026-07-12): auto-execute is the DEFAULT; kill
+# switches are safety brakes. Executors must still check the two-level
+# hierarchy declared in paths.toml (kill_switch_city, then kill_switch_rig):
+# a flag file that exists AND reads `false` halts auto-execution; absent or
+# `true` proceeds. (Replaces the superseded opt-in require_kill_switch /
+# ALLOW_NO_BRAINER_AUTO_EXECUTE existence-enables semantics.)
+enabled = true
+check_kill_switch_hierarchy = true
 max_auto_exec_per_run = 1
 
 [archive]

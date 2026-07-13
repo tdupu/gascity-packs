@@ -132,7 +132,11 @@ kind = "stop"
 required = true
 rules = ["N5"]
 evidence_key = "G12 Auto-merge-kill-switch"
-description = "Automation must fail closed unless the local kill switch explicitly permits the shortcut."
+# N5 (Adopted 2026-07-12): auto-execute is the DEFAULT; kill switches are
+# safety brakes. This supersedes the earlier fail-closed/opt-in semantics
+# (ALLOW_NO_BRAINER_AUTO_EXECUTE existence-enables). Switch locations are
+# declared in paths.toml (kill_switch_city, kill_switch_rig).
+description = "Automation must check the two-level kill-switch hierarchy before executing: city-wide ~/gt/.beads/auto_merge_enabled, then <rig_root>/.beads/auto_merge_enabled. A switch that exists and reads `false` halts auto-execution (halted no-brainers route to the pile in compact form); absent or `true` proceeds — auto-execute is the default (N5)."
 
 [[gates]]
 id = "G13"

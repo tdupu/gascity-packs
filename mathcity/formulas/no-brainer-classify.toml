@@ -99,8 +99,12 @@ condition = "{{mode}} == guarded-execute"
 metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.path" = "{{brief_path}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
 Execute only if classification is `no-brainer`, all stop gates are clear, and
-`~/.gc/mathcity/ALLOW_NO_BRAINER_AUTO_EXECUTE` exists. Otherwise stop and
-route the brief to Taylor.
+no N5 kill switch is engaged. Kill-switch hierarchy (POLICY.md N5, Adopted
+2026-07-12; auto-execute is the DEFAULT): check `~/gt/.beads/auto_merge_enabled`
+(city-wide), then `<rig_root>/.beads/auto_merge_enabled` (rig-level) — a flag
+file that exists and reads `false` halts execution and routes the brief to the
+pile in compact form for Taylor; absent or `true` proceeds. Stop gates and
+non-no-brainer classifications route the brief to Taylor as before.
 """
 
 [steps.check]
