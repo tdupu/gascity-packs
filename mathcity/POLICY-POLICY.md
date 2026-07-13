@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Date | 2026-07-12 |
-| Version | 1.0 |
+| Version | 1.1 |
 | Status | Adopted |
 | Decided | Taylor Dupuy |
 | Applies to | All policy documents inside the `mathcity` pack and its subdomains |
@@ -31,6 +31,9 @@ Governs what a policy document IS, how policy domains are structured, how rules 
 - **PP1.4 new-X-policy is the sole write path for rules.** Rules enter, change, or exit only by Taylor approving a `new-X-policy` proposal. Editing POLICY.md in place without going through new-X-policy is a violation, even for typo fixes: update via a new-X-policy micro-proposal, commit, done.
 - **PP1.5 Rule IDs are globally unique and immutable.** The prefix registry enforces uniqueness across domains. Once a rule ID appears in any committed POLICY.md, it is permanent: the rule may be deprecated (status: deprecated in the rule entry) but the ID is never reassigned to a different rule.
 - **PP1.6 Trinity skill naming.** The canonical names are `check-<domain>-policy` and `new-<domain>-policy`. Domains scaffolded before 2026-07-12 that use `-hygiene` as suffix are grandfathered; they must migrate to `-policy` naming on their next major amendment. New domains must use `-policy` naming from initial scaffold.
+- **PP1.7 Policy wins over implementation.** On any conflict between an Adopted POLICY.md and an artifact that implements or enforces it (skill, formula, gates.toml entry, script, memory, dashboard), the policy governs. Agents follow the policy; the artifact is drift — file a repair bead same-session. An artifact is never grounds to reinterpret, soften, or effectively amend a rule.
+- **PP1.8 Concision.** If two phrasings of a rule produce identical pass/fail outcomes, the shorter is correct. Rule bodies state the requirement and its pass/fail criterion; rationale lives in the Change Log; examples only where the criterion is otherwise ambiguous. Applies to policy documents, not code or skills. Length justified by pass/fail sharpness is never a violation.
+- **PP1.9 Minimize bead bloat.** Bead bloat is the memory occupied by the Dolt repo. Policies must prefer designs that minimize it: beads carry identity, state, verdicts, and pointers; bulky artifacts (documents, evidence, transcripts, logs) live in the filesystem keyed by bead ID, with the bead pointing to them. Exception: content required for a bead to be adjudicable stand-alone (a verdict, a one-line rationale) belongs in the bead. A rule mandating bulky content in bead bodies without justifying why file-plus-pointer won't do is a violation.
 
 ---
 
@@ -105,3 +108,6 @@ The canonical registry is at `mathcity/docs/rule-prefix-registry.md` (PP5.2). Do
 | --- | --- | --- |
 | 2026-07-12 | Initial draft | Taylor directive: policy-first rollout of brief system; POLICY-POLICY scaffolds the governance layer |
 | 2026-07-12 | v1.0 adoption + 7 amendments (PP2.5, PP2.6, PP4.4, PP6.1-6.3, naming convention PP1.6, citation chain fix, bootstrap self-exception) | Taylor directive: adopt POLICY-POLICY.md and merge all audit improvements from 2026-07-12 Fable policy audit |
+| 2026-07-12 | v1.1: add PP1.7 (policy wins over implementation) | Taylor directive; triggered by same-day F4 incident (check-brief-policy enforcing superseded N5 semantics) |
+| 2026-07-12 | v1.1: add PP1.8 (concision — shortest faithful phrasing) | Taylor directive: policies must inform humans and agents at minimum token cost |
+| 2026-07-12 | v1.1: add PP1.9 (minimize bead bloat) | Taylor directive (bulkiness policy, grilling session): bead bloat = Dolt repo memory; grounds the bead-state/file-content split |
