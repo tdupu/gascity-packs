@@ -22,7 +22,8 @@ default = ""
 
 [vars.artifact_root]
 description = "Brief pipeline artifact root."
-default = "~/.gc/mathcity/briefs"
+# Rig-relative: resolves against the rig root (see assets/brief-pipeline/paths.toml).
+default = ".beads/briefs"
 
 [vars.mode]
 description = "Classification only or attempt guarded execution."
@@ -31,7 +32,9 @@ enum = ["classify", "guarded-execute"]
 
 [vars.operator_target]
 description = "Run target for no-brainer classification."
-default = "gastown.mayor"
+# Judgment-bearing classification (the model IS the classifier); gc.review-synthesizer
+# is the routable default. Cities importing the gastown pack may pass gastown.mayor.
+default = "gc.review-synthesizer"
 
 [[steps]]
 id = "load-candidate"

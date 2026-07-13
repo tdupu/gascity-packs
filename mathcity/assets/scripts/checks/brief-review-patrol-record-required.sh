@@ -6,7 +6,8 @@
 # Standalone by design; does not route through brief-check.sh.
 set -eu
 
-ROOT="${BRIEF_ROOT:-$HOME/.gc/mathcity/briefs}"
+# Rig-relative default per assets/brief-pipeline/paths.toml (gsp-3al3).
+ROOT="${BRIEF_ROOT:-.beads/briefs}"
 
 if [ ! -d "$ROOT/patrol" ]; then
   echo "brief-review-patrol: no patrol directory at $ROOT/patrol" >&2

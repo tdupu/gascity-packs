@@ -27,7 +27,8 @@
 # callers can attach it verbatim as the event payload.
 set -eu
 
-ROOT="${BRIEF_ROOT:-$HOME/.gc/mathcity/briefs}"
+# Rig-relative default per assets/brief-pipeline/paths.toml (gsp-3al3).
+ROOT="${BRIEF_ROOT:-.beads/briefs}"
 THRESHOLD="${STACK_LOW_THRESHOLD:-1}"
 
 approved=0

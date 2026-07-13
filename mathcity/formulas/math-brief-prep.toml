@@ -25,11 +25,11 @@ default = ".beads/briefs"
 
 [vars.prep_target]
 description = "Run target for brief preparation bookkeeping and shuffler."
-default = "gastown.dog"
+default = "gc.run-operator"
 
 [vars.review_target]
 description = "Run target for judgment-bearing brief review."
-default = "gastown.mayor"
+default = "gc.review-synthesizer"
 
 [[steps]]
 id = "select-sources"

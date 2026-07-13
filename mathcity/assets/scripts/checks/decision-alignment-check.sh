@@ -14,7 +14,8 @@
 #   GC_VAR_SOURCE_BEAD       — bead ID of the adjudicated work item (required)
 #   GC_VAR_BRIEF_SLUG        — brief slug for follow-up bead title checks
 #   GC_VAR_EXPECTED_VERDICT  — expected verdict; empty = read from bd decision bead
-#   GC_VAR_ARTIFACT_ROOT     — brief pipeline root, default $HOME/.gc/mathcity/briefs
+#   GC_VAR_ARTIFACT_ROOT     — brief pipeline root, default .beads/briefs
+#                              (rig-relative per assets/brief-pipeline/paths.toml)
 #   GC_CITY_PATH             — city root (default ~/gt)
 
 set -eu
@@ -22,7 +23,7 @@ set -eu
 SOURCE_BEAD="${GC_VAR_SOURCE_BEAD:-}"
 BRIEF_SLUG="${GC_VAR_BRIEF_SLUG:-}"
 EXPECTED_VERDICT="${GC_VAR_EXPECTED_VERDICT:-}"
-ARTIFACT_ROOT="${GC_VAR_ARTIFACT_ROOT:-$HOME/.gc/mathcity/briefs}"
+ARTIFACT_ROOT="${GC_VAR_ARTIFACT_ROOT:-.beads/briefs}"
 CITY="${GC_CITY_PATH:-${GC_CITY:-$HOME/gt}}"
 
 fail_misaligned() {
@@ -114,24 +115,26 @@ bead_assignee="$(printf '%s\n' "$bead_json" | jq -r '.[0].assignee // empty' 2>/
 # ---------------------------------------------------------------------------
 case "$verdict" in
   approve)
-    # After approval: source bead must be assigned to a refinery session
-    # (e.g., hecke/gastown.refinery) OR status in_progress with assignee
-    # matching /refinery/.
+    # After approval: source bead must be assigned to the owning rig's
+    # merge-queue session — <rig>/<merge_target> per brief-decision-dispatch
+    # (default gc.publisher; gastown cities may use gastown.refinery) —
+    # OR status in_progress with an assignee matching that session.
     case "${bead_assignee:-}" in
-      *refinery*)
+      *publisher*|*refinery*)
         : # aligned
         ;;
       *)
-        # Not yet assigned to refinery — misaligned if status is not in
-        # a "heading to refinery" transient state. open + not-refinery is bad.
+        # Not yet assigned to the merge queue — misaligned if status is not
+        # in a "heading to merge queue" transient state. open + unassigned
+        # is bad.
         case "${bead_status:-}" in
           open|ready)
-            fail_misaligned "verdict=approve but bead $SOURCE_BEAD is status='${bead_status}' assignee='${bead_assignee:-none}' — should be assigned to <rig>/gastown.refinery; route to Mayor/Taylor to reconcile"
+            fail_misaligned "verdict=approve but bead $SOURCE_BEAD is status='${bead_status}' assignee='${bead_assignee:-none}' — should be assigned to the rig merge-queue session (<rig>/gc.publisher, or gastown.refinery in gastown cities); route to Mayor/Taylor to reconcile"
             ;;
           *)
             # in_progress or other transient — give benefit of the doubt only
-            # if assignee contains refinery, else still misaligned.
-            fail_misaligned "verdict=approve but bead $SOURCE_BEAD assignee='${bead_assignee:-none}' does not match /refinery/ (status='${bead_status}') — route to Mayor/Taylor"
+            # if assignee matches the merge-queue session, else still misaligned.
+            fail_misaligned "verdict=approve but bead $SOURCE_BEAD assignee='${bead_assignee:-none}' does not match the merge-queue session (/publisher/ or /refinery/) (status='${bead_status}') — route to Mayor/Taylor"
             ;;
         esac
         ;;

@@ -58,7 +58,8 @@ default = ""
 
 [vars.artifact_root]
 description = "Brief pipeline artifact root (for brief-pipeline decision files)."
-default = "~/.gc/mathcity/briefs"
+# Rig-relative: resolves against the rig root (see assets/brief-pipeline/paths.toml).
+default = ".beads/briefs"
 
 [vars.expected_verdict]
 description = "Expected verdict from the decision record (approve/reject/revise/defer). Leave empty to accept any recorded verdict — CHECK-B then only verifies internal consistency (bead state matches the RECORDED verdict, whatever it is)."
@@ -67,11 +68,14 @@ enum = ["", "approve", "reject", "revise", "defer"]
 
 [vars.operator_target]
 description = "Run target for mechanical enforcement checks."
-default = "gastown.dog"
+default = "gc.run-operator"
 
 [vars.mayor_target]
 description = "Run target for violations requiring judgment — Mayor/Taylor."
-default = "gastown.mayor"
+# Human-facing escalation routing; no gc.* role maps to a presenter, so
+# gc.run-operator is the routable default. Cities importing the gastown pack
+# may pass gastown.mayor.
+default = "gc.run-operator"
 
 # ---------------------------------------------------------------------------
 # Step 1 — CHECK-A: decision record existence
@@ -124,8 +128,11 @@ verdict recorded in `bd decision` (and, when non-empty, `{{brief_slug}}.toml`).
 
 Alignment rules (mechanical — no judgment):
 
-  approve  → source bead must be assigned to `<rig>/gastown.refinery` or
-             status must be `in_progress` with assignee matching `/refinery/`.
+  approve  → source bead must be assigned to the owning rig's merge-queue
+             session — `<rig>/<merge_target>` per brief-decision-dispatch
+             (default `gc.publisher`; gastown cities may use
+             `gastown.refinery`) — or status must be `in_progress` with an
+             assignee matching that merge-queue session.
              A bead still assigned to a polecat or sitting `open` after an
              approval decision is MISALIGNED.
   reject   → a follow-up bead with title matching `[rejected] {{brief_slug}}`

@@ -11,7 +11,8 @@
 #
 set -eu
 
-ROOT="${BRIEF_ROOT:-$HOME/.gc/mathcity/briefs}"
+# Rig-relative default per assets/brief-pipeline/paths.toml (gsp-3al3).
+ROOT="${BRIEF_ROOT:-.beads/briefs}"
 
 fail() {
   echo "gate-test-execution-declaration: $*" >&2

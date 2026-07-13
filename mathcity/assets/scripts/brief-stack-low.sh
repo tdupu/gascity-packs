@@ -26,8 +26,8 @@
 #
 # Environment:
 #   BRIEF_STACK_DIRS           space-separated brief directories
-#                              (default: $HOME/.gc/mathcity/briefs/stack,
-#                              the migrated brief stack directory)
+#                              (default: .beads/briefs/stack, rig-relative
+#                              per assets/brief-pipeline/paths.toml)
 #   BRIEF_STACK_LOW_THRESHOLD  trigger threshold (default: stack_low_trigger
 #                              from assets/brief-pipeline/thresholds.toml,
 #                              else 1)
@@ -51,7 +51,8 @@ if [ -z "$threshold" ] && [ -f "$THRESHOLDS" ]; then
 fi
 : "${threshold:=1}"
 
-dirs="${BRIEF_STACK_DIRS:-$HOME/.gc/mathcity/briefs/stack}"
+# Rig-relative default per assets/brief-pipeline/paths.toml (gsp-3al3).
+dirs="${BRIEF_STACK_DIRS:-.beads/briefs/stack}"
 
 approved=0
 total=0

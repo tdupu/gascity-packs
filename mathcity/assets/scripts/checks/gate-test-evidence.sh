@@ -23,7 +23,8 @@
 # Inputs (in priority order):
 #   GC_BRIEF_PATH    -- absolute path to the brief markdown file
 #   gc.brief.path    -- metadata key (read via gc bd show if GC_BEAD_ID set)
-#   fallback         -- first $HOME/.gc/mathcity/briefs/.staging/*/brief.md found
+#   fallback         -- first <BRIEF_ROOT>/.staging/*/brief.md found
+#                       (default .beads/briefs, rig-relative per paths.toml)
 #
 # Exit 0  -- gate passes
 # Exit 1  -- gate FAILS (details on stderr)
@@ -38,7 +39,8 @@ SCRIPT_DIR="$(dirname "$0")"
 # script remains self-contained and callable standalone).
 # ---------------------------------------------------------------------------
 
-ROOT="${BRIEF_ROOT:-$HOME/.gc/mathcity/briefs}"
+# Rig-relative default per assets/brief-pipeline/paths.toml (gsp-3al3).
+ROOT="${BRIEF_ROOT:-.beads/briefs}"
 
 fail() {
   echo "GATE-REJECT: test-evidence -- $*" >&2

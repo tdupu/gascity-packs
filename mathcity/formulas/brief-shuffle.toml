@@ -44,15 +44,21 @@ description = """
 Select the oldest non-hidden markdown brief from `{{artifact_root}}/.pile`.
 Process only one item per shuffler run. Leave the item in place until the
 promote/reject write is ready so failed runs are restartable.
+
+EMPTY-PILE ROUTE (gsp-3al3): if `.pile` contains no non-hidden markdown
+briefs, that is a CLEAN outcome, not a failure. Record `selection: none
+(pile empty)` in the step notes and complete this step normally. The
+downstream apply-gates and write-disposition steps then pass through as
+no-ops and release-lock still releases the shuffler lock — never leave the
+graph stranded holding `.shuffle.lock`.
 """
 
-[steps.check]
-max_attempts = 1
-
-[steps.check.check]
-mode = "exec"
-path = ".gc/scripts/checks/brief-pile-nonempty.sh"
-timeout = "30s"
+# No mechanical check here (gsp-3al3): the former brief-pile-nonempty.sh
+# check made an empty pile a FAILED step, deadlocking the graph (apply-gates
+# blocked on the failed dependency and release-lock never ran, leaking the
+# lock and the wisp). An empty pile is now a valid clean completion; the
+# write-disposition check still enforces that a non-empty run produced a
+# promote/reject result.
 
 [[steps]]
 id = "apply-gates"
@@ -67,6 +73,10 @@ not invent approvals.
 If any required gate fails or is missing, move the brief to
 `{{artifact_root}}/.pile/.rejected/<slug>/brief.md` with a short rejection
 record. If all gates pass, prepare promotion to stack.
+
+EMPTY-PILE ROUTE (gsp-3al3): if select-pile-item recorded `selection: none
+(pile empty)`, this step is a NO-OP — do not touch gates, do not reject or
+promote anything; note the pass-through and complete immediately.
 """
 
 [[steps]]
@@ -95,6 +105,12 @@ The `status` key is NOT written here; brief-record-decision adds it later
 For `Disposition: reject` or `Disposition: blocked`, move the brief under
 `{{artifact_root}}/.pile/.rejected/<slug>/` and do not append to the stack
 manifest.
+
+EMPTY-PILE ROUTE (gsp-3al3): if select-pile-item recorded `selection: none
+(pile empty)`, this step is a NO-OP — write nothing and complete immediately.
+The check below passes on a genuinely empty run (empty pile with no
+promote/reject result) while still failing a non-empty run that produced no
+disposition.
 """
 
 [steps.check]
@@ -114,6 +130,9 @@ description = """
 Release `{{artifact_root}}/.shuffle.lock`. If the selected item was promoted,
 ensure `stack/.index.jsonl` is still valid JSONL and sorted consumers can
 select by unlock count.
+
+This step runs on BOTH routes (promote/reject AND the empty-pile no-op
+route, gsp-3al3): the lock must always be released when the run ends.
 """
 
 [steps.check]

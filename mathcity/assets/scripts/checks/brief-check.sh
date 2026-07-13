@@ -7,7 +7,9 @@ if [ -z "$COMMAND" ]; then
   exit 2
 fi
 
-ROOT="${BRIEF_ROOT:-$HOME/.gc/mathcity/briefs}"
+# Rig-relative default per assets/brief-pipeline/paths.toml (gsp-3al3);
+# step checks run with the rig root as cwd. Override via BRIEF_ROOT.
+ROOT="${BRIEF_ROOT:-.beads/briefs}"
 
 fail() {
   echo "brief-check: $*" >&2
@@ -137,8 +139,15 @@ check_pile_nonempty() {
 check_shuffle_result() {
   stack_count="$(find "$ROOT/stack" -mindepth 1 -maxdepth 1 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
   rejected_count="$(find "$ROOT/.pile/.rejected" -mindepth 1 -maxdepth 2 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
-  [ "${stack_count:-0}" -gt 0 ] || [ "${rejected_count:-0}" -gt 0 ] ||
-    fail "no promoted or rejected brief found"
+  if [ "${stack_count:-0}" -eq 0 ] && [ "${rejected_count:-0}" -eq 0 ]; then
+    # Empty-pile no-op route (gsp-3al3): with nothing promoted and nothing
+    # rejected, pass ONLY when the pile itself is empty (there was nothing to
+    # shuffle). A non-empty pile here means a selected brief never received a
+    # disposition — that is still a failure.
+    if find "$ROOT/.pile" -mindepth 1 -maxdepth 1 -type f -name '*.md' 2>/dev/null | grep -q .; then
+      fail "no promoted or rejected brief found (pile still has pending briefs)"
+    fi
+  fi
   check_jsonl "$ROOT/stack/.index.jsonl"
 }
 
