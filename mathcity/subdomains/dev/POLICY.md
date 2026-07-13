@@ -161,9 +161,11 @@ recreate what you're running; upstream must remain pullable.*
   storage is always a *separate, dedicated* GitHub repo; its name is
   mechanically derived: a code repo named `X` uses `tdupu/X-dolt` and
   nothing else. Dolt repos are never reused across code repos, renamed for
-  convenience, or aliased to the code remote. Single exception: the gascity
-  root (`~/gt`) predates the convention — its dolt remote is
-  `tdupu/gascity-dolt`. When initialising a new rig's bead sync, derive the
+  convenience, or aliased to the code remote. Gascity-root mapping (Taylor
+  2026-07-13): the `gascity` rig (`~/gt/gascity` — controls the binary,
+  hosts upstream-PR work) follows the main rule with `tdupu/gascity-dolt`;
+  the city HQ store (`~/gt`, hq beads — management and cleanup of the city
+  instance itself) syncs to the dedicated `tdupu/gascity-HQ-dolt`. When initialising a new rig's bead sync, derive the
   remote name as `<rig-name>-dolt` **using the DoltHub slug form** — DoltHub
   normalizes underscores to hyphens, so rig names with underscores use
   hyphens in the remote (e.g., `agent_skills` → `tdupu/agent-skills-dolt`,
@@ -444,3 +446,4 @@ that found the `reference.gc-cli` memory was stale (incorrectly asserted "gastow
 is a runtime contract"). Exceptions: (a) `gastownhall/*` org in URLs, (b) upstream
 pack/template name as a proper noun, (c) gc-docs migration pages, (d) read-only
 historical artifacts. Migration tracked in `mathcity/subdomains/dev/docs/IMPORTS-GC-MIGRATION-PLAN-2026-07-08.md`.
+| 2026-07-13 | P1.15: gascity-root mapping rewritten — `gascity` rig (binary/upstream-PR work) uses `tdupu/gascity-dolt` per the main rule; city HQ store (`~/gt`, instance management) uses dedicated `tdupu/gascity-HQ-dolt` | Taylor verdict (hq canon question): HQ-dolt canonical; supersedes the old `~/gt uses gascity-dolt` exception set by ecc11604 |
