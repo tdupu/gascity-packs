@@ -46,6 +46,8 @@ the test corpus. `profile-magma` diagnoses any step that gets slow.
 | `improve-package-README` | Add/update package documentation + README test files, keeping examples and regression tests in sync (formerly `improve-README`) |
 | `profile-magma` | Wrap Magma code in a profiling harness to find bottlenecks (slow intrinsics, memory hogs) |
 | `update-issue` | Replace a GitHub issue's body with one canonical statement, consolidating prior versions into a single archive comment |
+| `check-computing-policy` | Audit computation code, a diff, or a project against the Computing Policy (C1.x–C4.x rules) — returns approve / revise / fail with violated rule IDs and triggering files; read-only companion to `new-computing-policy` |
+| `new-computing-policy` | Propose and apply an amendment to the Computing Policy (C1.x–C4.x rules) — sole write path for computing domain rules; every change is gated on Taylor approval and recorded in the policy Change Log |
 
 ## Maintained packages
 
