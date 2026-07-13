@@ -47,8 +47,8 @@ ls ~/.claude/skills/new-brief-policy
 
 Pipeline paths come from `paths.toml` and are RIG-RELATIVE (resolve against
 the rig root; live pilot: `~/gt/hecke`). Per B2.4/B2.8, canonical pile/stack
-MEMBERSHIP is a bead query (open brief beads with no attached decision bead
-and no active defer window); the filesystem layout audited here is an
+MEMBERSHIP is a bead query (open `type=decision` brief beads with no active
+defer window — one-bead model); the filesystem layout audited here is an
 implementation-detail cache regenerable from bead state — on disagreement
 the bead store wins and the filesystem is repaired to match.
 
@@ -86,16 +86,18 @@ one — ordering violation (B2.5 drift).
 
 ### 4. No-resurface invariant (B2.3)
 
-Check that no adjudicated brief (`brief-closed` label in bead store) appears
-in the stack or pile:
+One-bead model: the brief bead IS the decision bead. Adjudicated = the brief
+bead is CLOSED with verdict fields recorded on it; pending = the brief bead
+is still open. The no-resurface check is therefore a simple state check:
+no closed brief bead may appear in the stack or pile.
 
 ```bash
 STACK_DIR=~/gt/hecke/.beads/briefs/stack
 for f in "$STACK_DIR"/*.md; do
   slug=$(basename "$f" .md)
-  # derive bead ID from slug; check its labels
+  # derive bead ID from slug; check its status
   BEAD_ID=$(echo "$slug" | sed 's/-brief$//')   # rough extraction
-  # bd show "$BEAD_ID" | grep brief-closed && echo "VIOLATION: $slug"
+  # bd show "$BEAD_ID" | grep -i 'status.*closed' && echo "VIOLATION: $slug"
 done
 ```
 
@@ -125,8 +127,11 @@ check_flag "$RIG_ROOT/.beads/auto_merge_enabled" "Rig-level switch"
 
 Report each level as ENGAGED (halted) or RELEASED (auto-execute active,
 the default). Engaging or releasing a switch requires explicit Taylor
-authorization recorded as a decision bead — if either switch is ENGAGED,
-verify the authorizing decision bead exists and flag its absence.
+authorization recorded as a STANDALONE decision bead — a kill-switch
+authorization record, which is its own bead and NOT a brief bead's verdict
+(kill-switch decision beads are unaffected by the one-bead model). If
+either switch is ENGAGED, verify the authorizing decision bead exists and
+flag its absence.
 
 Drift check: any lingering reference to the superseded opt-in
 `ALLOW_NO_BRAINER_AUTO_EXECUTE` file (whose EXISTENCE used to enable
@@ -156,13 +161,20 @@ that is more than 7 days old.
 
 ### 7. Decision record integrity (B3.x)
 
-Per B2.2 the decision BEAD is the canonical adjudication record; the files
+Per B2.2 (one-bead model) the verdict recorded ON the brief bead is the
+canonical adjudication record: a brief bead closed with verdict fields
+(verdict + authorizer + one-line rationale + date, plus
+confidence/category for auto-executions) = adjudicated; an open brief bead
+= pending. Verify state consistency: every closed brief bead carries its
+verdict fields (a closed brief bead with no recorded verdict is a
+B2.2/B3.8 violation), and no open brief bead claims a verdict. The files
 checked here are redundancy channels. Check that `decisions.jsonl` (the
 ledger at the briefs root) is non-empty if any briefs have been
 adjudicated; the `decisions/` directory holds optional per-decision records
 and may be empty:
 
 ```bash
+bd list --type decision --all --json | head   # brief beads; closed = adjudicated
 wc -l ~/gt/hecke/.beads/briefs/decisions.jsonl
 ls ~/gt/hecke/.beads/briefs/decisions/ | wc -l
 ```

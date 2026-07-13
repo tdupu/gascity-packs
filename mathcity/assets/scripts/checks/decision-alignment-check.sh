@@ -51,11 +51,15 @@ fi
 # Resolve the recorded verdict
 # ---------------------------------------------------------------------------
 # If EXPECTED_VERDICT is set, that IS the expected verdict (and we verify
-# the recorded one matches). If empty, read it from the bd decision bead.
+# the recorded one matches). If empty, read it from the bd type=decision
+# bead — under the one-bead model (B2.2) that is the brief bead itself,
+# carrying the verdict fields recorded at adjudication.
 
 recorded_verdict=""
 
-# Fetch the most-recent bd decision bead referencing SOURCE_BEAD.
+# Fetch the most-recent bd type=decision bead referencing SOURCE_BEAD
+# (the brief bead under the one-bead model, or a standalone decision bead
+# for non-brief authorizations).
 decision_json="$(bd list --type decision --all --json 2>/dev/null)" || fail_closed "bd list --type decision failed"
 
 recorded_verdict="$(printf '%s\n' "$decision_json" | \

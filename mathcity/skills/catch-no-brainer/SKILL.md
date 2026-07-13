@@ -60,7 +60,7 @@ Given a brief at `<path>` (frontmatter + body + diff summary inside the brief):
  "classified_at":"<ISO-8601-utc>"}
 ```
 
-`confidence` is a float in [0.0, 1.0] expressing the classifier's certainty in the emitted `category`. Always emit it — even stop-gate outputs (server-touching, user-skill-touching) emit `confidence:1.0` because those are deterministic rule checks. "Confident" threshold for N2/N5 auto-execution eligibility is `confidence >= 0.85`; below that, treat as non-no-brainer regardless of category. The decision bead created at auto-execution (B2.9 / N7) must record this value so the empirical wrong rate α can be estimated from the audit ledger (N8).
+`confidence` is a float in [0.0, 1.0] expressing the classifier's certainty in the emitted `category`. Always emit it — even stop-gate outputs (server-touching, user-skill-touching) emit `confidence:1.0` because those are deterministic rule checks. "Confident" threshold for N2/N5 auto-execution eligibility is `confidence >= 0.85`; below that, treat as non-no-brainer regardless of category. The verdict recorded on the brief bead at auto-execution (B2.9 / N7 — one-bead model: the brief bead IS the decision bead; no separate bead is created) must include this value so the empirical wrong rate α can be estimated from the audit ledger (N8).
 
 ## Side effects (v0.2)
 - `no_brainer:true` (any category: stale-branch, defer-ratify-held, close-done-cited-commit, execution-confirmation-proof) → `mkdir -p` + copy brief into `.pile/.no-brainer/`. Consumed by pile-processor ([[he-x3se]], not-yet-shipped); until then the file is inert.

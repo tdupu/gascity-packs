@@ -148,6 +148,10 @@ check_manifest() {
 }
 
 check_decision_record() {
+  # One-bead model (brief-system POLICY.md B2.2): the CANONICAL adjudication
+  # record is the verdict recorded on the brief bead itself (type=decision,
+  # closed). The decisions/*.toml file checked here is a redundancy channel
+  # (B2.8: files are cache), not a separate decision bead.
   path="$(metadata_value "gc.brief.decision_path")"
   if [ -z "$path" ]; then
     path="$(find "$ROOT/decisions" -mindepth 1 -maxdepth 1 -type f -name '*.toml' 2>/dev/null | sort | head -n 1)"

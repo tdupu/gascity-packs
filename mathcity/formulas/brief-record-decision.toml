@@ -60,7 +60,12 @@ Write `{{artifact_root}}/decisions/{{brief_slug}}.toml` with:
   brief-record bead's `source_bead` metadata; if neither is available, record
   `source_bead = ""` and note the gap in `reason`.
 
-Use `mathcity.record-decision` (pack skill) for the durable decision shape.
+One-bead model (brief-system POLICY.md B2.2): the brief bead IS the decision
+bead (`type=decision`). Record the verdict ON the brief bead itself — verdict,
+authorizer, one-line rationale, date (plus confidence/category for
+auto-executions) — then close the brief bead. Do NOT create a separate
+decision bead for the brief. The `.toml` decision record written above is a
+redundancy channel (B2.8: files are cache), not the canonical record.
 """
 
 [steps.check]

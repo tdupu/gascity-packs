@@ -1,9 +1,15 @@
 #!/bin/sh
 # decision-record-exists.sh — CHECK-A for decision-enforce formula
 #
-# Verifies that a canonical `bd decision` bead exists for the adjudicated
-# source bead, AND (when BRIEF_SLUG is set) that a brief-pipeline decision
-# file also exists at ARTIFACT_ROOT/decisions/<slug>.toml.
+# Verifies that a canonical `bd decision`-type bead exists for the
+# adjudicated source bead, AND (when BRIEF_SLUG is set) that a brief-pipeline
+# decision file also exists at ARTIFACT_ROOT/decisions/<slug>.toml.
+#
+# One-bead model (brief-system POLICY.md B2.2, 2026-07-12): the brief bead
+# IS the decision bead — for brief adjudications the matching bead below is
+# the brief bead itself (type=decision, closed with verdict fields), not a
+# separately created decision bead. Standalone decision beads (push /
+# kill-switch / non-brief authorizations) also satisfy the query.
 #
 # Exit codes:
 #   0 — decision record(s) found; enforcement passes
@@ -110,7 +116,7 @@ if [ "$bd_found" = "true" ] && [ "$brief_file_found" = "true" ]; then
 fi
 
 if [ "$bd_found" = "false" ]; then
-  fail_block "no bd decision bead references source_bead=$SOURCE_BEAD — use mathcity.record-decision to file the verdict before proceeding"
+  fail_block "no bd type=decision bead references source_bead=$SOURCE_BEAD — record the verdict on the brief bead and close it (one-bead model, B2.2; for standalone non-brief decisions use mathcity.record-decision) before proceeding"
 fi
 
 # bd_found=true but brief_file_found=false

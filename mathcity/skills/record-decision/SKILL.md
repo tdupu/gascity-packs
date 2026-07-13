@@ -1,6 +1,6 @@
 ---
 name: record-decision
-description: Use whenever a decision needs to be recorded persistently in a bd-managed rig — Taylor adjudications, architecture choices, policy locks, brief-pipeline verdicts, gate-criterion additions. Enforces the `bd create -t decision` canonical primitive per the bd-decision-canonical architecture principle (gascity triage 2026-06-26, LD #10 + AP2). Refuses to write decisions to non-`bd decision` stores (no markdown files, no custom jsonl writes, no `bd remember`-with-decision-content). Trigger phrases include "record a decision", "log this decision", "file the verdict", "this needs to be a decision-record", "preserve this for posterity", or any moment when an agent or human surfaces a verdict / rationale / chosen-alternative that should survive across sessions and be queryable by future work.
+description: Use whenever a STANDALONE decision needs to be recorded persistently in a bd-managed rig — Taylor adjudications, architecture choices, policy locks, gate-criterion additions. EXCEPTION — brief verdicts: under the one-bead model (brief-system POLICY.md B2.2, 2026-07-12) a brief bead IS the decision bead; its verdict is recorded ON the brief bead and the bead is closed — do NOT create a second decision bead for a brief. Enforces the `bd create -t decision` canonical primitive per the bd-decision-canonical architecture principle (gascity triage 2026-06-26, LD #10 + AP2). Refuses to write decisions to non-`bd decision` stores (no markdown files, no custom jsonl writes, no `bd remember`-with-decision-content). Trigger phrases include "record a decision", "log this decision", "file the verdict", "this needs to be a decision-record", "preserve this for posterity", or any moment when an agent or human surfaces a verdict / rationale / chosen-alternative that should survive across sessions and be queryable by future work.
 ---
 
 > **Canonical copy**: `mathcity.record-decision` in gascity-packs. This agent-skills copy is retained as fallback.
@@ -13,17 +13,17 @@ The canonical way to record a decision in the gascity / beads substrate. **Don't
 
 A "decision" is **a verdict that closes deliberation**, with a recorded rationale and alternatives. Examples:
 
-- Taylor adjudicates a brief: "use iCloud Drive for backups, not DoltHub Pro"
 - A worker reaches a verdict on an architecture choice: "math-pack is the canonical home for our custom substrate"
 - A policy lock: "all hard gates → TOML formalized"
-- A brief-pipeline verdict: "consolidate the 3 parallel specs via lineage-audit-then-union"
 - A gate-criterion addition: "add DEFER-ratify-existing-HELD to no-brainer classifier"
+- A push / kill-switch / server-touching authorization (these stay standalone decision beads)
 
 A "decision" is **NOT**:
 - An ephemeral observation → use a comment or chat
 - A cross-session **fact** that isn't a chosen-alternative → use `bd remember` (memories) instead
 - A TODO / task / work item → use `bd create` with `--type task`/`feature`/`bug`/etc.
 - A judgment that needs human review before recording → that's a brief; use the brief-pipeline (see `[[brief-prep]]`)
+- **A brief verdict** → one-bead model (brief-system POLICY.md B2.2): the brief bead is already `type=decision`; record the verdict fields ON the brief bead and close it — creating a second decision bead for a brief is a policy violation
 
 ## How (canonical command)
 

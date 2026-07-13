@@ -31,7 +31,9 @@ lock = ".beads/briefs/.shuffle.lock"
 # enablers. Semantics per level: file exists AND reads `false` -> halt
 # auto-execution; absent or `true` -> proceed. Check order: city-wide first,
 # then rig-level. Engaging or releasing a switch requires explicit Taylor
-# authorization recorded as a decision bead.
+# authorization recorded as a STANDALONE decision bead (a kill-switch
+# authorization record — its own bead, NOT a brief verdict; unaffected by
+# the one-bead model).
 # (Supersedes the old opt-in ALLOW_NO_BRAINER_AUTO_EXECUTE file, whose
 # EXISTENCE enabled automation.)
 kill_switch_city = "~/gt/.beads/auto_merge_enabled"

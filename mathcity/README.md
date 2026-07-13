@@ -15,7 +15,7 @@ The brief system is a structured decision pipeline for math research work. When 
 
 The pipeline has two main phases. In the production phase, `brief-prep` (a skill that composes `grill-and-present`, `coordinate-review`, and the gate runner) prepares the brief from the source artifact, runs all required gates, and deposits the result into the `.pile` at `~/.gc/mathcity/briefs/.pile/`. The `brief-shuffle-pile` order fires on condition, picks up pile items one at a time, applies gate-keep rules, and either promotes each brief to the `~/.gc/mathcity/briefs/stack/` with a manifest entry or rejects it to `.pile/.rejected/`.
 
-In the adjudication phase, `brief-present-next` drains the stack and presents briefs to human. No-brainer-classified briefs are collapsed into a single one-line block; full briefs are rendered through `grill-and-present`. human adjudicates — approve, reject, defer, or revise. `brief-record-decision` records the verdict as a `bd decision` record. Then two event-driven orders fire on `brief.decided`: `brief-decision-dispatch` acts on the decision (merges the branch, creates a follow-up bead, or marks defer), and `post-decision-file-or-sendback` routes the brief itself to either a successor re-briefing or archive. The `brief-archive-sweep` cooldown order handles residual cleanup.
+In the adjudication phase, `brief-present-next` drains the stack and presents briefs to human. No-brainer-classified briefs are collapsed into a single one-line block; full briefs are rendered through `grill-and-present`. human adjudicates — approve, reject, defer, or revise. `brief-record-decision` records the verdict ON the brief bead itself (the brief bead is `type=decision` — one-bead model) and closes it; no separate decision bead is created. Then two event-driven orders fire on `brief.decided`: `brief-decision-dispatch` acts on the decision (merges the branch, creates a follow-up bead, or marks defer), and `post-decision-file-or-sendback` routes the brief itself to either a successor re-briefing or archive. The `brief-archive-sweep` cooldown order handles residual cleanup.
 
 ---
 
@@ -50,7 +50,7 @@ These skills ship with the parent pack (subdomain child packs carry their own �
 | `is-good-experiment` | Pre-flight check for experiment proposals. Decides whether a computation or research probe is well-designed before any compute is spent running it. |
 | `is-good-test` | Thin specialization of `is-good-experiment` for test files. Evaluates whether a test's design answers "does X work?" meaningfully. |
 | `present-it` | Produces a decision-ready brief on a code artifact. Enforces the Decision-at-Top invariant. Supports full-form and compact form outputs. |
-| `record-decision` | Records human adjudications, policy locks, and brief-pipeline verdicts using `bd create -t decision`. Refuses non-canonical stores. |
+| `record-decision` | Records standalone human adjudications and policy locks using `bd create -t decision`. Refuses non-canonical stores. Brief verdicts are the exception: they are recorded ON the brief bead itself (one-bead model), never as a second bead. |
 | `present-briefs` | Batch-presents N briefs in parallel and keeps a hot queue (≥2 pre-presented) with auto-backfill on each decision. |
 | `create-brief` | Produces the durable, gated `.md` brief artifact for the brief stack — the file-artifact sibling of `present-it`. |
 | `create-artifact` | Creator half of the review loop: produces a new artifact from a spec (dispatched by `coordinate-review` or directly). |
@@ -88,7 +88,7 @@ Formulas are the executable units the order system pours. Each is a `.toml` in `
 | `brief-gate-keep` | Runs the gate registry against one brief. Mechanical gates checked by scripts; judgment gates as explicit work steps; stop/manual gates fail closed unless evidence records human authorization. |
 | `brief-prep` | Producer side of the brief-bundle workflow. Turns a bead, artifact, or user request into a staged brief with gate evidence attached, then submits to the pile. |
 | `brief-present-next` | Drains all pending stack briefs in one session. No-brainers are collapsed into one-line items; full briefs are rendered via `grill-and-present`. |
-| `brief-record-decision` | Records human's decision for a presented brief and archives the run. |
+| `brief-record-decision` | Records human's verdict on the presented brief's bead itself (one-bead model), closes it, and archives the run. |
 | `brief-shuffle` | Single-writer shuffler: processes at most one pile item per run, applies gate-keep, and either promotes to stack (with manifest append) or rejects to `.pile/.rejected/`. |
 | `brief-watchdog-refill` | Monitors the brief stack; when below target, identifies ready source work and opens or routes brief-prep work. Does not fabricate briefs. |
 | `codex-dispatch` | Dispatches a task to the codex-worker for cross-model critical review, creative design, or large-plan analysis. Never fired by automated orders — pour explicitly only. |
@@ -149,7 +149,7 @@ Gates have developed into four kinds (so far):
 | G5b | user-skill-touching-exclusion | stop | User skill changes cannot pass shortcut automation without explicit human authorization. |
 | G6 | latex-gate | manual | LaTeX-bearing work needs the LaTeX gate outcome or an explicit no-LaTeX surface check. |
 | G7 | artifacts-staging | mechanical | Artifacts must be staged under the brief run directory and referenced from the brief. |
-| G8 | brief-record-bookkeeping | mechanical | Pile, stack, manifest, and decision/archive records must remain consistent. |
+| G8 | brief-record-bookkeeping | mechanical | Pile, stack, manifest, brief bead `type=decision`, and recorded-verdict/archive records must remain consistent. |
 | G9 | no-brainer-filter | review | Shortcut classification must be explicit and cannot override stop gates or human-only decisions. |
 | G10 | improve-readme | mechanical | Each qualifying iteration must show the README improvement or explain why no README surface exists. |
 | G11 | breadcrumb | mechanical | Experiment or deferred work must leave a durable breadcrumb to the source, artifacts, and next owner. |
@@ -188,7 +188,7 @@ A single brief cycle from artifact to decision proceeds as follows.
 
 5. **brief-present-next drains the stack.** human or the mayor triggers this manual order. All pending stack briefs are presented. No-brainer-classified briefs appear as a single collapsed block; full briefs are rendered one at a time through `present-it`. The Decision-at-Top invariant ensures the first content human sees is what is being decided.
 
-6. **human adjudicates.** human issues a verdict: approve, reject, defer, or revise. The `record-decision` skill (via `brief-record-decision`) writes the decision as a `bd decision` record and rings the `brief.decided` event.
+6. **human adjudicates.** human issues a verdict: approve, reject, defer, or revise. `brief-record-decision` records the verdict fields on the brief bead itself (verdict + authorizer + rationale + date — one-bead model), closes the bead, and rings the `brief.decided` event.
 
 7. **Two event-driven orders fire in parallel.** `brief-decision-dispatch` acts on the verdict — merging the source branch on approve, creating a follow-up work bead on reject/revise, or recording a defer marker. `post-decision-file-or-sendback` routes the brief itself: FILE (a successor bead gets re-briefed) or SEND-BACK (the brief archives and the work returns to the originator).
 

@@ -28,9 +28,12 @@ Division of labor:
 - brief-decision-dispatch (formula) ACTS on approve/reject/revise/defer routing.
 
 Architecture principle:
-  AP2 — `bd decision` canonical: all decisions use `bd create -t decision` per
-  `record-decision` skill. No parallel decision stores. (gascity triage 2026-06-26,
-  LD #10 + W2.8b).
+  AP2 — `bd decision` canonical: standalone decisions use `bd create -t
+  decision` per `record-decision` skill. No parallel decision stores.
+  (gascity triage 2026-06-26, LD #10 + W2.8b).
+  One-bead model (brief-system POLICY.md B2.2, 2026-07-12): for BRIEF
+  adjudications the brief bead IS the decision bead — the verdict is recorded
+  on the brief bead and the bead is closed; no second bead is created.
 """
 formula = "decision-enforce"
 version = 1
@@ -50,7 +53,7 @@ required = true
 pattern = "^[A-Za-z0-9_-]+$"
 
 [vars.brief_slug]
-description = "Brief slug whose decision record to verify. If empty, CHECK-A skips the brief-pipeline record check and only verifies the bd decision bead."
+description = "Brief slug whose decision record to verify. If empty, CHECK-A skips the brief-pipeline record check and only verifies the bd type=decision bead (the brief bead itself under the one-bead model)."
 default = ""
 
 [vars.artifact_root]
@@ -87,9 +90,12 @@ metadata (`source_bead` key) or description. It also checks
 non-empty (brief-pipeline decision records are a second surface to verify).
 
 Exit 0 = at least one canonical `bd decision` record found → proceed.
+  (Under the one-bead model the brief bead itself — `type=decision`, closed
+  with verdict fields — satisfies this.)
 Exit 1 = no decision record found → BLOCK: the work item cannot advance until
-  `mathcity.record-decision` is used to file the verdict via
-  `bd create -t decision`.
+  the verdict is recorded on the brief bead and the bead closed (one-bead
+  model, B2.2) — or, for standalone non-brief decisions, until
+  `mathcity.record-decision` files it via `bd create -t decision`.
 Exit 2 = `bd` unavailable or query error → fail closed (treat as missing).
 
 When this step exits non-zero, downstream steps are blocked and the

@@ -32,19 +32,26 @@ Rule-ID letters: **B** = brief production/lifecycle/closure/package
 *These definitions override any conflicting language anywhere else. The bead
 store is the source of truth; the filesystem is a cache.*
 
-- **Brief.** A brief is a **bead** that is in exactly one of two adjudication
-  states: **adjudicated** or **not adjudicated**. It is attached to another
-  bead or collection of beads — its **source** — via bead dependencies.
+- **Brief.** A brief is a **bead of type `decision`** that is in exactly one
+  of two adjudication states: **adjudicated** or **not adjudicated**. It is
+  attached to another bead or collection of beads — its **source** — via bead
+  dependencies. A brief bead is created with bd `type=decision` (mechanically
+  checkable; G8/G13 can verify the type).
 - **Source.** The bead(s) whose disposition the brief exists to decide. Every
   brief bead links its source(s) through the dependency graph; a brief with no
   source link is malformed (B2.1).
 - **Adjudication.** The event where Taylor (or authorized automation, see
-  N-rules) renders a verdict on the brief. Adjudication ALWAYS produces a
-  **decision bead** attached to the brief bead. A brief is adjudicated **if
-  and only if** a decision bead references it.
-- **Decision bead.** A bead of type `decision` (a real, documented `bd` type).
-  It records verdict, rationale, and authorizer, and is linked to the brief
-  bead it adjudicates.
+  N-rules) renders a verdict on the brief. Adjudication records the verdict
+  fields ON the brief bead itself — verdict, authorizer, one-line rationale,
+  date (plus confidence/category for auto-executions) — and then closes the
+  bead. A brief is adjudicated **if and only if** its bead carries a recorded
+  verdict and is closed. There is NO separate attached decision bead
+  (one-bead model).
+- **Decision bead.** A bead of type `decision` (a real, documented `bd`
+  type). **The brief bead IS the decision bead** — one bead per brief.
+  Decision beads created for OTHER purposes (push authorizations, kill-switch
+  engagement/release, non-brief adjudications) remain their own standalone
+  beads; only the brief/decision-bead pairing is collapsed.
 - **No-resurface invariant.** An adjudicated brief can NEVER resurface for
   presentation. A deferred brief cannot resurface within its defer window.
   Presenters filter mechanically on these conditions (B2.3, B2.7).
@@ -88,7 +95,7 @@ table, and each gate's `rules` field must name the rule IDs listed here
 | G5b | user-skill-touching-exclusion | stop | Changes to user skill directories never pass shortcut automation without explicit Taylor authorization | N3, B1.3 |
 | G6 | latex-gate | manual | LaTeX-bearing work carries the LaTeX gate outcome, or an explicit no-LaTeX surface check | L1–L4 |
 | G7 | artifacts-staging | mechanical | Artifacts staged under the brief run directory and referenced from the brief | E6 |
-| G8 | brief-record-bookkeeping | mechanical | Bead records, source links, pile membership, decision/archive records all consistent | B1.7, B2.9, B3.3, N7 |
+| G8 | brief-record-bookkeeping | mechanical | Bead records (brief bead `type=decision`), source links, pile membership, recorded-verdict/archive records all consistent | B1.7, B2.9, B3.3, N7 |
 | G9 | no-brainer-filter | review | Shortcut classification is explicit and cannot override stop gates or Taylor-only decisions | N1–N4 |
 | G10 | improve-readme | mechanical | Qualifying changes show the README improvement or why no README surface exists | D1, B4.3 |
 | G11 | breadcrumb | mechanical | Experiment/deferred work leaves a durable breadcrumb: source, staged artifacts, next owner | D4, E6 |
@@ -157,10 +164,11 @@ without asking follow-up questions.*
   missing evidence, and — per B1.5 — any question the brief would force
   Taylor to ask. A brief deposited without a G4 record → mechanical failure.
 - **B1.7 Bookkeeping is always required (G8).** After deposit: the brief
-  bead, its source links, the pile query, and the decision/archive records
-  must remain consistent. A brief deposited without its bead record, or an
-  adjudicated brief whose decision bead is missing, → G8 FAIL. Filesystem
-  manifest consistency is subordinate to bead consistency (B2.8).
+  bead, its source links, the pile query, and the recorded-verdict/archive
+  records must remain consistent. A brief deposited without its bead record,
+  or an adjudicated brief whose bead lacks recorded verdict fields or remains
+  open, → G8 FAIL. Filesystem manifest consistency is subordinate to bead
+  consistency (B2.8).
 - **B1.8 Specialized evidence follows its own rule set.** Test evidence →
   T-rules. Experiment design → E-rules. LaTeX surface → L-rules.
   README/documentation → D-rules. A brief citing "gates pass" without the
@@ -174,31 +182,34 @@ without asking follow-up questions.*
 *The bead IS the brief. Adjudication is a one-way door. The pile is ordered
 by what adjudication unlocks, not by arrival time.*
 
-- **B2.1 A brief is a bead with a source link.** Every brief is materialized
-  as a bead, linked to its source bead(s) via the dependency graph. Mechanical
-  check: showing the brief bead lists at least one source dependency. A brief
-  file with no corresponding bead, or a brief bead with no source link, is
-  malformed and cannot enter the pile.
-- **B2.2 Adjudication attaches a decision bead.** Rendering a verdict on a
-  brief REQUIRES creating a decision bead linked to the brief bead, recording:
-  verdict (approve/revise/reject/defer-with-record), rationale, authorizer
-  (Taylor, or the automation identity for N-rule auto-execution), and date.
-  Mechanical check: adjudicated ⇔ a decision bead references the brief bead.
-  A verdict recorded only in conversation, only in a journal file, or only in
-  a markdown file is NOT an adjudication — those channels remain required as
-  redundancy, but the decision bead is the canonical record.
-- **B2.3 No resurface after adjudication — EVER.** Once a brief has a
-  decision bead attached, it can never be presented again. Presenters and any
-  pile-reading process MUST filter out beads with attached decision beads
-  before presenting. Re-presenting an adjudicated brief is a pipeline failure
-  of the same class as N6. If circumstances change after adjudication, the
-  remedy is a NEW brief bead (linking the old brief and its decision bead as
-  sources), never reopening the old one.
+- **B2.1 A brief is a `type=decision` bead with a source link.** Every brief
+  is materialized as a bead created with bd `type=decision`, linked to its
+  source bead(s) via the dependency graph. Mechanical check: the brief bead
+  has `type=decision` and lists at least one source dependency. A brief file
+  with no corresponding bead, a brief bead of any other type, or a brief bead
+  with no source link, is malformed and cannot enter the pile.
+- **B2.2 Adjudication records the verdict on the brief bead.** Rendering a
+  verdict on a brief REQUIRES recording on the brief bead itself: verdict
+  (approve/revise/reject/defer-with-record), one-line rationale, authorizer
+  (Taylor, or the automation identity for N-rule auto-execution), and date —
+  then closing the bead. No separate decision bead is created (one-bead
+  model). Mechanical check: adjudicated ⇔ the brief bead carries recorded
+  verdict fields and is closed. A verdict recorded only in conversation, only
+  in a journal file, or only in a markdown file is NOT an adjudication —
+  those channels remain required as redundancy, but the brief bead is the
+  canonical record.
+- **B2.3 No resurface after adjudication — EVER.** Once a brief bead is
+  closed with a recorded verdict, it can never be presented again. Presenters
+  and any pile-reading process MUST filter to open brief beads (a simple
+  state check on the brief bead) before presenting. Re-presenting an
+  adjudicated brief is a pipeline failure of the same class as N6. If
+  circumstances change after adjudication, the remedy is a NEW brief bead
+  (linking the old brief bead as a source), never reopening the old one.
 - **B2.4 One fixed pile.** Unadjudicated briefs accumulate in exactly one
-  pile. Canonical membership is the bead query: open brief beads with no
-  attached decision bead and no active defer window. There are no side-piles,
-  per-agent piles, or "urgent" bypass piles; urgency is expressed through
-  ordering (B2.5), not location.
+  pile. Canonical membership is the bead query: open `type=decision` brief
+  beads with no active defer window. There are no side-piles, per-agent
+  piles, or "urgent" bypass piles; urgency is expressed through ordering
+  (B2.5), not location.
 - **B2.5 Ordering = unlock count.** Briefs are ordered for presentation by
   `priority(brief) = unlock_count` — the number of downstream beads that
   adjudicating this brief unblocks (transitively, via the dependency graph).
@@ -212,7 +223,8 @@ by what adjudication unlocks, not by arrival time.*
   artifact rather than dripped one at a time indefinitely. Threshold: when ≥3
   pile briefs share a natural cluster, the presenter MUST produce a cohort
   docket. Cohort verdicts may split per-item (hybrid/MIXED shapes are
-  expected); each item still gets its own decision bead per B2.2.
+  expected); each item's verdict is still recorded on its own brief bead per
+  B2.2.
 - **B2.7 Defer is first-class and timed.** Taylor may skip any presented
   brief and defer it for X days, with X specified by Taylor at defer time
   (implemented as a timed bead defer). A deferred brief (a) leaves the
@@ -220,10 +232,10 @@ by what adjudication unlocks, not by arrival time.*
   expires, and (c) counts toward the no-resurface rule within its window —
   presenting a deferred brief before expiry is a B2.3-class failure. On window
   expiry the brief re-enters the pile with unlock_count recomputed. Defer is
-  not adjudication: no decision bead is created for a defer unless Taylor asks
-  for one.
+  not adjudication: no verdict is recorded for a defer (the brief bead stays
+  open) unless Taylor asks for one.
 - **B2.8 Artifact root is the bead.** ALL brief state — adjudication status,
-  decision bead reference, source links, defer state, gate evidence pointers —
+  recorded verdict fields, source links, defer state, gate evidence pointers —
   lives in the bead store. Any filesystem layout (pile/stack/manifest files,
   archived brief documents) is an implementation detail and cache; it may be
   regenerated from bead state at any time. On any disagreement between
@@ -232,10 +244,11 @@ by what adjudication unlocks, not by arrival time.*
   present, defer, adjudicate, archive) is expressed as a bead operation first;
   file moves are derived.
 - **B2.9 Auto-executed briefs are still adjudicated.** No-brainer
-  auto-execution (N-rules) is an adjudication: it creates a decision bead
-  (authorizer = the automation identity + classifier evidence) attached to the
-  brief bead, and the brief then falls under B2.3 no-resurface like any other
-  adjudicated brief. Auto-execution with no decision bead → G8 FAIL.
+  auto-execution (N-rules) is an adjudication: it records the verdict on the
+  brief bead (authorizer = the automation identity + classifier evidence,
+  including confidence and category per N7) and closes it, and the brief then
+  falls under B2.3 no-resurface like any other adjudicated brief.
+  Auto-execution with no verdict recorded on the brief bead → G8 FAIL.
 
 ---
 
@@ -252,9 +265,10 @@ be closed at all.*
   "close it." Closing on vibes → fail.
 - **B3.2 Server-touching items require Taylor OK before close, not after.**
   A bead tagged `TAYLOR_OK_REQUIRED` or `server-touching` cannot be closed by
-  a worker without recorded explicit Taylor authorization: a decision bead per
-  B2.2, plus the redundant channels (journal entry, inline plan annotation, or
-  session statement). Closing first and noting the Taylor-OK-needed status
+  a worker without recorded explicit Taylor authorization: a standalone
+  authorization decision bead (an authorization record, NOT a brief verdict —
+  unaffected by the one-bead model), plus the redundant channels (journal
+  entry, inline plan annotation, or session statement). Closing first and noting the Taylor-OK-needed status
   later → policy violation.
 - **B3.3 Downstream beads must not be orphaned on close.** Before closing a
   bead, check: does any open bead list this as a dependency? If so, the
@@ -290,9 +304,9 @@ be closed at all.*
   landers, and no-brainer executors must exclude such beads. (`type:
   research-journal` is not a real bd type; inventing bd types is itself a
   policy violation — only real, documented types are ever used.)
-- **B3.8 Adjudicated briefs close through their decision bead.** Closing a
-  brief bead without an attached decision bead is a B2.2 violation. The close
-  reason must reference the decision bead ID.
+- **B3.8 Adjudicated briefs close with their verdict.** Closing a brief bead
+  without the B2.2 verdict fields recorded on it is a B2.2 violation. The
+  close reason must state the verdict.
 
 ---
 
@@ -379,10 +393,13 @@ default; the kill switch is a brake, not a parking brake.*
   the classifier returns a confident cat-A/B/C/D classification AND all stop
   gates pass (N3, N4, plus the `no_brainer` gate profile), the brief
   auto-executes WITHOUT surfacing to Taylor, and is archived per B2.9
-  (decision bead + no-resurface). **Kill switch hierarchy (two levels):**
-  automation runs unless a kill switch is ENGAGED at either level — city-wide
-  takes precedence, then rig-level. Engaging or releasing a kill switch
-  requires explicit Taylor authorization, recorded as a decision bead.
+  (verdict recorded on the brief bead + bead closed + no-resurface).
+  **Kill switch hierarchy (two levels):** automation runs unless a kill
+  switch is ENGAGED at either level — city-wide takes precedence, then
+  rig-level. Engaging or releasing a kill switch requires explicit Taylor
+  authorization, recorded as a STANDALONE decision bead (a kill-switch
+  authorization record — its own bead, not a brief verdict; unaffected by
+  the one-bead model).
   - **City-wide switch** (`~/gt/.beads/auto_merge_enabled`): if this file
     exists and reads `false`, ALL rigs halt auto-execution. Absent or `true`
     → proceed to rig check.
@@ -399,19 +416,19 @@ default; the kill switch is a brake, not a parking brake.*
   asking Taylor to accept more noise.
 - **N7 Auto-execution leaves a full audit trail.** Every auto-executed
   no-brainer must have: the classifier output (category, **confidence
-  score**, stop-gate flags) staged as evidence, the decision bead (B2.9)
-  naming the automation as authorizer, and the archive record. The decision
-  bead notes field MUST include `confidence:<float>` and `category:<cat>`
-  from the classifier output so the empirical wrong rate α can be estimated
-  from the ledger (N8). Missing any element → G8 FAIL. Taylor can audit the
+  score**, stop-gate flags) staged as evidence, the verdict recorded on the
+  brief bead (B2.9) naming the automation as authorizer, and the archive
+  record. The brief bead's verdict notes MUST include `confidence:<float>`
+  and `category:<cat>` from the classifier output so the empirical wrong
+  rate α can be estimated from the ledger (N8). Missing any element → G8 FAIL. Taylor can audit the
   auto-executed stream at any time; an unauditable auto-execution is grounds
   for engaging the kill switch.
 - **N8 Classifier accuracy is measured, not assumed.** The threshold for
   auto-execution is `confidence >= 0.85`. Whether that confidence is
   calibrated — i.e., whether 85%-confident classifications are correct 85%+
   of the time — is an empirical question answered from the audit ledger, not
-  assumed. The N7 confidence and category fields in decision beads are the
-  substrate for this measurement. Compute α (empirical wrong rate) per
+  assumed. The N7 confidence and category fields recorded on adjudicated
+  brief beads are the substrate for this measurement. Compute α (empirical wrong rate) per
   category from the ledger once a replay harness exists. If α for any
   category exceeds `S/(S+T)` (where S = Taylor's decision time and T =
   execution time for that category), auto-execution for that category is
@@ -593,8 +610,8 @@ corrupt live database state.*
 - **S4 Per-item Taylor OK for each TAYLOR_OK_REQUIRED bead.** Taylor OK is
   not transitive. Authorizing the dry-run sweep does NOT authorize the
   recompute batch. Each TAYLOR_OK_REQUIRED bead in a convoy requires its own
-  recorded authorization — a decision bead (B2.2) plus the redundant
-  journal/annotation channels.
+  recorded authorization — a standalone authorization decision bead (B3.2;
+  not a brief verdict) plus the redundant journal/annotation channels.
 - **S5 Long-running recomputes queue early.** Recompute jobs that take hours
   to days should be queued as early as possible so they run in parallel with
   code work. A bead that blocks a downstream step and has a multi-day
@@ -617,30 +634,32 @@ corrupt live database state.*
 
 ## Verdict vocabulary
 
-Every verdict except defer is an adjudication and creates a decision bead
-(B2.2).
+Every verdict except defer is an adjudication: the verdict is recorded on
+the brief bead and the bead is closed (B2.2).
 
 - **approve** — all applicable rules pass; brief or work item is clean to
-  proceed (gates all have evidence or explicit N/A). Decision bead created;
-  brief archived; no resurface.
-- **revise** — fixable violations; the decision bead names the specific
+  proceed (gates all have evidence or explicit N/A). Verdict recorded on the
+  brief bead; bead closed; brief archived; no resurface.
+- **revise** — fixable violations; the recorded verdict names the specific
   rule(s) broken, the artifact that triggered each, and a compact brief that
   seeds the fix. The REVISED artifact returns as a NEW brief bead (linked to
-  the old brief + decision bead) — the original brief does not resurface.
+  the old brief bead) — the original brief does not resurface.
 - **reject** — the approach itself violates a rule with no workaround (e.g.,
   server-touching without authorization; experiment with no falsifiable
-  question). Decision bead created; send back for a different approach via a
-  new brief.
+  question). Verdict recorded and bead closed; send back for a different
+  approach via a new brief.
 - **defer** — Taylor skips the brief for X days (Taylor specifies X). NOT an
-  adjudication: implemented as a timed bead defer; no decision bead unless
-  requested; the brief re-enters the pile after expiry (B2.7).
+  adjudication: implemented as a timed bead defer; no verdict recorded (the
+  bead stays open) unless requested; the brief re-enters the pile after
+  expiry (B2.7).
 
 ---
 
 ## Non-negotiables (quick checklist)
 
-- A brief is a bead; adjudication attaches a decision bead; adjudicated
-  briefs NEVER resurface (B2.1–B2.3).
+- A brief is a bead of type `decision` — the brief bead IS the decision
+  bead; adjudication records the verdict on the brief bead and closes it;
+  adjudicated briefs NEVER resurface (B2.1–B2.3).
 - One fixed pile; ordering by unlock_count, largest-unblock first; ≥3 similar
   briefs → one docket (B2.4–B2.6).
 - Defer is timed; deferred briefs stay hidden until expiry (B2.7).
@@ -652,9 +671,9 @@ Every verdict except defer is an adjudication and creates a decision bead
   failure (B1.5).
 - No-brainer auto-execute is ON by default for confident
   (`confidence >= 0.85`) cat-A/B/C/D past all stop gates; kill switch = file
-  present AND `false` (N5); every auto-execution leaves a decision bead +
-  audit trail including `confidence` and `category` (N7/B2.9); empirical
-  wrong rate α measured from the ledger (N8).
+  present AND `false` (N5); every auto-execution leaves a recorded verdict
+  on the brief bead + audit trail including `confidence` and `category`
+  (N7/B2.9); empirical wrong rate α measured from the ledger (N8).
 - Stop gates G5 (server), G5b (user-skill), L4 (notes.tex/LaTeX) override any
   classification (N3).
 - G1 evidence = command + scope + exit code + output + date; G16 base-ref;
@@ -717,3 +736,4 @@ Every verdict except defer is an adjudication and creates a decision bead
 | 2026-07-12 | Companion fix (PP4.2/PP4.4): `rules = [...]` backfilled on all 17 gates in `mathcity/assets/brief-pipeline/gates.toml` | Same audit (gsp-bf9x); reverse traceability required before adoption |
 | 2026-07-12 | Adopted | Adopted per Taylor D1 verdict, gt-83um7, findings fixed per 19:25 verdict (executed under gsp-bf9x) |
 | 2026-07-12 | **Self-contained rewrite.** Restructured as a standalone source of truth per Taylor directive: Authority section added (this document defines, others implement); gate inventory + profiles inlined as a human-readable table; full-form (§1–§7 grill order) and compact templates inlined; skill-file, memory, and script references removed from rule bodies (rules now state their criteria directly); References section removed. All rule IDs (B1.1–B4.6, N1–N8, L1–L4, E1–E7, T1–T7, D1–D4, S1–S7) and their substance unchanged — gates.toml `rules` mappings remain valid. | Taylor directive 2026-07-12: "the policy needs to be the source of truth and not farm out to other documents" |
+| 2026-07-12 | One-bead model: brief bead IS the decision bead (type=decision); verdict recorded on the brief bead; B2.2/B2.3/B2.4/B2.9 + G8 reworded; separate attached decision beads abolished | Taylor verdict (grilling Q4): "the brief itself is the thing"; PP1.9 bead-bloat minimization |
