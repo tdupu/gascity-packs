@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Date | 2026-07-12 |
-| Version | 1.1 |
+| Version | 1.2 |
 | Status | Adopted |
 | Decided | Taylor Dupuy |
 | Applies to | All policy documents inside the `mathcity` pack and its subdomains |
@@ -26,7 +26,7 @@ Governs what a policy document IS, how policy domains are structured, how rules 
 ## Pillar 1 — Policy structure (PP1.x)
 
 - **PP1.1 Every live policy domain has exactly one trinity.** POLICY.md + check-X-policy + new-X-policy. No partial adoption: a domain with a POLICY.md but no check skill is incomplete and the POLICY.md is not enforceable.
-- **PP1.2 POLICY.md is the source of truth.** check-X-policy audits against it. new-X-policy amends it. Skills, formulas, and gates.toml cite rule IDs — not prose summaries — so they stay in sync when rules are renumbered or deprecated.
+- **PP1.2 POLICY.md is the source of truth.** check-X-policy audits against it. new-X-policy amends it. Skills, formulas, and gates.toml cite rule IDs — not prose summaries.
 - **PP1.3 check-X-policy is read-only.** It reports drift (approve / revise / defer). It never mutates bead state, files, or config. A check skill that writes anything is a PP1.3 violation.
 - **PP1.4 new-X-policy is the sole write path for rules.** Rules enter, change, or exit only by Taylor approving a `new-X-policy` proposal. Editing POLICY.md in place without going through new-X-policy is a violation, even for typo fixes: update via a new-X-policy micro-proposal, commit, done.
 - **PP1.5 Rule IDs are globally unique and immutable.** The prefix registry enforces uniqueness across domains. Once a rule ID appears in any committed POLICY.md, it is permanent: the rule may be deprecated (status: deprecated in the rule entry) but the ID is never reassigned to a different rule.
@@ -34,6 +34,7 @@ Governs what a policy document IS, how policy domains are structured, how rules 
 - **PP1.7 Policy wins over implementation.** On any conflict between an Adopted POLICY.md and an artifact that implements or enforces it (skill, formula, gates.toml entry, script, memory, dashboard), the policy governs. Agents follow the policy; the artifact is drift — file a repair bead same-session. An artifact is never grounds to reinterpret, soften, or effectively amend a rule.
 - **PP1.8 Concision.** If two phrasings of a rule produce identical pass/fail outcomes, the shorter is correct. Rule bodies state the requirement and its pass/fail criterion; rationale lives in the Change Log; examples only where the criterion is otherwise ambiguous. Applies to policy documents, not code or skills. Length justified by pass/fail sharpness is never a violation.
 - **PP1.9 Minimize bead bloat.** Bead bloat is the memory occupied by the Dolt repo. Policies must prefer designs that minimize it: beads carry identity, state, verdicts, and pointers; bulky artifacts (documents, evidence, transcripts, logs) live in the filesystem keyed by bead ID, with the bead pointing to them. Exception: content required for a bead to be adjudicable stand-alone (a verdict, a one-line rationale) belongs in the bead. A rule mandating bulky content in bead bodies without justifying why file-plus-pointer won't do is a violation.
+- **PP1.10 Derived answers are not decisions.** A question whose answer is determined by an Adopted rule is resolved by derivation — act on the rule and cite its ID; never surface it to Taylor as a decision. Surfacing a policy-derivable question is a violation (the determining rule ID is the evidence). Exception: a genuinely ambiguous derivation — two Adopted rules pulling opposite ways with no precedence clause — is a PP6.1(c) conflict and goes to Taylor.
 
 ---
 
@@ -45,7 +46,7 @@ Governs what a policy document IS, how policy domains are structured, how rules 
 
 - **PP2.2 Adoption requires Taylor sign-off.** A Draft transitions to Adopted when Taylor explicitly approves the document in conversation or via a decision bead. The adopting date is recorded in the header table.
 - **PP2.3 Amendment goes through new-X-policy.** No in-place edits to an Adopted POLICY.md except via a new-X-policy proposal approved by Taylor. Each change is appended to the Change Log at the bottom of the document with its date and Taylor's rationale.
-- **PP2.4 Deprecated rules are tombstoned, not deleted.** A deprecated rule stays in the document with `~~strikethrough~~` title and `Status: deprecated (superseded by <new-id>)`. This preserves audit trails and prevents ID reuse.
+- **PP2.4 Deprecated rules are tombstoned, not deleted.** A deprecated rule stays in the document with `~~strikethrough~~` title and `Status: deprecated (superseded by <new-id>)`.
 - **PP2.5 Revision co-existence.** A Draft revision of an Adopted policy does NOT suspend the Adopted version: the last Adopted text remains in force until the revision is Adopted (one-way ratchet). The revision's header must name the commit hash or date of the Adopted text currently in force. Only one revision Draft may exist per domain at a time.
 - **PP2.6 Emergency amendment (hot-fix path).** For active-harm situations (data loss, credential exposure, runaway automation): Taylor's explicit in-conversation approval suffices to apply a rule change immediately, PROVIDED (a) a decision bead records it same-session; (b) the Change Log row is written same-session marked `EMERGENCY`; (c) a retroactive full `new-X-policy` proposal is filed within 7 days or the change auto-reverts to proposal status. This path is not usable for convenience edits — PP1.4's micro-proposal path remains the norm.
 
@@ -80,7 +81,7 @@ Governs what a policy document IS, how policy domains are structured, how rules 
 
 - **PP6.1 Cross-domain precedence.** On conflict between two Adopted domain policies: (a) an explicit written precedence clause in the relevant domain POLICY.md wins; (b) absent a clause, the domain whose "Applies to" header owns the subject matter wins; (c) genuinely ambiguous conflicts → defer to Taylor, never resolve by inference. Every pair of domains that cite each other normatively MUST carry an explicit precedence clause. *Known instance without a clause: brief-system (B3.7) ↔ bead-policy (BP2.4) — file remediation before adopting either.*
 - **PP6.2 Normative citations are acyclic.** Cross-domain citations are either normative (imports the other rule's force) or informational. Normative citation edges must form a DAG; a cycle is resolved by demoting one direction to informational and adding a PP6.1 precedence clause.
-- **PP6.3 Skill-violates-policy protocol.** When a check skill finds that another skill's behavior contradicts an Adopted rule: (a) the POLICY.md governs — agents follow the policy, not the skill; (b) a follow-up bead is filed against the offending skill in the same session; (c) repeated violation by an auto-executing skill is grounds for the N5 kill switch (`ALLOW_NO_BRAINER_AUTO_EXECUTE`). A skill-drift finding with no filed bead is a PP6.3 violation.
+- **PP6.3 Skill-violates-policy protocol.** When a check skill finds that another skill's behavior contradicts an Adopted rule: (a) the POLICY.md governs — agents follow the policy, not the skill; (b) a follow-up bead is filed against the offending skill in the same session; (c) repeated violation by an auto-executing skill is grounds for engaging the N5 kill-switch hierarchy (`auto_merge_enabled`, city-wide or rig-level). A skill-drift finding with no filed bead is a PP6.3 violation.
 
 ---
 
@@ -111,3 +112,6 @@ The canonical registry is at `mathcity/docs/rule-prefix-registry.md` (PP5.2). Do
 | 2026-07-12 | v1.1: add PP1.7 (policy wins over implementation) | Taylor directive; triggered by same-day F4 incident (check-brief-policy enforcing superseded N5 semantics) |
 | 2026-07-12 | v1.1: add PP1.8 (concision — shortest faithful phrasing) | Taylor directive: policies must inform humans and agents at minimum token cost |
 | 2026-07-12 | v1.1: add PP1.9 (minimize bead bloat) | Taylor directive (bulkiness policy, grilling session): bead bloat = Dolt repo memory; grounds the bead-state/file-content split |
+| 2026-07-12 | v1.2: add PP1.10 (derived answers are not decisions) | Taylor directive after the gate-table-authority question (answer already determined by PP1.2/PP1.7): "that is a no-brainer, because policy is the source of truth… that is a policy" |
+| 2026-07-12 | v1.2: PP6.3 parenthetical repointed from dead `ALLOW_NO_BRAINER_AUTO_EXECUTE` to the N5 `auto_merge_enabled` hierarchy | PP1.7 drift fix (F8); N5 semantics superseded 2026-07-12 |
+| 2026-07-12 | v1.2: PP1.8 concision — rationale clauses moved out of PP1.2 (rule-ID citations survive renumbering/deprecation) and PP2.4 (tombstones preserve audit trails and prevent ID reuse) into this log | PP1.8 compliance (post-as-36nz verification findings); pass/fail outcomes unchanged |
