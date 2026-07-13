@@ -45,19 +45,26 @@ ls ~/.claude/skills/new-brief-policy
 
 ### 2. Brief pipeline structure (B2.4, B2.8)
 
-Canonical pile and stack locations per `paths.toml`:
+Pipeline paths come from `paths.toml` and are RIG-RELATIVE (resolve against
+the rig root; live pilot: `~/gt/hecke`). Per B2.4/B2.8, canonical pile/stack
+MEMBERSHIP is a bead query (open brief beads with no attached decision bead
+and no active defer window); the filesystem layout audited here is an
+implementation-detail cache regenerable from bead state — on disagreement
+the bead store wins and the filesystem is repaired to match.
 
 ```bash
 PATHS_TOML=~/repos/gascity-packs/mathcity/assets/brief-pipeline/paths.toml
 cat "$PATHS_TOML"
-# Check pile and stack dirs exist:
-PILE_DIR=$(grep pile_dir "$PATHS_TOML" | ... )
-STACK_DIR=$(grep stack_dir "$PATHS_TOML" | ... )
+RIG_ROOT=~/gt/hecke
+PILE_DIR="$RIG_ROOT/$(grep '^pile ' "$PATHS_TOML" | awk -F'"' '{print $2}')"
+STACK_DIR="$RIG_ROOT/$(grep '^stack ' "$PATHS_TOML" | awk -F'"' '{print $2}')"
 ls "$PILE_DIR" "$STACK_DIR"
 ```
 
-Check: pile = `.beads/briefs/.pile/`, stack = `.beads/briefs/stack/`. Both
-must exist; neither may be an ad-hoc location.
+Check: pile = `<rig_root>/.beads/briefs/.pile/`, stack =
+`<rig_root>/.beads/briefs/stack/`. Both must exist; neither may be an
+ad-hoc location. Flag any filesystem/bead-store mismatch as cache drift to
+regenerate — never treat the files as the source of truth.
 
 ### 3. Ordering (B2.5)
 
@@ -92,21 +99,46 @@ for f in "$STACK_DIR"/*.md; do
 done
 ```
 
-### 5. No-brainer kill switch (N rules)
+### 5. No-brainer kill switch (N5)
 
-Check whether `ALLOW_NO_BRAINER_AUTO_EXECUTE` kill switch file exists:
+Audit the two-level kill-switch hierarchy (POLICY.md N5, Adopted
+2026-07-12). Auto-execute is the DEFAULT; a kill switch is a safety brake
+that halts automation only when its flag file EXISTS and reads `false`
+(absent or `true` → automation proceeds). Check city-wide first, then
+rig-level; city-wide takes precedence:
 
 ```bash
-KILL_SWITCH=$(grep kill_switch \
-  ~/repos/gascity-packs/mathcity/assets/brief-pipeline/paths.toml | \
-  awk -F'"' '{print $2}')
-HECKE_ROOT=~/gt/hecke
-if [ -f "$HECKE_ROOT/$KILL_SWITCH" ]; then
-  echo "Auto-execute: ON — confirm this is intentional"
-else
-  echo "Auto-execute: OFF (fail-safe)"
-fi
+RIG_ROOT=~/gt/hecke
+check_flag() {
+  f="$1"; label="$2"
+  if [ -f "$f" ] && [ "$(head -n 1 "$f" | tr -d '[:space:]')" = "false" ]; then
+    echo "$label: ENGAGED (auto-execution halted) — $f reads false"
+  elif [ -f "$f" ]; then
+    echo "$label: RELEASED — $f present, reads: $(head -n 1 "$f")"
+  else
+    echo "$label: RELEASED (auto-execute active, the default) — $f absent"
+  fi
+}
+check_flag ~/gt/.beads/auto_merge_enabled        "City-wide switch"
+check_flag "$RIG_ROOT/.beads/auto_merge_enabled" "Rig-level switch"
 ```
+
+Report each level as ENGAGED (halted) or RELEASED (auto-execute active,
+the default). Engaging or releasing a switch requires explicit Taylor
+authorization recorded as a decision bead — if either switch is ENGAGED,
+verify the authorizing decision bead exists and flag its absence.
+
+Drift check: any lingering reference to the superseded opt-in
+`ALLOW_NO_BRAINER_AUTO_EXECUTE` file (whose EXISTENCE used to enable
+automation — inverted relative to N5) is drift; flag it:
+
+```bash
+grep -rn "ALLOW_NO_BRAINER" ~/repos/gascity-packs/mathcity/ | \
+  grep -v 'subdomains/dev/docs/'   # dated planning docs are historical
+```
+
+This audit is read-only: report switch state; never create, edit, or
+remove a kill-switch file.
 
 ### 6. Stack freshness (B2.7 / B2.9)
 
@@ -124,12 +156,15 @@ that is more than 7 days old.
 
 ### 7. Decision record integrity (B3.x)
 
-Check that the `decisions/` directory and `decisions.jsonl` are non-empty
-if any briefs have been adjudicated:
+Per B2.2 the decision BEAD is the canonical adjudication record; the files
+checked here are redundancy channels. Check that `decisions.jsonl` (the
+ledger at the briefs root) is non-empty if any briefs have been
+adjudicated; the `decisions/` directory holds optional per-decision records
+and may be empty:
 
 ```bash
-ls ~/gt/hecke/.beads/briefs/decisions/ | wc -l
 wc -l ~/gt/hecke/.beads/briefs/decisions.jsonl
+ls ~/gt/hecke/.beads/briefs/decisions/ | wc -l
 ```
 
 ---
