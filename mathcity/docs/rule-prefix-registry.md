@@ -4,7 +4,7 @@ All rule ID prefixes for mathcity policies are reserved here. Rule IDs are globa
 
 | Prefix | Domain | POLICY.md home | Status | Example ID |
 | --- | --- | --- | --- | --- |
-| B, N, L, E, T, D, S | Brief system (multi-pillar) | `subdomains/brief-system/POLICY.md` | Draft (revision 2026-07-12) | B1.4, N5, L2, E3, T1, D2, S7 |
+| B, N, L, E, T, D, S | Brief system (multi-pillar) | `subdomains/brief-system/POLICY.md` | Adopted (2026-07-12) | B1.4, N5, L2, E3, T1, D2, S7 |
 | P | Dev / build hygiene | `subdomains/dev/POLICY.md` | Adopted (amended 2026-07-12) | P1.6, P5.3 |
 | SK | Agent skills | `agent-skills/POLICY.md` | Pending (file not yet written) | SK1.1 |
 | BP | Bead policy | `BEADPOLICY.md` (pack root) | Draft (2026-07-12) | BP1.1, BP4.3 |

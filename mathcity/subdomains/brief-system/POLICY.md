@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Draft revision (supersedes Adopted 2026-07-11 version) |
+| Status | Adopted (2026-07-12) — adopted per Taylor D1 verdict, gt-83um7, findings fixed per 19:25 verdict; supersedes the Adopted 2026-07-11 version |
 | Date | 2026-07-12 |
 | Decided | Taylor Dupuy |
 | Applies to | `mathcity-brief-system` subdomain — brief definition and lifecycle, pile/ordering, no-brainer automation, LaTeX gate, experiment gates, testing/spec gates, documentation gates, closure discipline, Magma package updates, server-touching work |
@@ -68,7 +68,7 @@ Rule-ID letters: **B** = brief production/lifecycle/closure/package (B1.x produc
 - **B3.4 Cross-repo work self-closes.** When a polecat ships work that spans repositories (e.g., a hecke bead whose commit touches `~/repos/hecke` and `~/repos/gascity-packs`), the polecat self-closes the work-bead on completion. Do NOT reassign to refinery or wait for Mayor to close. The work-bead is the polecat's responsibility from claim to close.
 - **B3.5 Convoy close requires all members closed.** An owned convoy (`gc convoy create --owned`) is only eligible for `gc convoy land` when ALL member beads are in a terminal state (CLOSED or superseded). A convoy landed with open members is a silent data loss — the open members lose their convoy context.
 - **B3.6 The all-closed check is never skipped for brief auto-merge.** No-brainer automation must check that all beads in scope are closed before executing. The phasemapping bug (text-scanning bead descriptions for "blocked") is a known regression surface — all closure checks must be against status values, not text content.
-- **B3.7 Research beads are NEVER closed destructively.** Two subtypes exist (see BEADPOLICY.md BP2): (a) **Math research** — original mathematical work (proofs, derivations, examples); these are `type: task` or `type: feature` with label `[RESEARCH_JOURNAL]`; math research is NEVER `type: spike`. (b) **Technical investigation** — code/infrastructure research (spike beads with `[RESEARCH_JOURNAL]`). In both cases, once the work contains extended notes/history without actionable remaining criteria, it must never be transitioned to CLOSED. The correct terminal state is **ARCHIVED** (upstream feature request pending). **Interim protocol:** (a) label the bead `[RESEARCH_JOURNAL]`, (b) protect it with `bd defer <id> --reason="research journal — ARCHIVED-equivalent, do not close"` so it leaves `bd ready` but stays in `bd list`. Mechanical check: any `bd close` targeting a `[RESEARCH_JOURNAL]`-labeled bead → policy violation; sweepers, convoy landers, and no-brainer executors must exclude such beads. See BEADPOLICY.md BP2 for the full math/tech distinction. Note: `type: research-journal` is not a real bd type — P5.3 violation.
+- **B3.7 Research beads are NEVER closed destructively.** Two subtypes exist (informational cross-ref: BEADPOLICY.md BP2): (a) **Math research** — original mathematical work (proofs, derivations, examples); these are `type: task` or `type: feature` with label `[RESEARCH_JOURNAL]`; math research is NEVER `type: spike`. (b) **Technical investigation** — code/infrastructure research (spike beads with `[RESEARCH_JOURNAL]`). In both cases, once the work contains extended notes/history without actionable remaining criteria, it must never be transitioned to CLOSED. The correct terminal state is **ARCHIVED** (upstream feature request pending). **Interim protocol:** (a) label the bead `[RESEARCH_JOURNAL]`, (b) protect it with `bd defer <id> --reason="research journal — ARCHIVED-equivalent, do not close"` so it leaves `bd ready` but stays in `bd list`. Mechanical check: any `bd close` targeting a `[RESEARCH_JOURNAL]`-labeled bead → policy violation; sweepers, convoy landers, and no-brainer executors must exclude such beads. Informational cross-ref (non-normative, per PP6.2): BEADPOLICY.md BP2 restates the math/tech distinction for the bead domain; the normative text for brief-system purposes is this rule. Note: `type: research-journal` is not a real bd type — P5.3 violation.
 - **B3.8 Adjudicated briefs close through their decision bead.** Closing a brief bead without an attached decision bead is a B2.2 violation. The close reason must reference the decision bead ID.
 
 ---
@@ -216,6 +216,12 @@ Reuses the brief-cycle Decision vocabulary — no parallel vocabulary introduced
 
 ---
 
+## Cross-domain precedence (PP6.1)
+
+- **brief-system ↔ bead-policy (BEADPOLICY.md, BP-rules).** For bead **typing and math-item lifecycle** subject matter (which bd type a research/math bead carries, when it becomes a research journal, reaping exclusions), **BEADPOLICY.md takes precedence** — its "Applies to" owns bead taxonomy. For **brief production, adjudication, pile mechanics, and closure-of-briefs** subject matter, **this POLICY.md takes precedence**. Citation directions per PP6.2: BP2.2–BP2.4 cite B3.7 **normatively** (BP→B); B3.7's cross-refs to BP2 are **informational** — the citation graph is acyclic. Remediation of the PP6.1 known instance (brief-system B3.7 ↔ bead-policy BP2.4) is tracked by bead `gsp-cwq6`; the substantive conflict was resolved in this revision by rewriting B3.7 to carry the math/tech split directly.
+
+---
+
 ## Upstream requests and known drift
 
 - **ARCHIVED lifecycle state** — file an upstream `bd` feature request for a first-class ARCHIVED status (not actionable, not dispatchable, permanently searchable) for research-journal beads; tracked as its own bead. Interim protocol in B3.7.
@@ -240,3 +246,16 @@ Reuses the brief-cycle Decision vocabulary — no parallel vocabulary introduced
 - bd memories: `industrial-engineering-dispatch-principles` (pull-not-push, priority = unlock_count, poka-yoke binary checks, scrap policy), `review-order-by-unlock-count`, `decision-recording-discipline`, `no-brainers-auto-execute`, `cohort-reassemble-pattern`
 - `mathcity/subdomains/dev/POLICY.md` — P-rule set for pack portability and boundary discipline (G5 server-touching is downstream of those P-rules; this file governs the brief-pipeline expression of that constraint)
 - `he-xkq3` (bead) — the live hecke gate registry that `gates.toml` was derived from; consult for hecke-specific gate calibration decisions
+
+---
+
+## Change Log
+
+| Date | Change | Rationale |
+| --- | --- | --- |
+| 2026-07-11 | Initial adoption (B/N/L/E/T/D/S rule set) | Taylor sign-off — brief-system policy-first foundation |
+| 2026-07-12 | Revision: B3.7 rewritten — hallucinated `type: research-journal` replaced with the math-research (`type: task`/`feature` + `[RESEARCH_JOURNAL]`) vs technical-investigation (`type: spike` + `[RESEARCH_JOURNAL]`) split, per dev POLICY.md P5.3 | Taylor 2026-07-12 grilling: real bd types only; reconciles with BEADPOLICY.md BP2.4 |
+| 2026-07-12 | Revision: N5 revised to auto-execute-by-default with two-level kill-switch hierarchy (city-wide then rig-level), superseding the previous fail-closed rule; N8 added (classifier accuracy measured from the audit ledger, `confidence >= 0.85` threshold, α vs S/(S+T) test); confidence field wired through N2/N7 | Taylor directive: no-brainers auto-execute; calibration is empirical, not assumed |
+| 2026-07-12 | PP6.1 pairwise precedence clause added (brief-system ↔ bead-policy); B3.7 → BP2 citations demoted to informational per PP6.2 (normative direction is BP→B only); remediation bead `gsp-cwq6` | check-policy-policy audit findings (gsp-bf9x); Taylor verdict gt-83um7: fix all findings, re-audit, adopt iff clean |
+| 2026-07-12 | Companion fix (PP4.2/PP4.4): `rules = [...]` backfilled on all 17 gates in `mathcity/assets/brief-pipeline/gates.toml`, mapping each gate to the B/N/L/E/T/D/S rules it enforces (G3, G9, G13 mappings derived from gate descriptions — no rule names them directly) | Same audit (gsp-bf9x); reverse traceability required before adoption |
+| 2026-07-12 | Adopted | Adopted per Taylor D1 verdict, gt-83um7, findings fixed per 19:25 verdict (executed under gsp-bf9x) |
