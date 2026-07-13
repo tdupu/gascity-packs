@@ -121,7 +121,17 @@ After the initial batch:
 1. Track which artifacts have been presented (in-session set).
 2. Immediately pre-load the next N items from the remaining queue in the background.
 3. When the user makes a decision on any brief:
-   - Acknowledge: "Decision recorded: [artifact] → [choice]"
+   - Look up the full slug from the manifest (find `manifest.jsonl` entry where `source == artifact_id`; use its `slug` field)
+   - Invoke `brief-record-decision` via `gc sling`:
+     ```bash
+     # Identify rig from brief path (e.g. ~/gt/hecke/.beads/briefs → hecke)
+     gc sling <rig>/gc.run-operator brief-record-decision --formula \
+       --var brief_slug=<slug> \
+       --var decision=<approve|reject|revise|defer> \
+       --var reason="<Taylor's stated reason, or empty string>"
+     ```
+     Map Taylor's words: "approve"/"yes"/"ship it" → `approve`; "reject"/"no"/"drop it" → `reject`; "revise"/"fix it"/"update it" → `revise`; "defer"/"later"/"not now"/"skip" → `defer`.
+   - Acknowledge: "Decision recorded: [artifact] → [choice] (brief-record-decision slung)"
    - Present the next pre-loaded brief immediately (no wait)
    - Pre-load one more from the queue to refill the hot slot
 4. The user should never wait for a presentation to be generated.
@@ -167,6 +177,6 @@ On each decision: `hot.pop(0)` → present immediately; `queue.pop(0)` → fan o
 ## What this skill does NOT do
 
 - Does not create or modify briefs (that's `/brief-prep`)
-- Does not record decisions (that's Mayor or Taylor directly)
+- Does not record decisions unilaterally — Taylor's verdict is the trigger; this skill invokes `brief-record-decision` after each verdict
 - Does not call `bd close` on any bead
 - Does not push any commits
