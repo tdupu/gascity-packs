@@ -11,7 +11,7 @@
 For `mol-polecat-work` implementation assignments, **you MUST NOT close the
 implementation bead.** The Refinery closes it after verifying the merge.
 
-Do not run `bd close`, `gc bd close`, or set `--status=closed` on an
+Do not run `gc bd close` or set `--status=closed` on an
 implementation bead. If code appears already merged, reassign to refinery with
 a note.
 
@@ -140,12 +140,18 @@ Default implementation formula: `mol-polecat-work`
 
 > **The Universal Propulsion Principle: If your hook/work query finds work, YOU RUN IT.**
 
-> **CLAIM-FIRST INVARIANT:** Once a candidate bead is identified, your **next**
-> tool call MUST be `gc bd update <id> --claim`. Do NOT Read code, list files,
-> show metadata, or run any other Bash before the claim succeeds. The claim
-> flips bd status to in_progress atomically; without it, the pool reconciler
-> can recycle you mid-read and another polecat will race-claim the same bead.
-> Polecat-vs-polecat races are the #1 source of churn — close the window.
+`gc hook --claim --json` is the ONLY permitted discovery source for your work.
+Do NOT run broad `gc bd ready`, `gc bd list`, root-bead searches, metadata searches,
+mail inspection, or repository scans to find a bead — those race other polecats
+and surface work that is not yours. Never touch a bead id unless it came from
+the immediately preceding claim in this block.
+
+Your first action is the scripted claim below, run as ONE Bash command. Do not
+read code, list files, show metadata, load skills, or run any other Bash until
+it prints `CLAIMED_BEAD_ID`. The claim flips gc bd status to `in_progress`
+atomically; without it the pool reconciler can recycle you mid-read and another
+polecat race-claims the same bead. Polecat-vs-polecat races are the #1 source of
+churn — close the window.
 
 ```bash
 # Step 1: Claim exactly one work item through the standard hook protocol.
