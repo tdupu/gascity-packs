@@ -55,7 +55,10 @@ default = "gc.run-operator"
 
 [vars.review_target]
 description = "Run target for the Taylor-only approval routing."
-default = "gastown.mayor"
+# Presents evidence to Taylor for approval; no gc.* role maps to a human-facing
+# presenter, so gc.run-operator is the routable default. Cities importing the
+# gastown pack may pass gastown.mayor.
+default = "gc.run-operator"
 
 # ---------------------------------------------------------------------------
 # Step 1 — Produce the check-latex evidence block (F1a skill).

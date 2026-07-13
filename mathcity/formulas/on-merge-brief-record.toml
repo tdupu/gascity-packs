@@ -44,11 +44,12 @@ description = "Post-merge hook: create a brief-record and enter brief-prep when 
 [vars]
 [vars.prep_target]
 description = "Run target for brief-prep bookkeeping steps."
-default = "gastown.dog"
+default = "gc.run-operator"
 
 [vars.artifact_root]
 description = "Brief pipeline artifact root relative to the city or rig root."
-default = "~/.gc/mathcity/briefs"
+# Rig-relative: resolves against the rig root (see assets/brief-pipeline/paths.toml).
+default = ".beads/briefs"
 
 [[steps]]
 id = "scan-and-record"

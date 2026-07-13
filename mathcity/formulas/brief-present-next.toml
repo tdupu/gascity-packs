@@ -22,11 +22,14 @@ description = "Drain all pending stack briefs: no-brainers as one-line items, fu
 [vars]
 [vars.artifact_root]
 description = "Brief pipeline artifact root."
-default = "~/.gc/mathcity/briefs"
+# Rig-relative: resolves against the rig root (see assets/brief-pipeline/paths.toml).
+default = ".beads/briefs"
 
 [vars.presenter_target]
 description = "Run target for presenting the brief."
-default = "gastown.mayor"
+# No gc.* role maps to a human-facing presenter; gc.run-operator is the
+# routable default. Cities importing the gastown pack may pass gastown.mayor.
+default = "gc.run-operator"
 
 [[steps]]
 id = "read-manifest"

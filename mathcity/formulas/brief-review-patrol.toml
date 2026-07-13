@@ -37,11 +37,12 @@ description = "Auto-advance stack briefs stuck at review_gate: pending through P
 [vars]
 [vars.artifact_root]
 description = "Brief pipeline artifact root."
-default = "~/.gc/mathcity/briefs"
+# Rig-relative: resolves against the rig root (see assets/brief-pipeline/paths.toml).
+default = ".beads/briefs"
 
 [vars.operator_target]
 description = "Run target for patrol scan, frontmatter patching, and bookkeeping."
-default = "gastown.dog"
+default = "gc.run-operator"
 
 [vars.stale_after]
 description = "Grace period: a pending brief younger than this (by deposited_at, falling back to file mtime) is presumed still in-pipeline and skipped."

@@ -20,7 +20,7 @@ Routing contract (approve=merge back edge — HQ decision gt-r4ou):
              EXISTING `branch` metadata (polecat already wrote the real branch,
              cycle suffix and all). If `branch` is absent, do NOT guess and do
              NOT reassign: record a retryable failure instead. On success,
-             `gc bd update <id> --assignee refinery` moves polecat's work into
+             `gc bd update <id> --assignee <rig>/<merge_target>` moves polecat's work into
              the owning rig's merge queue. This is the approval=merge back edge.
              Metadata/assignee use `gc bd update <id> --set-metadata k=v` and
              `gc bd update <id> --assignee <name>` (the current bd idioms).
@@ -87,6 +87,12 @@ default = "~/.gc/mathcity/briefs"
 [vars.default_branch]
 description = "Default merge target branch (approve path). Falls back to GC_DEFAULT_BRANCH env var, then 'main'."
 default = "main"
+
+[vars.merge_target]
+description = "Session template (rig-qualified at dispatch) that approved source beads are reassigned to for merge-queue pickup."
+# gc.publisher is the gc-roles merge/land role. Cities importing the gastown
+# pack may pass gastown.refinery.
+default = "gc.publisher"
 
 [[steps]]
 id = "scan-and-dispatch"
@@ -296,12 +302,12 @@ dispatch_slug() {
         else
           set_target="$existing_target"
         fi
-        # Reassign to the owning rig's refinery session (merge queue pickup).
-        # Rig-qualify the name: bare "refinery" does not match the rig session's
-        # queue query (run-2 of the gt-vtab dispatch test sat unpicked; run-1's
-        # working assignment was hecke/gastown.refinery).
+        # Reassign to the owning rig's merge-queue session ({{merge_target}},
+        # default gc.publisher). Rig-qualify the name: a bare session name does
+        # not match the rig session's queue query (run-2 of the gt-vtab dispatch
+        # test sat unpicked; run-1's working assignment was rig-qualified).
         rig_name="$(basename "$RIG_DIR")"
-        gc bd update "$source_bead" --assignee "$rig_name/gastown.refinery" 2>/dev/null || ok=false
+        gc bd update "$source_bead" --assignee "$rig_name/{{merge_target}}" 2>/dev/null || ok=false
         if $ok; then
           action_taken="reassigned-to-refinery (branch=$existing_branch target=$set_target)"
         else

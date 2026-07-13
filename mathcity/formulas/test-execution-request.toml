@@ -32,15 +32,16 @@ default = ""
 
 [vars.artifact_root]
 description = "Brief pipeline artifact root."
-default = "~/.gc/mathcity/briefs"
+# Rig-relative: resolves against the rig root (see assets/brief-pipeline/paths.toml).
+default = ".beads/briefs"
 
 [vars.operator_target]
 description = "Run target for deterministic request bookkeeping."
-default = "gastown.dog"
+default = "gc.run-operator"
 
 [vars.review_target]
 description = "Run target for policy/risk review."
-default = "gastown.mayor"
+default = "gc.review-synthesizer"
 
 [[steps]]
 id = "write-request"

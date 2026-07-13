@@ -41,7 +41,9 @@ default = "gc.run-operator"
 
 [vars.mayor_target]
 description = "Run target for re-dispatch routing on stale detection."
-default = "gastown.mayor"
+# Mechanical release + escalation notification; gc.run-operator is the routable
+# default. Cities importing the gastown pack may pass gastown.mayor.
+default = "gc.run-operator"
 
 [[steps]]
 id = "check-stale-claim"
