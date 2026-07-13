@@ -3,7 +3,7 @@ description = "Manually classify one no-brainer candidate under the shortcut pol
 scope = "city"
 formula = "no-brainer-classify"
 trigger = "manual"
-pool = "gastown.dog"
+pool = "gc.run-operator"
 timeout = "60s"
 idempotent = true
 

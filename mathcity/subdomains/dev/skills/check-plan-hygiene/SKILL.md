@@ -66,6 +66,23 @@ that rule ID plus the file/directory that triggered it.
 - P1.13 Does the plan include the README table rows for every skill it
   adds, moves, or renames (the update-README same-commit rule)?
 - P1.14 — Dependency pre-flight. Does any new or modified skill read a conf, invoke a tool, connect to a database, or SSH to a server? If yes: does the plan include a pre-flight existence check for each dependency, with a "I'm sorry, I can't do that" error block naming the missing dep, the setup skill to run, and what the dep enables? A plan that adds a conf-driven skill without P1.14 compliance → revise.
+- P1.16 — Repo-local skills stay repo-accessible. Does the plan adopt a
+  skill from a project repo (hecke, homog, diff-alg, etc.) and route it
+  exclusively into mathcity while removing or replacing the repo-local copy
+  with a symlink into mathcity? If so: are ALL known collaborators of that
+  repo confirmed to have mathcity installed? If not, the plan must include
+  either (a) leaving a real copy in the repo, or (b) a noted exception
+  explaining why every collaborator has mathcity. A plan that silently moves
+  a collaborator-facing skill exclusively to mathcity → **revise**.
+- P1.17 — Plans fix root causes; workarounds must be named and tracked. For
+  each fix or change the plan proposes: (a) does the plan state the invariant
+  that prevents the same class of problem from recurring? If not, it is a
+  hack — **revise** (require the invariant statement). (b) If the plan
+  explicitly labels a step as a workaround or temporary measure: does it also
+  name the root cause, file (or include in the convoy) a follow-up bead for
+  the root-cause fix, and label the step "workaround" not "fix"? A workaround
+  missing any of these three — especially an unnamed workaround presented as
+  a fix — → **fail**.
 
 **Pillar 2 — ownership:**
 

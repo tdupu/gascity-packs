@@ -6,13 +6,18 @@
 # runs the missing review; APPROVING promotes the brief, anything else
 # records `review-failed` and escalates to the Mayor. Idempotent: both
 # outcomes remove the brief from the candidate set.
+#
+# scope=rig (not city): mirrors the brief-shuffle-pile fix (gsp-fqo). City-scope
+# caused the formula's {{artifact_root}} default (.beads/briefs) to resolve
+# relative to ~/gt instead of the rig root, pointing at the wrong stack.
+# Rig-scope fires once per rig, scanning that rig's .beads/briefs/stack/*.md.
 
 [order]
 description = "Advance stack briefs stuck at review_gate: pending through Phase 5 (coordinate-review)."
-scope = "city"
+scope = "rig"
 formula = "brief-review-patrol"
 trigger = "cooldown"
 interval = "30m"
-pool = "gastown.dog"
+pool = "gc.run-operator"
 timeout = "120s"
 idempotent = true

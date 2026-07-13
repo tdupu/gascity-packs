@@ -10,6 +10,25 @@ server and database skills read. Private values (hostnames, users, SSH keys,
 schema names) live ONLY in the resulting files — never in pack content, the
 conversation transcript, or git history (POLICY.md P1.10).
 
+## Dependency check
+
+```bash
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+PIPELINE_CONF="$ROOT/lmfdb-pipeline.conf"
+SERVER_CONF="$ROOT/lmfdb-server.conf"
+if [ -f "$PIPELINE_CONF" ] && [ -f "$SERVER_CONF" ]; then
+  echo "I'm sorry, I can't do that — both lmfdb-pipeline.conf and lmfdb-server.conf already exist."
+  echo "Nothing to set up. To reconfigure, back up and remove the conf you want to recreate:"
+  echo "  cp \"$PIPELINE_CONF\" \"${PIPELINE_CONF}.bak\" && rm \"$PIPELINE_CONF\""
+  echo "  cp \"$SERVER_CONF\" \"${SERVER_CONF}.bak\" && rm \"$SERVER_CONF\""
+  exit 1
+fi
+```
+
+If only one conf exists, the corresponding sub-skill (configure-database or configure-server)
+will report "I'm sorry, I can't do that — conf already exists" and stop. The other sub-skill
+runs normally.
+
 ## Procedure
 
 Run both sub-skills in sequence:

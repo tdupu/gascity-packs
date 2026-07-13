@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Adopted |
-| Date | 2026-07-10 (amended same day: P1.9–P1.11, from the hecke-adoption / server-skills / bead-sync incidents) |
+| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only) |
 | Decided | Taylor Dupuy, via grilling session (three open questions resolved; record at bottom) |
 | Applies to | All packs Taylor owns in this repo — the **owned pack set** (§ Scope) |
 | Consumers | `check-hygiene` skill (to be built via skill-creator); mayor priming (`mayor-math`); any agent planning work in this repo |
@@ -164,9 +164,57 @@ recreate what you're running; upstream must remain pullable.*
   convenience, or aliased to the code remote. Single exception: the gascity
   root (`~/gt`) predates the convention — its dolt remote is
   `tdupu/gascity-dolt`. When initialising a new rig's bead sync, derive the
-  remote name as `<rig-name>-dolt`, verify `isPrivate=true` (P1.11), then
-  run `bd backup init`. A dolt remote whose name deviates from
-  `tdupu/<rig-name>-dolt` (outside the `~/gt` exception) → **fail**.
+  remote name as `<rig-name>-dolt` **using the DoltHub slug form** — DoltHub
+  normalizes underscores to hyphens, so rig names with underscores use
+  hyphens in the remote (e.g., `agent_skills` → `tdupu/agent-skills-dolt`,
+  `magma_diff_alg` → `tdupu/magma-diff-alg-dolt`). Verify `isPrivate=true`
+  (P1.11), then run `bd backup init`. A dolt remote whose name deviates from
+  `tdupu/<rig-slug>-dolt` (outside the `~/gt` exception) → **fail**.
+- **P1.16 Repo-local skills stay repo-accessible.** Work for a repository
+  must assume that collaborators of that repo do **not** have mathcity (or
+  any Taylor-owned pack) installed. A skill that repo collaborators use must
+  remain discoverable inside that repo's own `.claude/skills/` directory
+  without requiring mathcity — either as a real copy in the repo or via a
+  mechanism the repo commits directly. Adoption into mathcity (P1.9) is only
+  valid for such a skill when one of the following holds: (a) every current
+  collaborator of the repo has mathcity installed, or (b) the repo retains a
+  non-mathcity-dependent copy (a justified exception to P1.9's single-real-
+  copy rule, noted in the commit). A plan that migrates a collaborator-facing
+  skill *exclusively* to mathcity and removes the repo-local copy — making
+  collaborators silently lose the skill — → **fail**. (Origin: 2026-07-11,
+  hecke `textfile-to-magma` migration; Adam does not have mathcity.)
+- **P1.17 Plans fix root causes; workarounds must be named and tracked.**
+  A "hack" is a one-off fix that addresses a symptom without removing the
+  mechanism that produces it — so the same class of problem can resurface
+  without a new root-cause change. Plans **must never** present a hack as a
+  fix. The test: can the plan state the invariant the fix establishes that
+  prevents recurrence? If not, the plan is a hack.
+  *Allowed exception — named workaround:* a temporary measure is permitted
+  only when (a) the root cause is explicitly identified in the plan text,
+  (b) a follow-up bead is filed or included in the convoy for the root-cause
+  fix, and (c) the measure is explicitly labeled "workaround" (not "fix") in
+  the plan. An unnamed workaround presented as a fix → **fail**. A resolution
+  with no stated recurrence-prevention invariant → **revise** (state the
+  invariant, or reclassify under the named-workaround path with a root-cause
+  bead).
+- **P1.18 City root imports the named-session fleet.** When the city is
+  expected to process city-scope work (e.g. `gt-` prefix beads assigned to
+  build-basic workers), the city root `pack.toml` (`~/gt/pack.toml`) must
+  explicitly import a pack that provides `[[named_session]]` entries for the
+  build-basic worker fleet (implementation-worker, requirements-planner,
+  task-decomposer, design-author, implementation-reviewer, and peers). Child
+  rigs receive this fleet via `defaults.rig.imports` in `city.toml`; the root
+  pack is separate and not covered by that default — it requires its own
+  `[imports.*]` entry. A city root missing this import will show 0 named
+  worker sessions in the root scope: `bd ready` accumulates `gt-` beads with
+  no consumers indefinitely, silently. *Allowed exception:* a city that
+  deliberately routes ALL work to child rigs and has no city-scope build-basic
+  usage may omit the import — but must declare this in `pack.toml` with a
+  comment: `# No city-scope build-basic — HQ worker fleet intentionally
+  omitted.` Pass: `~/gt/pack.toml` contains an import whose resolved
+  `pack.toml` has at least one `[[named_session]] template =
+  "implementation-worker"`. Fail: no such import exists AND `gc session list`
+  shows 0 HQ-scope named worker sessions → **revise**.
 
 ## Pillar 2 — Ownership boundary
 
@@ -235,6 +283,50 @@ inside gascity core); this is the pack-level, plan-time analogue.*
   *and* once over the union of all beads' scopes — cross-bead interactions
   count.
 
+## Pillar 5 — Vocabulary & terminology
+
+- **P5.1 "gascity" is the name.** All plans, skill docs, AGENTS.md/CONTEXT.md,
+  formulas, orders, and agent identities use "Gas City"/"gascity"/`gc.*`. The
+  string "gastown" is permitted only as: (a) the GitHub org `gastownhall/*` in
+  URLs, remotes, and import sources — never rewrite; (b) the upstream community
+  pack name `gascity-packs/gastown/` and the CLI literal `--template gastown` —
+  may be referenced as the upstream pack, never adopted; (c) upstream public-docs
+  migration pages (`coming-from-gastown`, `gastown-*`) per the gc-docs style guide;
+  (d) read-only historical artifacts (git history, `usage.jsonl`,
+  `.gc/agents/dogs/gastown.*` state, forensic `rigs.json`/`town.json`).
+  `gastown.*` agent identities (e.g. `gastown.polecat`, `gastown.mayor`) are NOT
+  a runtime contract — the gastown pack import was removed 2026-07-09 (ba2ff381)
+  and no `gastown.*` agent exists. Any `pool=`, run-target `default=`, assignee,
+  or `$GC_AGENT` example using `gastown.*` is a dangling reference tracked in
+  `mathcity/subdomains/dev/docs/IMPORTS-GC-MIGRATION-PLAN-2026-07-08.md`.
+  Pass: no "gastown" in plan prose, skill docs, formulas, orders, or agent
+  identity strings outside exceptions (a)–(d). Fail: any usage of `gastown.*`
+  as a live identity or routing target → **revise**.
+
+- **P5.2 Workspace context files reflect live CLI and runtime state.**
+  Workspace context files — `AGENTS.md`, `CONTEXT.md`, `CLAUDE.md`, and any
+  file loaded automatically into agent context — must describe only the *current*
+  CLI surface and live runtime state. Specifically:
+  (a) Every shell command block must resolve against the live `gc`/`bd` CLI
+      (`gc <subcmd> --help` exits 0). Dead `gt` CLI verbs → **revise**.
+  (b) No assertion about agent identity, pack import, or runtime infrastructure
+      may contradict `gc agent list` / `gc prime` output.
+  (c) The inside/outside agent distinction must be explicit: inside (GC) agents
+      prime with `gc prime`; outside agents (Claude Code session, helping Taylor)
+      prime with `/prime-outsider`. Files that conflate the two → **revise**.
+  (d) Paths to pack directories must resolve on disk. A path that moved
+      (e.g. `mathematics/` → `mathcity/`) → **revise**.
+  Scope: `~/gt/AGENTS.md`, `~/gt/CONTEXT.md`, `~/gt/CLAUDE.md`, and any rig
+  `AGENTS.md` that agents in this workspace read automatically.
+  Allowed exceptions: historical content explicitly fenced with a "Historical"
+  heading or `DEPRECATED — <date>` marker is exempt from (a)–(c).
+  Pass: every command block uses live `gc`/`bd` verbs; no identity claim
+  contradicts live agent list; inside/outside distinction present; all paths exist.
+  Fail: any dead CLI verb, contradicted identity assertion, missing
+  inside/outside distinction, or broken path → **revise**.
+
+- **P5.3 Use only real, documented bd types.** Any policy document, skill file, AGENTS.md, plan, or bead-touching code that references a bead type must use only the types documented in `bd create --help` (`--type` flag): `bug`, `feature`, `task`, `epic`, `chore`, `decision`, `spike`, `story`, `milestone`, `event`. Undocumented types (e.g., `research-journal`, `brief`) are hallucinated — they cannot be executed and produce silent failures when passed to `bd create -t`. Custom types require explicit `types.custom` configuration in bd and a documented approval bead before they may appear in any policy pass/fail criterion. The canonical check: `bd create --help | grep -- '--type'` lists the live type set; any type string not in that list with no corresponding `types.custom` config entry → **fail**. (Origin: 2026-07-12 grilling — `type: research-journal` appeared in brief-system POLICY.md B3.7; replaced with `type: spike` + `[RESEARCH_JOURNAL]` label.)
+
 ## Non-negotiables (quick checklist)
 
 - No hand-edited `city.toml`, and no hand-edited `pack.toml` outside the
@@ -260,7 +352,23 @@ inside gascity core); this is the pack-level, plan-time analogue.*
 - No skill without a README table row — and no ghost rows (P1.13).
 - No skill whose external dependencies are unchecked — every dep gets a
   pre-flight probe with a "I'm sorry, I can't do that" error block (P1.14).
+- No migration of a collaborator-facing repo skill exclusively to mathcity
+  without a repo-local fallback or confirmed mathcity adoption by every
+  collaborator (P1.16).
+- No plan that presents a hack as a fix — every resolution must state the
+  invariant that prevents recurrence, or be explicitly named a workaround
+  with a root-cause follow-up bead (P1.17).
+- City root `pack.toml` must import a pack providing the named-session fleet
+  (implementation-worker etc.) when city-scope (gt-) build-basic work is
+  expected; omission silently starves the gt- queue (P1.18).
 - No drive-by scope creep, even inside the owned set (P2.4 / B10).
+- No "gastown" as a live agent identity, routing target, or plan vocabulary —
+  `gastown.*` agents are dead; use `gc.*` / `mathcity.*` replacements (P5.1).
+- No dead CLI verbs (`gt`), broken pack paths, or missing inside/outside agent
+  distinction in workspace context files (`AGENTS.md`, `CONTEXT.md`) — P5.2.
+- No hallucinated bd types in policy prose, skill docs, or mechanical checks —
+  only documented types (`bug|feature|task|epic|chore|decision|spike|story|milestone|event`);
+  custom types require `types.custom` config + approval bead (P5.3).
 
 ## Verdict vocabulary
 
@@ -307,3 +415,32 @@ no parallel vocabulary is introduced:
 - [gascity/REQUIREMENTS.md](../../../gascity/REQUIREMENTS.md) — the `build-base` contract (Pillar 3/4 downstream surface)
 - [contributing/skills/review](../../../contributing/skills/review/SKILL.md) (B10) and [map-blast-radius](../../../contributing/skills/map-blast-radius/SKILL.md) — the PR-time gates this plan-time gate complements
 - `~/.claude/skills/update-{gascity,beads,gascity-packs}-from-source` — the sanctioned update procedures whose invariants P1.6/P1.7 encode
+
+---
+
+## Change Log
+
+### 2026-07-12 — P1.18 added: city root imports the named-session fleet
+City root `pack.toml` must explicitly import a pack providing `[[named_session]]`
+entries for the build-basic worker fleet when city-scope work is expected.
+Triggered by: gastown pack removal (ba2ff381) silently dropped named sessions from
+HQ; 99 gt- beads accumulated with 0 consumer sessions. Child rigs get the fleet
+via `defaults.rig.imports` in `city.toml`; root pack requires its own import.
+Exception: cities with no city-scope build-basic usage may omit with a comment.
+
+### 2026-07-12 — P5.2 added: workspace context files reflect live CLI
+Opens P5.2. Codifies that AGENTS.md/CONTEXT.md must use live `gc`/`bd` verbs,
+must not contradict `gc agent list`, must include inside/outside agent distinction
+(inside→`gc prime`; outside→`/prime-outsider`), and must have valid pack paths.
+Triggered by: Fable structural audit + Taylor directive that check-build-hygiene
+must cover workspace context files. Enforcement: check-build-hygiene §11 (gs- bead
+filed by Fable agent). Exceptions: explicitly fenced historical sections.
+
+### 2026-07-12 — P5.1 added: "gascity is the name" (vocabulary & terminology)
+Opens Pillar 5. Codifies that "gastown" is no longer a valid runtime identity or
+plan vocabulary — the gastown pack was removed 2026-07-09 (ba2ff381) and all
+`gastown.*` agents are dangling references. Triggered by: Fable terminology audit
+that found the `reference.gc-cli` memory was stale (incorrectly asserted "gastown.*
+is a runtime contract"). Exceptions: (a) `gastownhall/*` org in URLs, (b) upstream
+pack/template name as a proper noun, (c) gc-docs migration pages, (d) read-only
+historical artifacts. Migration tracked in `mathcity/subdomains/dev/docs/IMPORTS-GC-MIGRATION-PLAN-2026-07-08.md`.

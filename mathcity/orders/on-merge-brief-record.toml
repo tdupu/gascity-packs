@@ -13,8 +13,10 @@
 #
 # Implementation note: [[patches.agent]] in pack.toml cannot target agents
 # owned by a different pack (only pack-local agents can be patched at
-# pack-level per pack-spec §2.6). Mathematics does not own gastown.refinery,
+# pack-level per pack-spec §2.6). mathcity does not own gc.run-operator,
 # so this order approach is the correct fallback as specified in task-2-brief.
+# (gastown.refinery removed 2026-07-09 per ba2ff381; gsp-7lc tracks the
+# pack-owned merge lane replacement.)
 
 [order]
 description = "After a bead is closed, create a brief-record if it carries the needs-decision label."
@@ -22,5 +24,5 @@ scope = "rig"
 formula = "on-merge-brief-record"
 trigger = "event"
 on = "bead.closed"
-pool = "gastown.dog"
+pool = "gc.run-operator"
 timeout = "90s"

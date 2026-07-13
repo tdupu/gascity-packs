@@ -65,6 +65,18 @@ if grep -Eq '^test-execution:[[:space:]]*REQUIRED' "$BRIEF"; then
   exit 0
 fi
 
+# Also accept legacy gate_status.G14_test_execution_silent format (briefs produced
+# before the tri-state field was codified, 2026-07-12 backwards-compat window).
+if grep -Eq '^[[:space:]]+G14_test_execution_silent:[[:space:]]*PASS' "$BRIEF"; then
+  STATE="$(grep -E '^[[:space:]]+G14_test_execution_silent:' "$BRIEF" | head -n 1)"
+  echo "gate-test-execution-declaration: PASS (legacy gate_status format) — $STATE"
+  exit 0
+fi
+if grep -Eq '^[[:space:]]+G14_test_execution_silent:[[:space:]]' "$BRIEF"; then
+  FOUND="$(grep -E '^[[:space:]]+G14_test_execution_silent:' "$BRIEF" | head -n 1)"
+  fail "gate_blocked_reason: test-execution-unstated — legacy G14 gate_status not PASS: $FOUND"
+fi
+
 # Not found or malformed.
 if grep -Eq '^test-execution:' "$BRIEF"; then
   FOUND="$(grep -E '^test-execution:' "$BRIEF" | head -n 1)"

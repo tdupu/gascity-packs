@@ -40,6 +40,6 @@ on = "brief.decided"
 # the poured root is demand-visible and the reconciler wakes a dog for it;
 # the formula itself scans every rig's brief root (rig-scoped event orders
 # would fan out once per rig on each city event — deliberately avoided).
-pool = "gastown.dog"
+pool = "gc.run-operator"
 timeout = "120s"
 idempotent = true

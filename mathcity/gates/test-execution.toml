@@ -30,7 +30,7 @@ default = "~/.gc/mathcity/briefs"
 
 [vars.operator_target]
 description = "Run target for mechanical gate enforcement."
-default = "gastown.dog"
+default = "gc.run-operator"
 
 # ---------------------------------------------------------------------------
 # Step 1 — check G14 tri-state declaration

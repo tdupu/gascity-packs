@@ -47,7 +47,7 @@ required = true
 
 [vars.operator_target]
 description = "Run target for the gate check."
-default = "gastown.dog"
+default = "gc.run-operator"
 
 [[steps]]
 id = "check-server-touching"

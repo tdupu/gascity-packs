@@ -2,3 +2,69 @@
 name = "gc-roles"
 version = "0.1.0"
 schema = 2
+
+# v2 replacement for removed fallback=true mechanism (pack-spec.md:406-408).
+# Agents in this pack had `fallback = true` which is silently ignored in v2.
+# These [[named_session]] entries restore on-demand dispatch for the build-basic fleet.
+# run-operator and review-synthesizer ARE included here — the HQ-level [imports.gc-base]
+# exposes the agent templates but does NOT add named_session entries (2026-07-12 fix).
+
+[[named_session]]
+template = "design-author"
+scope = "rig"
+mode = "on_demand"
+
+[[named_session]]
+template = "design-implementation-reviewer"
+scope = "rig"
+mode = "on_demand"
+
+[[named_session]]
+template = "design-test-risk-reviewer"
+scope = "rig"
+mode = "on_demand"
+
+[[named_session]]
+template = "gap-analyst"
+scope = "rig"
+mode = "on_demand"
+
+[[named_session]]
+template = "implementation-reviewer"
+scope = "rig"
+mode = "on_demand"
+
+[[named_session]]
+template = "implementation-worker"
+scope = "rig"
+mode = "on_demand"
+
+[[named_session]]
+template = "issue-triager"
+scope = "rig"
+mode = "on_demand"
+
+[[named_session]]
+template = "publisher"
+scope = "rig"
+mode = "on_demand"
+
+[[named_session]]
+template = "requirements-planner"
+scope = "rig"
+mode = "on_demand"
+
+[[named_session]]
+template = "task-decomposer"
+scope = "rig"
+mode = "on_demand"
+
+[[named_session]]
+template = "run-operator"
+scope = "rig"
+mode = "on_demand"
+
+[[named_session]]
+template = "review-synthesizer"
+scope = "rig"
+mode = "on_demand"

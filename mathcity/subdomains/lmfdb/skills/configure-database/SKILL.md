@@ -8,6 +8,20 @@ description: Interactively create the project-local lmfdb-pipeline.conf by walki
 Create the project-local gitignored conf that database and conversion-lattice
 skills read. Private values never enter git (POLICY.md P1.10).
 
+## Dependency check
+
+```bash
+CONF="$(git rev-parse --show-toplevel 2>/dev/null)/lmfdb-pipeline.conf"
+if [ -f "$CONF" ]; then
+  echo "I'm sorry, I can't do that — lmfdb-pipeline.conf already exists at $CONF."
+  echo "Diff existing keys against the example before reconfiguring:"
+  echo "  diff <(grep '^[A-Z_]*=' \"$CONF\" | cut -d= -f1 | sort) \\"
+  echo "       <(grep '^[A-Z_]*=' ~/repos/gascity-packs/mathcity/subdomains/lmfdb/assets/lmfdb-pipeline.conf.example | cut -d= -f1 | sort)"
+  echo "To start fresh: cp \"$CONF\" \"${CONF}.bak\" && rm \"$CONF\""
+  exit 1
+fi
+```
+
 ## Procedure
 
 1. **Check for existing conf.** Look for `lmfdb-pipeline.conf` at the project root

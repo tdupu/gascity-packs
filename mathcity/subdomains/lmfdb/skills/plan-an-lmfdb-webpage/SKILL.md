@@ -3,6 +3,24 @@ name: plan-an-lmfdb-webpage
 description: Plan the full task breakdown and PERT chart for adding a new mathematical object type to the LMFDB website. Use this skill whenever the user wants to stand up LMFDB webpages for a new object type, create a Flask Blueprint for a new math object, plan LMFDB web integration, or asks "what needs to be done to add X to the LMFDB". Also use when the user says "plan an LMFDB webpage" or "LMFDB webpage plan for X". Assumes data pipeline (Magma types, make scripts, DB schema, db_load.py, db_migrate.py) is already done. Focuses entirely on the web layer: Blueprint, web data class, routes, templates, integration testing, and beta migration.
 ---
 
+## Dependency check
+
+```bash
+CONF=""
+for candidate in \
+    "$(git rev-parse --show-toplevel 2>/dev/null)/lmfdb-pipeline.conf" \
+    "magma/scripts/data-generation.conf"; do
+  [ -f "$candidate" ] && { CONF="$candidate"; break; }
+done
+if [ -z "$CONF" ]; then
+  echo "I'm sorry, I can't do that — no database pipeline conf found."
+  echo "Run /configure-database (mathcity-lmfdb.configure-database) to create lmfdb-pipeline.conf at your project root."
+  echo "(This conf holds your PostgreSQL and DATA_DIR settings needed to query the data pipeline.)"
+  exit 1
+fi
+source "$CONF"
+```
+
 ## What this skill does
 
 Given a mathematical object type the user wants to add to LMFDB, this skill:

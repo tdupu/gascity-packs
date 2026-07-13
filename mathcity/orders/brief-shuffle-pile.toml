@@ -6,6 +6,7 @@ scope = "city"
 formula = "brief-shuffle"
 trigger = "condition"
 check = "find $HOME/.gc/mathcity/briefs/.pile -mindepth 1 -maxdepth 1 -type f -name '*.md' 2>/dev/null | grep -q ."
-pool = "gastown.dog"
+pool = "gc.run-operator"
 timeout = "60s"
 idempotent = true
+

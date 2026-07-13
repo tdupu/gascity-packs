@@ -65,12 +65,15 @@ These skills ship with the parent pack (subdomain child packs carry their own �
 | `mayor-math` | Supplements `gc.mayor` with rig-scoped sling mechanics for the mathcity workflow. |
 | `authorize-git-operation` | Taylor-authorization gate for irreversible git operations (push, merge, PR, delete, release); records the verdict as a decision bead. |
 | `remember-this` | Routes a mid-session insight to the right durable store (`bd remember`, decision bead, MEMORY.md pointer). |
+| `gc-recycle-bead` | Graceful lifecycle transitions for research beads: ABSORB (merge unique content into canonical bead, close with `absorbed_by` metadata), ARCHIVE (add `archived-research` label + defer to prevent dispatch), MATERIALIZE (write key content to versioned file). |
 | `prime-outsider` | Primes an outside (non-gascity) agent after compaction or a new session: finds beads + handoff, restates standing rules. |
 | `repo-to-city` | Reference map from repository names to city rig (`~/gt/<name>`), working copy (`~/repos/<name>`), and beads prefix. |
 | `dolt-init` | Initializes the bd Dolt database and sets the dolt remote in both `~/gt/<repo>` and `~/repos/<repo>` (HALTs unless the remote is named `<repo>-dolt`). |
 | `dolt-pull` / `dolt-push` | Pull/push the bead database against its private `-dolt` remote (data plane; bans force-push). |
 | `get-best-apis` | Fetches live LLM benchmark rankings + current API pricing across vendors and renders a comparison table. |
 | `get-best-models` | Recommends the best open-weights/local LLM for a hardware constraint and use case. |
+| `gate-test-execution-silent` | G14 gate — pure PASS/FAIL check: verifies that a brief carries a non-silent test-execution tri-state declaration (`test-execution: PASSED/NOT APPLICABLE/REQUIRED`) and, when PASSED is claimed, that §5 contains command + exit code + wall time evidence. Auto-throwback gate; no Taylor adjudication. |
+| `improve-test-execution-silent` | G14 improve step — auto-repair companion to `gate-test-execution-silent`. Adds `test-execution: REQUIRED — not yet run` when the brief is silent (Case A); emits ESCALATE when evidence is incomplete (Case B). Identity on passing input. |
 
 ---
 
@@ -190,6 +193,12 @@ A single brief cycle from artifact to decision proceeds as follows.
 7. **Two event-driven orders fire in parallel.** `brief-decision-dispatch` acts on the verdict — merging the source branch on approve, creating a follow-up work bead on reject/revise, or recording a defer marker. `post-decision-file-or-sendback` routes the brief itself: FILE (a successor bead gets re-briefed) or SEND-BACK (the brief archives and the work returns to the originator).
 
 8. **Brief archives.** Either `brief-archive-on-request` fires immediately on a SEND-BACK event, or `brief-archive-sweep` picks up the brief in its next 24h cooldown run. Decision records are never deleted; only the working artifacts move to `~/.gc/mathcity/briefs/archive/`.
+
+---
+
+## Bead types
+
+See [README-beads.md](README-beads.md) for bead type reference and bead policy.
 
 ---
 

@@ -8,6 +8,20 @@ description: Interactively create the project-local lmfdb-server.conf by walking
 Create the project-local gitignored conf that SSH/compute-server skills read.
 Real hostnames, users, and keys never enter git (POLICY.md P1.10).
 
+## Dependency check
+
+```bash
+CONF="$(git rev-parse --show-toplevel 2>/dev/null)/lmfdb-server.conf"
+if [ -f "$CONF" ]; then
+  echo "I'm sorry, I can't do that — lmfdb-server.conf already exists at $CONF."
+  echo "Diff existing keys against the example before reconfiguring:"
+  echo "  diff <(grep '^[A-Z_]*=' \"$CONF\" | cut -d= -f1 | sort) \\"
+  echo "       <(grep '^[A-Z_]*=' ~/repos/gascity-packs/mathcity/subdomains/lmfdb/assets/lmfdb-server.conf.example | cut -d= -f1 | sort)"
+  echo "To start fresh: cp \"$CONF\" \"${CONF}.bak\" && rm \"$CONF\""
+  exit 1
+fi
+```
+
 ## Procedure
 
 1. **Check for existing conf.** Look for `lmfdb-server.conf` at the project root
