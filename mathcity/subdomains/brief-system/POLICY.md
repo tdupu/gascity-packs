@@ -61,7 +61,7 @@ store is the source of truth; the filesystem is a cache.*
   either evidence or an explicit N/A with a one-sentence reason. Gates come in
   four kinds: **mechanical** (checkable without judgment), **review** (a named
   reviewer renders a judgment), **manual** (a human step), and **stop** (a
-  condition that halts shortcut paths outright).
+  condition that halts shortcut paths outright). [This has been changed to "checkpoint" or since this conflicts with terminology in gascity formulas. ]
 - **Stop gate.** A gate that blocks compact form and auto-execution regardless
   of any classification or confidence: G5 (server-touching), G5b
   (user-skill-touching), and the L4 LaTeX stop condition.

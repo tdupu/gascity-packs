@@ -8,5 +8,5 @@ backup.enabled: false
 gc.endpoint_origin: inherited_city
 gc.endpoint_status: verified
 sync:
-    remote: tdupu/gascity-packs-dolt.git
+    remote: "git+ssh://git@github.com/./tdupu/gascity-packs-dolt.git"
 types.custom: molecule,convoy,message,event,gate,merge-request,agent,role,rig,session,spec,convergence,step
