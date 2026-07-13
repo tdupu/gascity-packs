@@ -12,6 +12,7 @@ All rule ID prefixes for mathcity policies are reserved here. Rule IDs are globa
 | LX | LaTeX subdomain (bead-side LaTeX work) | `subdomains/latex/POLICY.md` | Draft (2026-07-12) | LX1.1, LX4.6 |
 | M | Magma packages (naming, READMEs, testing, bead lifecycle, profiling, pipelines) | `subdomains/magma/POLICY.md` | Draft (2026-07-12) | M1.3, M7.5 |
 | LM | LMFDB subdomain (labels, experiments, server usage, type creation) | `subdomains/lmfdb/POLICY.md` | Draft (2026-07-12) | LM1.3, LM3.4 |
+| C | Computing (caching/memoization, DRY/code-factoring, intrinsic testing, regression testing) | `subdomains/computing/POLICY.md` | Draft (2026-07-12) | C1.1, C3.2, C4.1 |
 
 ## Rules
 

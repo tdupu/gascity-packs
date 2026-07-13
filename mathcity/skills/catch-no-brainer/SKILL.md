@@ -55,9 +55,12 @@ Given a brief at `<path>` (frontmatter + body + diff summary inside the brief):
  "category":"stale-branch|cat-A|cat-B|cat-C|cat-D|capability-blocker|defer-ratify-held|close-done-cited-commit|execution-confirmation-proof|null",
  "reason":"cat-E-server-touching|user-skill-touching-override|resolve <blocker>|null",
  "compact_eligible":true|false,
+ "confidence":0.0,
  "proposed_registry_extension":"<text|null>","requires_taylor_adjudication":true|false,
  "classified_at":"<ISO-8601-utc>"}
 ```
+
+`confidence` is a float in [0.0, 1.0] expressing the classifier's certainty in the emitted `category`. Always emit it — even stop-gate outputs (server-touching, user-skill-touching) emit `confidence:1.0` because those are deterministic rule checks. "Confident" threshold for N2/N5 auto-execution eligibility is `confidence >= 0.85`; below that, treat as non-no-brainer regardless of category. The decision bead created at auto-execution (B2.9 / N7) must record this value so the empirical wrong rate α can be estimated from the audit ledger (N8).
 
 ## Side effects (v0.2)
 - `no_brainer:true` (any category: stale-branch, defer-ratify-held, close-done-cited-commit, execution-confirmation-proof) → `mkdir -p` + copy brief into `.pile/.no-brainer/`. Consumed by pile-processor ([[he-x3se]], not-yet-shipped); until then the file is inert.
@@ -75,15 +78,15 @@ Run `bash fixtures/run.sh`:
 
 | # | Fixture | Expected verdict |
 |---|---|---|
-| 1 | `stale-branch-A.md` | `{no_brainer:true, category:"stale-branch", compact_eligible:true}` |
-| 2 | `stale-branch-B.md` | `{no_brainer:true, category:"stale-branch", compact_eligible:true}` |
-| 3 | `stale-branch-C.md` | `{no_brainer:true, category:"stale-branch", compact_eligible:true}` |
-| 4 | `server-touching.md` | `{no_brainer:false, reason:"cat-E-server-touching", compact_eligible:false}` |
-| 5 | `novel-shape.md` | `{no_brainer:"candidate", requires_taylor_adjudication:true, compact_eligible:false}` |
-| 6 | `capability-blocker.md` | `{no_brainer:false, category:"capability-blocker", compact_eligible:false}` |
-| 7 | `defer-ratify-held.md` | `{no_brainer:true, category:"defer-ratify-held", compact_eligible:true}` |
-| 8 | `close-done-cited-commit.md` | `{no_brainer:true, category:"close-done-cited-commit", compact_eligible:true}` |
-| 9 | `execution-confirmation-proof.md` | `{no_brainer:true, category:"execution-confirmation-proof", compact_eligible:true}` |
+| 1 | `stale-branch-A.md` | `{no_brainer:true, category:"stale-branch", compact_eligible:true, confidence:>=0.85}` |
+| 2 | `stale-branch-B.md` | `{no_brainer:true, category:"stale-branch", compact_eligible:true, confidence:>=0.85}` |
+| 3 | `stale-branch-C.md` | `{no_brainer:true, category:"stale-branch", compact_eligible:true, confidence:>=0.85}` |
+| 4 | `server-touching.md` | `{no_brainer:false, reason:"cat-E-server-touching", compact_eligible:false, confidence:1.0}` |
+| 5 | `novel-shape.md` | `{no_brainer:"candidate", requires_taylor_adjudication:true, compact_eligible:false, confidence:<0.85}` |
+| 6 | `capability-blocker.md` | `{no_brainer:false, category:"capability-blocker", compact_eligible:false, confidence:1.0}` |
+| 7 | `defer-ratify-held.md` | `{no_brainer:true, category:"defer-ratify-held", compact_eligible:true, confidence:>=0.85}` |
+| 8 | `close-done-cited-commit.md` | `{no_brainer:true, category:"close-done-cited-commit", compact_eligible:true, confidence:>=0.85}` |
+| 9 | `execution-confirmation-proof.md` | `{no_brainer:true, category:"execution-confirmation-proof", compact_eligible:true, confidence:>=0.85}` |
 
 Pass iff `fixtures/run.sh` exits 0.
 
@@ -93,4 +96,5 @@ PRELIMINARY v0.2 under [[he-cnat]]. FP-converge follow-up [[he-ahfr]] (gated on 
 ## Versioning
 - **v0.0 — PRELIMINARY DRY-RUN** (2026-06-24): initial 5-criterion classifier + cat-E override + fixture harness (5 fixtures).
 - **v0.1 — capability-blocker shape + compact-form signal** (2026-06-30, per as-niek per Taylor "better briefs" epic): added step 2 (user-skill-touching-override consistency with [[as-wjv]]); added step 3 (capability-blocker shape — would-be no-brainer stalled by permission/capability gap; route as "resolve, then re-classify" rather than presenting A/B/C/D; data point he-gu79 n=5+); added `compact_eligible` output field consumed by [[present-it]] for compact-form eligibility; added capability-blocker.md fixture (6th case).
+- **v0.3 — confidence field + α-measurement substrate** (2026-07-12): added `confidence` float [0.0, 1.0] to output schema; all stop-gate outputs emit `confidence:1.0` (deterministic); auto-execution threshold set at `confidence >= 0.85`; fixture expected verdicts updated to assert confidence presence; N7 audit trail now requires confidence value so empirical wrong rate α can be estimated from the decision bead ledger (N8).
 - **v0.2 — 3 missing rubric paths** (2026-07-08, per [[feedback_no_brainer_class_under_flagged]] n=3 miss pattern, W2.6 triage plan): added steps 5, 6, 7 for three previously under-flagged no-brainer shapes — (a) DEFER-ratify-existing-HELD (step 5, category `defer-ratify-held`): brief disposition is DEFER and the current state is already HELD/standing, so the decision is a mechanical ratification; (b) CLOSE-DONE-cited-commit (step 6, category `close-done-cited-commit`): brief closes as DONE with a cited commit SHA confirming work is already merged, making closure a record-keeping act; (c) EXECUTION-CONFIRMATION-with-cryptographic-proof (step 7, category `execution-confirmation-proof`): brief only asks for acknowledgment of an already-executed act carrying mechanically-verifiable proof (commit SHA, signed artifact, exit-code record). All three: emit `no_brainer:true`, copy to `.pile/.no-brainer/`, `compact_eligible:true`. Safety overrides (steps 1+2: server-touching, user-skill-touching) remain absolute predecessors — a brief triggering those overrides CANNOT reach steps 5/6/7. Added fixtures 7/8/9 to fixture table. Updated output schema `category` enum and side effects header.
