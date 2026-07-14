@@ -13,7 +13,11 @@ executes; you present and record.
 
 ## STEP 0 — Channel to the mayor (mandatory, before any brief work)
 
-You WILL have questions. Set up the agent-inbox channel first:
+You WILL have questions. Set up the agent-inbox channel first. This uses the
+`communicate-with-other-agent` skill (bundled in this pack at
+`mathcity/skills/communicate-with-other-agent`, with its `scripts/`) — the
+canonical inbox monitor + `agent-send.sh` protocol. The steps below are the
+short form; see that skill for the full reference.
 
 1. Resolve your own session UUID (`$CLAUDE_CODE_SESSION_ID`, else the
    stem of the newest `*.jsonl` under `~/.claude/projects/<hash>/`).
