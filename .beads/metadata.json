@@ -1,7 +1,9 @@
 {
   "backend": "dolt",
   "database": "dolt",
-  "dolt_database": "gsp",
+  "dolt_database": "gascity_packs",
   "dolt_mode": "server",
-  "project_id": "d54fc39d-4f8a-41e6-9d27-0a4a0299d209"
+  "project_id": "d54fc39d-4f8a-41e6-9d27-0a4a0299d209",
+  "dolt_server_host": "127.0.0.1",
+  "dolt_server_port": 3309
 }
