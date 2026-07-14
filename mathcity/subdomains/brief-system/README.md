@@ -106,14 +106,12 @@ Presentation then drains the stack (next section).
 
 **Reading the stack.** Two routes:
 
-- The **brief-present-next** formula (run manually) drains every pending
-  stack brief in one session: trivial "no-brainer" items are collapsed into
-  one-line `DECISION / CONTEXT / RECOMMEND / CONFIRM: y/n` entries, and full
-  briefs are presented one at a time in their seven-section form.
-
-  ```bash
-  gc sling mayor brief-present-next --formula
-  ```
+- The **present-briefs** skill, run by the outside clerk (or Mayor), drains
+  every pending stack brief in one session: trivial "no-brainer" items are
+  collapsed into one-line `DECISION / CONTEXT / RECOMMEND / CONFIRM: y/n`
+  entries, and full briefs are presented one at a time in their seven-section
+  form. Presentation is human-facing and cannot be staffed by a gc order —
+  there is no `brief-present-next` order; the outside clerk runs the skill.
 
 - The **present-it** skill, interactively: say "present he-x8dk-merge" in a
   session and get the same decision-first dump in conversation.
@@ -121,13 +119,13 @@ Presentation then drains the stack (next section).
 **Recording a verdict.** Under the one-bead model, adjudication means writing
 the verdict fields **onto the brief bead itself** — verdict, one-line
 rationale, authorizer, date — and then **closing the bead**. That is the
-whole canonical act. The `brief-record-decision` formula does it and also
-writes a redundant `.toml` record and rings the `brief.decided` event bell:
+whole canonical act. The `adjudicate-brief` skill (formerly `record-decision`)
+does it, writes a redundant `.toml` record, and rings the `brief.decided`
+event bell — which fires the machine cascade on the `mathcity.brief-operator`
+pool. Invoke it as a skill in a session:
 
-```bash
-gc sling gc.run-operator brief-record-decision --formula \
-  --var brief_slug=he-x8dk-merge --var decision=approve \
-  --var reason="clean merge, tests green"
+```
+adjudicate-brief he-x8dk-merge --decision approve --reason "clean merge, tests green"
 ```
 
 **The verdict vocabulary** (four words, three of which are final):
@@ -180,7 +178,7 @@ The brief system's orders:
 | `brief-review-patrol` | every 30 min, per rig | Rescue briefs stuck at a pending external review; run the missing review or escalate. |
 | `brief-watchdog-refill` | every 30 min | If the stack is below the low-water mark (2), commission up to 3 new brief-preps from ready source work; target depth 5. |
 | `brief-watchdog-refill-on-stack-low` | event: `brief.stack-low` | Same refill, fired instantly when a decision empties the stack. |
-| `brief-present-next` | manual | Drain and present all pending stack briefs (Taylor-initiated). |
+| ~~`brief-present-next`~~ | ~~manual~~ | **RETIRED 2026-07-13 (P4.2 migration, tdupu/gascity-packs#4).** A gc order cannot staff a human presenter. Presentation is now the outside clerk's `present-briefs` skill. The `brief-present-next` FORMULA is kept. |
 | `brief-decision-dispatch` | event: `brief.decided` | Execute the verdict (see previous section). |
 | `post-decision-file-or-sendback` | event: `brief.decided` | Route follow-up briefing: FILE vs SEND-BACK. |
 | `brief-archive-on-request` | event: `brief.archive_requested` | Archive a sent-back brief immediately. |
@@ -232,14 +230,16 @@ gc sling hecke/gc.run-operator brief-prep --formula \
 ls ~/gt/hecke/.beads/briefs/stack/          # promoted
 ls ~/gt/hecke/.beads/briefs/.pile/.rejected # or rejected, with reasons
 
-# 4. Present: drain the stack.
-gc sling mayor brief-present-next --formula
+# 4. Present: drain the stack. The outside clerk (or Mayor) runs the
+#    present-briefs skill — presentation is human-facing, not a gc order.
+present-briefs
 #    ...Taylor reads the seven sections and says: approve.
 
-# 5. Record the verdict ON the brief bead and close it.
-gc sling gc.run-operator brief-record-decision --formula \
-  --var brief_slug=he-q7r2-merge --var decision=approve \
-  --var reason="side-pairing fix verified, tests green"
+# 5. Record the verdict ON the brief bead and close it, via the
+#    adjudicate-brief skill (formerly record-decision). It rings
+#    brief.decided and fires the machine cascade on mathcity.brief-operator.
+adjudicate-brief he-q7r2-merge --decision approve \
+  --reason "side-pairing fix verified, tests green"
 
 # 6. Dispatch: automatic (brief.decided event). The source bead he-q7r2 is
 #    reassigned to the merge queue; the brief document is archived.
@@ -279,7 +279,8 @@ not yet carried live traffic. Known state:
   "no-changes" but its successor blocks), stranding a lock and a worker per
   run. Priority-bumped; fix in progress. Related: a global-vs-rig-relative
   path split (`~/.gc/mathcity/briefs` vs `.beads/briefs`) awaits one ruling.
-- **`brief-present-next` has never yet been run as a formula** — all
+- **Presentation runs only through the interactive `present-briefs` skill** —
+  the retired `brief-present-next` order never staffed a presenter, and all
   presentation to date has gone through the interactive skills.
 - **`brief-decision-dispatch` has never run** — no verdict has yet flowed
   through the automatic approve/reject/revise executor.

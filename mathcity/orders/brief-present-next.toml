@@ -1,8 +1,0 @@
-[order]
-description = "Manually drain all pending stack briefs: no-brainers as one-line items, full briefs via grill-and-present"
-scope = "city"
-formula = "brief-present-next"
-trigger = "manual"
-pool = "mayor"
-timeout = "60s"
-

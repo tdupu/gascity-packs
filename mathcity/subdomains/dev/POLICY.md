@@ -329,10 +329,44 @@ inside gascity core); this is the pack-level, plan-time analogue.*
 
 - **P5.3 Use only real, documented bd types.** Any policy document, skill file, AGENTS.md, plan, or bead-touching code that references a bead type must use only the types documented in `bd create --help` (`--type` flag): `bug`, `feature`, `task`, `epic`, `chore`, `decision`, `spike`, `story`, `milestone`, `event`. Undocumented types (e.g., `research-journal`, `brief`) are hallucinated — they cannot be executed and produce silent failures when passed to `bd create -t`. Custom types require explicit `types.custom` configuration in bd and a documented approval bead before they may appear in any policy pass/fail criterion. The canonical check: `bd create --help | grep -- '--type'` lists the live type set; any type string not in that list with no corresponding `types.custom` config entry → **fail**. (Origin: 2026-07-12 grilling — `type: research-journal` appeared in brief-system POLICY.md B3.7; replaced with `type: spike` + `[RESEARCH_JOURNAL]` label.)
 
+## Pillar 6 — Observability & fail-loud
+
+- **P6.1 "Fail loud, never silent."** A plan, skill, order, formula, or code
+  change must make failure **visible at the point of failure**. Every
+  error / timeout / limit path must propagate loudly — a non-zero exit, a
+  raised error, an escalation (mail / nudge to the mayor), or an explicit loud
+  health signal. Catching an error and continuing in a degraded, partial, or
+  frozen state **without emitting a visible signal** is prohibited: swallowed
+  exceptions, silent retries that never escalate, freezing or stubbing state on
+  a read/write timeout, silently bounding or truncating coverage, or dropping
+  work with no log → **fail**. A passive check that only reveals the problem
+  when someone runs a diagnostic (e.g. a `gc doctor` flag) does **not** satisfy
+  this rule — the failure must announce itself when it happens.
+  Allowed exceptions (precise): (a) expected, documented **no-ops are not
+  failures** (a clean empty result — "no ready work", "nothing to sync" — needs
+  no alarm); (b) **declared graceful degradation** is allowed only if it
+  (i) emits a loud signal at the point of degradation and (ii) names the
+  escalation target — "degrade quietly and hope someone notices" is never
+  allowed; (c) **coalesced / rate-limited alerting** (to avoid an alarm
+  firehose) is allowed only if it preserves the signal — first occurrence plus
+  a periodic summary must still surface; it must not drop the signal.
+  Pass: every error / timeout / degradation path either propagates loudly or
+  emits an explicit escalation + log at the point of failure, with a named
+  escalation target. Fail: any plan / skill / order / code that on
+  error/timeout/limit catches-and-continues, freezes or stubs, truncates, or
+  drops work **without a visible signal at the point of failure** — including
+  "surfaced only via a passive diagnostic" → **fail**. (Origin: 2026-07-13
+  incident `gs-8b3` — the `gc` order dispatcher swallowed a Dolt read-timeout
+  every tick, froze order history at 02:05, degraded scheduling, and surfaced
+  only a passive `gc doctor` flag; the one loud signal — the dolt-health
+  firehose `gt-5xh` — was noise. Observability was inverted.)
+
 ## Non-negotiables (quick checklist)
 
 - No hand-edited `city.toml`, and no hand-edited `pack.toml` outside the
   owned set (P1.2).
+- No silent failures — every error / timeout / degradation path surfaces
+  loudly at the point of failure, never only via a passive diagnostic (P6.1).
 - No edits under any `vendor/**` tree, ever (P2.2).
 - No edits inside a materialized `.claude/skills/**` / `.codex/skills/**`
   sink (P1.3).

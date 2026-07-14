@@ -19,6 +19,7 @@ scope = "city"
 formula = "brief-watchdog-refill"
 trigger = "event"
 on = "brief.stack-low"
-pool = "dog"
+# Retarget: gastown-vestige pool "dog" -> pack-local mathcity.brief-operator (Taylor 2026-07-13, tdupu/gascity-packs#4)
+pool = "mathcity.brief-operator"
 timeout = "60s"
 idempotent = true

@@ -8,7 +8,7 @@ Two mechanical enforcement checks, one routing step for failures:
   downstream formula acts on it. A bead-state change without a corresponding
   `bd decision` record is non-compliant. Exit 0 = record found. Exit 1 = no
   record → block all downstream work until the record is filed via the
-  mathcity.record-decision skill.
+  mathcity.adjudicate-brief skill.
 
   CHECK-B — Verdict/bead alignment: verify that the source bead's current
   state (status, assignee, branch metadata) is consistent with the recorded
@@ -23,13 +23,13 @@ judgment routes to Mayor/Taylor via the resolve-violations step.
 
 Division of labor:
 - This formula ENFORCES compliance at call time.
-- mathcity.record-decision (skill) RECORDS decisions.
+- mathcity.adjudicate-brief (skill) RECORDS decisions.
 - brief-record-decision (formula) WRITES decision records inside the brief pipeline.
 - brief-decision-dispatch (formula) ACTS on approve/reject/revise/defer routing.
 
 Architecture principle:
   AP2 — `bd decision` canonical: standalone decisions use `bd create -t
-  decision` per `record-decision` skill. No parallel decision stores.
+  decision` per `adjudicate-brief` skill. No parallel decision stores.
   (gascity triage 2026-06-26, LD #10 + W2.8b).
   One-bead model (brief-system POLICY.md B2.2, 2026-07-12): for BRIEF
   adjudications the brief bead IS the decision bead — the verdict is recorded
@@ -99,7 +99,7 @@ Exit 0 = at least one canonical `bd decision` record found → proceed.
 Exit 1 = no decision record found → BLOCK: the work item cannot advance until
   the verdict is recorded on the brief bead and the bead closed (one-bead
   model, B2.2) — or, for standalone non-brief decisions, until
-  `mathcity.record-decision` files it via `bd create -t decision`.
+  `mathcity.adjudicate-brief` files it via `bd create -t decision`.
 Exit 2 = `bd` unavailable or query error → fail closed (treat as missing).
 
 When this step exits non-zero, downstream steps are blocked and the
@@ -179,7 +179,7 @@ Present the violation to Mayor/Taylor:
 1. **CHECK-A failure (no decision record):**
    - State: bead `{{source_bead}}` (brief `{{brief_slug}}`) has no canonical
      `bd decision` bead and no brief-pipeline decision file.
-   - Required action: Taylor or Mayor must invoke `mathcity.record-decision`
+   - Required action: Taylor or Mayor must invoke `mathcity.adjudicate-brief`
      to file the verdict before this formula can proceed.
    - Blocking work: list any downstream formulas or orders that were blocked
      by this enforcement (derived from the formula's pending wisp chain if
@@ -190,7 +190,7 @@ Present the violation to Mayor/Taylor:
      current bead state does not match the routing rules.
    - Required action: Mayor or Taylor must reconcile — either correct the
      bead state to match the verdict, or supersede the decision record via
-     the supersede pattern in `mathcity.record-decision`.
+     the supersede pattern in `mathcity.adjudicate-brief`.
    - NEVER auto-correct here: alignment corrections may themselves require
      a new `bd decision` record (e.g., "we decided to change the verdict").
 

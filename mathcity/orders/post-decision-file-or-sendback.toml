@@ -27,6 +27,7 @@ on = "brief.decided"
 # gsp-fqo: same pool-routing fix as gsp-f79; bare "polecat" never resolved for
 # a city order (polecats are rig-scoped). gc.run-operator is the gc-native
 # city pool (gastown.dog removed 2026-07-09 per ba2ff381).
-pool = "gc.run-operator"
+# Retarget: gastown-vestige pool "gc.run-operator" -> pack-local mathcity.brief-operator (Taylor 2026-07-13, tdupu/gascity-packs#4)
+pool = "mathcity.brief-operator"
 timeout = "120s"
 idempotent = true

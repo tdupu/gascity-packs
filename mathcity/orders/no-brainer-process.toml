@@ -3,7 +3,8 @@ description = "Manually classify one no-brainer candidate under the shortcut pol
 scope = "city"
 formula = "no-brainer-classify"
 trigger = "manual"
-pool = "gc.run-operator"
+# Retarget: gastown-vestige pool "gc.run-operator" -> pack-local mathcity.brief-operator (Taylor 2026-07-13, tdupu/gascity-packs#4)
+pool = "mathcity.brief-operator"
 timeout = "60s"
 idempotent = true
 

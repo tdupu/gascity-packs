@@ -40,6 +40,7 @@ on = "brief.decided"
 # the poured root is demand-visible and the reconciler wakes a dog for it;
 # the formula itself scans every rig's brief root (rig-scoped event orders
 # would fan out once per rig on each city event — deliberately avoided).
-pool = "gc.run-operator"
+# Retarget: gastown-vestige pool "gc.run-operator" -> pack-local mathcity.brief-operator (Taylor 2026-07-13, tdupu/gascity-packs#4)
+pool = "mathcity.brief-operator"
 timeout = "120s"
 idempotent = true

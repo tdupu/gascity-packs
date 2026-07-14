@@ -18,9 +18,9 @@ Sources: `~/repos/gascity-packs/mathcity/subdomains/brief-system/POLICY.md`, `ma
 3. **Promote** — `brief-shuffle` (order `brief-shuffle-pile`): single-writer under `.shuffle.lock`, one item per run, applies the gate registry via `brief-gate-keep` (profiles: `standard` = G1–G16 incl. G5b; `no_brainer` = 10 gates; `test_execution` = 7; `experiment` = 8; all `fail_closed`), then promotes to `stack/` + appends `stack/manifest.jsonl`, or rejects to `.pile/.rejected/`.
 4. **No-brainer branch** — `no-brainer-classify` formula / `catch-no-brainer` skill copies `no_brainer:true` briefs into `.pile/.no-brainer/`; auto-execute runs by DEFAULT per Adopted N5 (2026-07-12) unless a kill switch is engaged — city `~/gt/.beads/auto_merge_enabled`, then rig `~/gt/hecke/.beads/auto_merge_enabled` (paths.toml `kill_switch_city`/`kill_switch_rig`): a flag that exists and reads `false` halts; **absent or `true` = ON**. Stop gates G5/G5b fire before G12 is even consulted.
 5. **Refill** — `brief-watchdog-refill` keeps stack between `low_water = 2` and `high_water = 5` (thresholds.toml), max 3 new briefs/run, 30m cooldown; `brief.stack_low` event rings when the combo signal ≤ 1.
-6. **Present** — `brief-present-next` v2 (accumulate-and-drain per HQ decision gt-3x2d): one run drains all pending stack briefs; no-brainers collapse to one-line items in a consolidated block; writes `presentations/<slug>-presented.toml` per brief. Clerk presents; Mayor never grills Taylor directly.
+6. **Present** — the outside clerk (or Mayor) runs the `present-briefs` skill (accumulate-and-drain per HQ decision gt-3x2d): one run drains all pending stack briefs; no-brainers collapse to one-line items in a consolidated block; writes `presentations/<slug>-presented.toml` per brief. Presentation is human-facing and cannot be staffed by a gc order — the retired `brief-present-next` order never resolved a presenter. Clerk presents; Mayor never grills Taylor directly.
 7. **Adjudicate** — Taylor issues `approve | reject | revise | defer` (the only verdict vocabulary; brief-system POLICY.md reuses it for pack rules).
-8. **Record** — `brief-record-decision`: writes `decisions/<slug>.toml`, archives the run, emits `brief.decided`.
+8. **Record** — the `adjudicate-brief` skill (formerly `record-decision`): writes the verdict onto the brief bead (plus a redundant `decisions/<slug>.toml`), archives the run, and emits `brief.decided`, firing the machine cascade on the `mathcity.brief-operator` pool.
 9. **Route (two consumers of `brief.decided`)** —
    - `brief-decision-dispatch`: ACTS (reassign source bead, route to refinery, defer); appends `decisions-dispatched.jsonl`.
    - `file-or-sendback-route`: logs `FILE` (successor bead exists → fire brief-prep on it) or `SEND-BACK` (self-contained → emit `brief.archive_requested`) to `decisions/file-or-sendback.jsonl` (append-only audit spec in `file-or-sendback-log-spec.md`).
@@ -98,18 +98,18 @@ Phase 0 — baseline (read-only, no authorization needed):
 
 Phase 1 — minimal viable dogfood (1 brief, 1 verdict, 1 route):
 
-**Executor: Clerk runs `brief-prep`, `brief-shuffle-pile`, `catch-no-brainer`, and `brief-present-next`. Taylor adjudicates and issues the verdict. Homer (or a gc worker) runs `brief-record-decision` and `file-or-sendback-route`.**
+**Executor: Clerk runs `brief-prep`, `brief-shuffle-pile`, `catch-no-brainer`, and the `present-briefs` skill (presentation is human-facing, not a gc order). Taylor adjudicates and issues the verdict; the `adjudicate-brief` skill (formerly `record-decision`) records it and rings `brief.decided`, firing the machine cascade on the `mathcity.brief-operator` pool, which runs `file-or-sendback-route`.**
 
 3. File the manifest/stack-repair bead (candidate 4). Verify: `bd show <id>`.
 4. Run `brief-prep source=<id>` → brief lands in `.pile/`. Verify: file exists, frontmatter has both safety booleans, first line after header is the decision.
 5. Run the shuffle (order `brief-shuffle-pile` or manual formula pour). Verify: `grep <slug> stack/manifest.jsonl` and gate-evidence section lists all 16 gates.
 6. Run `catch-no-brainer` on it. Expected: `no_brainer:true, category:cat-A/C, compact_eligible:true`; copy appears in `.pile/.no-brainer/`. **Kill switch stays absent — no auto-execute.**
-7. Present (`brief-present-next`); Taylor adjudicates; run `brief-record-decision`. Verify: `decisions/<slug>.toml` exists.
+7. Present via the `present-briefs` skill (clerk/Mayor); Taylor adjudicates; run the `adjudicate-brief` skill (formerly `record-decision`). Verify: the verdict is on the brief bead and `decisions/<slug>.toml` exists.
 8. Confirm `file-or-sendback-route` fires on `brief.decided`. Verify: `decisions/file-or-sendback.jsonl` exists and `bash mathcity/assets/scripts/checks/brief-file-or-sendback-log-required.sh` (run from a checkout with correct cwd) exits 0.
 
 Phase 2 — full-scale pass (3–5 briefs, category coverage):
 
-**Executor: Same as Phase 1 — Clerk (formula runs), Taylor (verdicts), Homer/gc worker (record-decision, file-or-sendback-route, check-script installation). The check-script installation bead additionally requires Taylor's git push authorization before commit goes to remote.**
+**Executor: Same as Phase 1 — Clerk (formula runs + `present-briefs` skill), Taylor (verdicts + `adjudicate-brief`), gc worker on the `mathcity.brief-operator` pool (file-or-sendback-route, check-script installation). The check-script installation bead additionally requires Taylor's git push authorization before commit goes to remote.**
 
 9. Repeat for gsp-n9u (expect G5b stop → full-form → Taylor adjudication), gsp-1pv (architecture full-form; plausible `defer` → tests defer path), and the check-script installation bead (its merge makes gates mechanical). **For the check-script installation bead specifically:** the replay-able implementation path (P1.1) is to update the formula gate paths to reference `mathcity/assets/scripts/checks/brief-*.sh` by their canonical pack-asset path — NOT to copy scripts into `.gc/scripts/checks/` via a one-off sync, which violates P1.1 (not re-derivable from imports). If the formula layer requires absolute paths, the alternative is a `setup-brief-checks` gc formula/order step that installs them as part of `gc import install` mechanics. Resolve which approach before slinging the check-script bead; the bead must state the chosen mechanism and a P1.1 compliance note.
 10. After the check scripts land: re-run `brief-gate-keep` on one already-promoted brief to confirm exec-mode checks pass where frontmatter previously self-declared.
@@ -153,11 +153,11 @@ The #335 gamma0 repair campaign has 5 open beads that each require explicit Tayl
 
 Today "TAYLOR_OK_REQUIRED" lives only as a string in each bead's description. No `decisions.jsonl` entry exists for any of them. When a polecat picks up he-w38gm and asks "was this approved?", there is nothing to check — authorization is conversation-only and evaporates.
 
-**This is exactly Priority 1 in the plan's roadmap:** `record-decision` + `decisions.jsonl` must run before this convoy can move safely.
+**This is exactly Priority 1 in the plan's roadmap:** `adjudicate-brief` (formerly `record-decision`) + `decisions.jsonl` must run before this convoy can move safely.
 
 ### Concrete first deliverable: he-w38gm
 
-`present-it` + `record-decision` in combination for **he-w38gm** is the single most leveraged first exercise. Steps:
+`present-it` + `adjudicate-brief` (formerly `record-decision`) in combination for **he-w38gm** is the single most leveraged first exercise. Steps:
 1. Run `present-it` on he-w38gm — surface what's being decided (DRY_RUN scope, risk, assumptions)
 2. Taylor issues a verdict (yes/no/conditions)
 3. `brief-record-decision` writes `decisions/<slug>.toml`
@@ -185,7 +185,7 @@ he-66vr reveals a gap not currently in the brief-system spec or pilot plan: a li
 
 | Priority | Component | Forcing function |
 |---|---|---|
-| 1 | `record-decision` + `decisions.jsonl` | he-714x7 convoy blocked; server work executing without audit trail |
+| 1 | `adjudicate-brief` (formerly `record-decision`) + `decisions.jsonl` | he-714x7 convoy blocked; server work executing without audit trail |
 | 2 | `present-it` for single TAYLOR_OK bead | he-w38gm: DRY_RUN sweep needs formal structured OK |
 | 3 | `catch-no-brainer` (classifier running) | he-xr82h = unnecessary Taylor load; he-ahfr gated on ≥3 dogfood examples |
 | 4 | G5/G5b stop-gate enforcement | he-besry, he-9n0ki, he-ce5sw all server-touching; gate must reject without decisions.jsonl |
