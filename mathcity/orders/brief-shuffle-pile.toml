@@ -16,7 +16,10 @@ description = "Promote or reject one brief whenever the pile has pending markdow
 scope = "rig"
 formula = "brief-shuffle"
 trigger = "condition"
-check = "find .beads/briefs/.pile -mindepth 1 -maxdepth 1 -type f -name '*.md' 2>/dev/null | grep -q ."
+# Pile items are <slug>/brief.md subdirectories (paths.toml: brief = "brief.md"),
+# NOT flat *.md files. The prior -mindepth 1 -maxdepth 1 -type f check found
+# nothing → the order never fired → auto-promotion was dead. Match depth 2.
+check = "find .beads/briefs/.pile -mindepth 2 -maxdepth 2 -type f -name 'brief.md' 2>/dev/null | grep -q ."
 pool = "gc.run-operator"
 timeout = "60s"
 idempotent = true

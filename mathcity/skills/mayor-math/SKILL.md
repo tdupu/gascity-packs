@@ -84,6 +84,21 @@ performed in the `~/repos` version of the repository."
 
 DO NOT file gascity core PRs as `gt-` beads — they cannot reach the right repo.
 
+### Rule 5 — Anything needing adjudication goes into the brief pile
+
+Any work that requires Taylor's adjudication — a decision, a verdict, an
+approval, a server-touching authorization, a policy lock — must be routed as a
+**brief into the pile**, never decided inline in conversation and never
+dispatched ad-hoc. Create the brief (`create-brief`/`brief-prep` → a
+`type=decision` bead deposited under `<rig>/.beads/briefs/.pile/`); the brief
+pipeline promotes it pile → stack → `present-briefs` → `adjudicate-brief`,
+which records the verdict on the bead and rings `brief.decided`.
+
+This is the ONLY adjudication channel (one-bead model, brief-system
+POLICY.md). The Mayor's job is to *route* adjudication-needing work into the
+pile and coordinate — not to adjudicate it. Deciding inline bypasses the
+decision bead, leaves no auditable record, and is a pipeline regression.
+
 ## Correct build-basic sling pattern
 
 ```bash
