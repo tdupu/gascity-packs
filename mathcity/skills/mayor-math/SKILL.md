@@ -1,11 +1,11 @@
 ---
 name: mayor-math
-description: Supplement to gc.mayor for Gas Town (gt HQ) context. Provides the correct rig-scoped sling mechanics for build-basic convoy workflows, including the rule that the bare gc.run-operator form doesn't resolve at HQ level and that gt-prefix beads have no worker fleet by default. Invoke alongside or after gc.mayor when about to sling work through build-basic in a Gas Town session.
+description: Supplement to gc.mayor for Gas City HQ (gt) context. Provides the correct rig-scoped sling mechanics for build-basic convoy workflows, including the rule that the bare gc.run-operator form doesn't resolve at HQ level and that gt-prefix beads have no worker fleet by default. Invoke alongside or after gc.mayor when about to sling work through build-basic in a Gas City session.
 ---
 
 # mayor-math
 
-Supplement to [[gc.mayor]] with Gas Town (gt HQ) sling mechanics. The upstream gc.mayor
+Supplement to [[gc.mayor]] with Gas City HQ (gt) sling mechanics. The upstream gc.mayor
 skill is community-shared and cannot be edited — use this skill to apply the correct
 rig-scoped rules for our setup.
 
@@ -106,10 +106,13 @@ decision bead, leaves no auditable record, and is a pipeline regression.
 bd create -t feature -p 2 -T "<title>" -m "<body>" --rig <rig>   # → <bead-id>
 
 # Step 2 — Create convoy
+# --owner must be a LIVE agent — verify with `gc agent list` first.
+# gastown.* identities are dead (pack removed 2026-07-09, P5.1); no canonical
+# owner replacement is named yet — see IMPORTS-GC-MIGRATION-PLAN-2026-07-08.md.
 gc convoy create <slug> --owned \
   --target <branch> \
   --merge local \
-  --owner gastown.mayor
+  --owner <owner-agent>
 # note convoy ID (e.g., he-xyz)
 
 # Step 3 — Add bead to convoy
@@ -136,8 +139,9 @@ gc sling <rig>/gc.run-operator <convoy-id> --on build-basic \
 For atomic tasks that don't need the full requirements→plan→implement→review pipeline:
 
 ```bash
-# Route directly to a polecat (no convoy needed):
-gc sling <rig>/gastown.polecat <bead-id>
+# Route directly to the rig coordinator or a pack-local agent (no convoy needed).
+# (The old gastown.polecat target is dead — pack removed 2026-07-09, P5.1.)
+gc sling <rig>/gc.run-operator <bead-id>
 
 # Targetless formula (formula must NOT have target_required):
 gc sling <rig>/gc.run-operator <formula-name> --formula --var key=value
