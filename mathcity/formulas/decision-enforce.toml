@@ -68,14 +68,14 @@ enum = ["", "approve", "reject", "revise", "defer"]
 
 [vars.operator_target]
 description = "Run target for mechanical enforcement checks."
-default = "gc.run-operator"
+default = "mathcity.brief-operator"  # retargeted from gc.run-operator (gastown retired 2026-07-09 ba2ff381)
 
 [vars.mayor_target]
 description = "Run target for violations requiring judgment — Mayor/Taylor."
 # Human-facing escalation routing; no gc.* role maps to a presenter, so
 # gc.run-operator is the routable default. Cities importing the gastown pack
 # may pass gastown.mayor.
-default = "gc.run-operator"
+default = "mathcity.brief-operator"  # retargeted from gc.run-operator (gastown retired 2026-07-09 ba2ff381)
 
 # ---------------------------------------------------------------------------
 # Step 1 — CHECK-A: decision record existence

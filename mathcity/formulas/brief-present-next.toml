@@ -27,9 +27,9 @@ default = ".beads/briefs"
 
 [vars.presenter_target]
 description = "Run target for presenting the brief."
-# No gc.* role maps to a human-facing presenter; gc.run-operator is the
+# No gc.* role maps to a human-facing presenter; mathcity.brief-operator is the
 # routable default. Cities importing the gastown pack may pass gastown.mayor.
-default = "gc.run-operator"
+default = "mathcity.brief-operator"  # retargeted from gc.run-operator (gastown retired 2026-07-09 ba2ff381)
 
 [[steps]]
 id = "read-manifest"

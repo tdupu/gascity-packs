@@ -8,3 +8,6 @@ pool = "mathcity.brief-operator"
 timeout = "60s"
 idempotent = true
 
+[vars]
+mode = "guarded-execute"
+

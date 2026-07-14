@@ -15,7 +15,32 @@ The brief system is a structured decision pipeline for math research work. When 
 
 The pipeline has two main phases. In the production phase, `brief-prep` (a skill that composes `grill-and-present`, `coordinate-review`, and the gate runner) prepares the brief from the source artifact, runs all required gates, and deposits the result into the `.pile` at `~/.gc/mathcity/briefs/.pile/`. The `brief-shuffle-pile` order fires on condition, picks up pile items one at a time, applies gate-keep rules, and either promotes each brief to the `~/.gc/mathcity/briefs/stack/` with a manifest entry or rejects it to `.pile/.rejected/`.
 
-In the adjudication phase, the outside clerk (or Mayor) runs the `present-briefs` skill to drain the stack and present briefs to human — presentation is human-facing and cannot be staffed by a gc order. No-brainer-classified briefs are collapsed into a single one-line block; full briefs are rendered through `grill-and-present`. human adjudicates — approve, reject, defer, or revise. The `adjudicate-brief` skill records the verdict ON the brief bead itself (the brief bead is `type=decision` — one-bead model) and closes it; no separate decision bead is created. It rings the `brief.decided` event, which fires the machine cascade on the `mathcity.brief-operator` pool: two event-driven orders fire — `brief-decision-dispatch` acts on the decision (merges the branch, creates a follow-up bead, or marks defer), and `post-decision-file-or-sendback` routes the brief itself to either a successor re-briefing or archive. The `brief-archive-sweep` cooldown order handles residual cleanup.
+In the adjudication phase, the outside clerk (or Mayor) runs the `present-briefs` skill to drain the stack and present briefs to human — presentation is human-facing and cannot be staffed by a gc order. No-brainer-classified briefs are collapsed into a single one-line block; full briefs are rendered through `grill-and-present`. human adjudicates — approve, reject, defer, or revise. The `adjudicate-brief` skill records the verdict ON the brief bead itself (the brief bead is `type=decision` — one-bead model) and closes it; no separate decision bead is created. It rings the `brief.decided` event, which fires the machine cascade on the `mathcity.brief-operator` pool: two event-driven orders fire — `brief-decision-dispatch` acts on the decision (reassigns to `gc.publisher` — the rig's merge-queue agent, informally "refinery" — on approve; creates a follow-up bead on reject/revise; marks defer with no action), and `post-decision-file-or-sendback` routes the brief itself to either a successor re-briefing or archive. The `brief-archive-sweep` cooldown order handles residual cleanup.
+
+### Pipeline diagram
+
+```
+source bead closes (needs-decision label)
+        │
+        ▼  on-merge-brief-record order (event: bead.closed, rig-scoped)
+        │  → creates brief-record bead, enters brief-prep pipeline
+        ▼  brief-prep formula (or math-brief-prep for fan-out)
+        │  → gates checked (brief-gate-keep), brief.md deposited in .beads/briefs/.pile/<slug>/
+        ▼  brief-shuffle-pile order (condition-trigger, rig-scoped)
+        │  → single-writer: promotes .pile → .beads/briefs/stack/
+        ▼  /present-briefs skill (CLERK-DRIVEN — cannot be an order)
+        │  → no-brainers: compact one-line block; full briefs: grill-and-present
+        ▼  /adjudicate-brief skill
+        │  → brief-record-decision formula: writes decision, emits brief.decided
+        ├── brief-decision-dispatch order (event: brief.decided, city-scoped)
+        │   approve  → reassign source bead to <rig>/gc.publisher ("refinery")
+        │   reject   → create follow-up bead with reason
+        │   revise   → create follow-up bead with feedback
+        │   defer    → mark dispatched, no action
+        └── post-decision-file-or-sendback order (event: brief.decided, city-scoped)
+            FILE     → fire brief-prep for successor bead
+            SEND-BACK → request archive → brief-archive-on-request order catches it
+```
 
 ---
 
@@ -29,7 +54,7 @@ In the adjudication phase, the outside clerk (or Mayor) runs the `present-briefs
 - **New brief-pipeline or math skills are created inside `mathcity/skills/<name>/` first**, then symlinked into `~/repos/agent-skills/skills/<name>` with `ln -s ../../gascity-packs/mathcity/skills/<name> <name>` (relative, from inside `agent-skills/skills/`). The symlink is committed to agent-skills.
 - Run `~/repos/agent-skills/scripts/check-skill-symlinks.sh` to verify all symlinks resolve and every skill dir contains `SKILL.md`.
 
-Skills currently managed under this policy (all 11 as of 2026-07-07):
+Skills currently managed under this policy:
 `brief-prep`, `catch-no-brainer`, `coordinate-review`, `critical-review`,
 `formula-creator`, `grill-and-present`, `is-good-experiment`, `is-good-test`,
 `present-briefs`, `present-it`, `adjudicate-brief`.
@@ -88,16 +113,38 @@ Formulas are the executable units the order system pours. Each is a `.toml` in `
 | `brief-decision-dispatch` | For each undispatched decision record, executes the routing action: reassign source bead on approve, create follow-up bead on reject/revise, mark-only on defer. |
 | `brief-gate-keep` | Runs the gate registry against one brief. Mechanical gates checked by scripts; judgment gates as explicit work steps; stop/manual gates fail closed unless evidence records human authorization. |
 | `brief-prep` | Producer side of the brief-bundle workflow. Turns a bead, artifact, or user request into a staged brief with gate evidence attached, then submits to the pile. |
+| `math-brief-prep` | Fan-out variant of `brief-prep`: spawns one `brief-prep` instance per pending source bead (drain), then runs single-writer shuffle after the fan-in. |
 | `brief-present-next` | Drains all pending stack briefs in one session. No-brainers are collapsed into one-line items; full briefs are rendered via `grill-and-present`. |
 | `brief-record-decision` | Records human's verdict on the presented brief's bead itself (one-bead model), closes it, and archives the run. |
 | `brief-shuffle` | Single-writer shuffler: processes at most one pile item per run, applies gate-keep, and either promotes to stack (with manifest append) or rejects to `.pile/.rejected/`. |
 | `brief-watchdog-refill` | Monitors the brief stack; when below target, identifies ready source work and opens or routes brief-prep work. Does not fabricate briefs. |
 | `codex-dispatch` | Dispatches a task to the codex-worker for cross-model critical review, creative design, or large-plan analysis. Never fired by automated orders — pour explicitly only. |
 | `file-or-sendback-route` | Post-decision gate: logs the routing choice for a decided brief and fires downstream work — FILE (re-brief a successor) vs SEND-BACK (archive). Never reassigns or merges. |
-| `no-brainer-classify` | Classifies no-brainer candidates and records results. Shortcut execution is blocked unless the local kill switch file exists and all stop gates are clear. |
+| `no-brainer-classify` | Classifies no-brainer candidates and records results. Shortcut execution (`guarded-execute` step) is activated when `no-brainer-process.toml` runs with `mode = "guarded-execute"`. **Mode fix applied 2026-07-14 (gt-d3h6e)** — auto-execution fires once the controller starts. |
 | `on-merge-brief-record` | Inspects recently closed beads; for those carrying the `needs-decision` label, creates a brief-record bead and enters the brief-prep pipeline. |
+| `brief-review-patrol` | Backstop for briefs stuck at `review_gate: pending`. Advances them through Phase 5 or escalates. Rig-scoped, cooldown 30m, pool: `gc.run-operator`. |
+| `decision-enforce` | Enforces the bd-decision-canonical principle: checks that a decision record exists and that verdict/bead alignment is consistent. |
 | `test-execution-request` | Formal request workflow for test execution that carries risk or cost and should not happen silently. |
 | `upf-experiment-dispatch` | Dispatches and breadcrumbs an experiment that belongs on UPF (the compute rig). |
+
+---
+
+## PR Pipeline
+
+The `pr-pipeline` pack (sibling directory `gascity-packs/pr-pipeline/`) ships six formulas for the author-side PR workflow. When imported into a city, they are accessible via `gc sling` or the command surface below.
+
+| Formula | Command | Purpose |
+|---------|---------|---------|
+| `mol-pr-start` | `gc pr-pipeline pr plan <issue>` | Issue → structured plan (no code written) |
+| `mol-pr-blast-radius` | `gc pr-pipeline pr blast-radius "<scope>"` | Map impact surface of a proposed change |
+| `mol-pr-review` | `gc pr-pipeline pr review <pr>` | 11-category outgoing-PR self-review scorecard |
+| `mol-pr-ship` | `gc pr-pipeline pr ship` | Pre-push gate: simplify → review → checks → readiness report |
+| `mol-pr-triage` | (sling directly) | Scan/classify open upstream issues into ranked work queue |
+| `mol-pr-from-issue` | `gc sling <rig>/gc.run-operator mol-pr-from-issue --formula --var issue_number=<N>` | Macro chain: issue → branch-ready PR |
+
+`mol-pr-from-issue` is the full author-side macro. It does **not** push or open a PR by default (`auto_push=false`). Add `--var auto_push=true` only with explicit authorization.
+
+> **Note on "pr-pipeline":** this refers to the **pack** at `gascity-packs/pr-pipeline/` — a subdirectory, not a git branch. There is no separate `pr-pipeline` git branch; all mol-pr-* formulas are live on disk at that path.
 
 ---
 
@@ -105,17 +152,21 @@ Formulas are the executable units the order system pours. Each is a `.toml` in `
 
 Orders wire formulas to triggers.
 
+**Change log — 2026-07-14:** Full stale `gc.run-operator` sweep completed (13 formula `default =` occurrences across 12 files + 3 order `pool =` lines retargeted to `mathcity.brief-operator`; beads gt-oiigr / gt-wz0xj / gt-rix5m). No-brainer mode fix applied: `no-brainer-process.toml` now has `[vars] mode = "guarded-execute"` (gt-d3h6e). Gate file `operator_target` defaults deferred (gt-y4nhw P3 — gates still function via order overrides). `gc supervisor start` is now unblocked.
+
 **Change log — 2026-07-13 (tdupu/gascity-packs#4):** Retired `brief-present-next` order; presentation moved to clerk `present-briefs` skill; `record-decision` → `adjudicate-brief`. The `brief-present-next` ORDER was retired (presentation is human-facing and now lives in the outside clerk's `present-briefs` skill; the FORMULA is kept). Adjudication is recorded via the renamed `adjudicate-brief` skill (formerly `record-decision`), which rings `brief.decided` and fires the machine cascade on the `mathcity.brief-operator` pool. The deterministic machine-step orders were retargeted off the gastown-vestige / non-resolving pools (`dog`, `gc.run-operator`, `mayor`) onto the pack-local, persistent `mathcity.brief-operator` agent.
 
 | Order | Trigger | Description |
 |---|---|---|
 | `brief-archive-on-request` | event (`brief.archive_requested`) | Archives a sent-back brief immediately when routing requests it, without waiting for the 24h sweep. |
 | `brief-archive-sweep` | cooldown 24h | Archives decided and rejected brief artifacts without deleting decision records. |
-| `brief-decision-dispatch` | event (`brief.decided`) | Dispatches the approval/merge back-edge after a brief decision is recorded. Pool: `mathcity.brief-operator`. |
+| `brief-decision-dispatch` | event (`brief.decided`) | Acts on verdict: approve → reassign source bead to `<rig>/gc.publisher` (merge-queue agent, "refinery"); reject/revise → create follow-up bead; defer → no-op. Pool: `mathcity.brief-operator`. |
 | ~~`brief-present-next`~~ | ~~manual~~ | **RETIRED 2026-07-13 (P4.2 migration).** A gc order can never staff a human presenter (its `mayor` pool never resolved). Presentation is now the outside clerk's `present-briefs` skill. The `brief-present-next` FORMULA is kept; only the order was removed. |
 | `brief-shuffle-pile` | condition | Fires whenever `~/.gc/mathcity/briefs/.pile/` contains at least one `.md` file. Promotes or rejects one brief per run. Pool (city/rig="" instance): `mathcity.brief-operator`. |
 | `brief-watchdog-refill` | cooldown 30m | Checks whether the brief stack needs refill work and routes brief-prep tasks. |
-| `no-brainer-process` | manual | Manually classifies one no-brainer candidate under the shortcut policy. |
+| `brief-watchdog-refill-on-stack-low` | event (`brief.stack-low`) | Immediate refill trigger on stack-low event. Event emitted by `assets/scripts/brief-stack-low.sh --emit` (post-decision hook); script measures 3 signals (approved ≤ threshold, total ≤ threshold, unlock_pos ≤ threshold). |
+| `brief-review-patrol` | cooldown 30m | Backstop for briefs stuck at `review_gate: pending`. Advances or escalates. Rig-scoped, pool: `mathcity.brief-operator`. |
+| `no-brainer-process` | manual | Classifies and auto-executes no-brainer candidates. Mode fix applied 2026-07-14 (gt-d3h6e): `[vars] mode = "guarded-execute"` now set; auto-execution fires once controller starts. Kill-switch: absent `auto_merge_enabled` = ON. |
 | `on-merge-brief-record` | event (`bead.closed`) | Files a brief-record after the refinery closes a bead carrying `needs-decision`. Rig-scoped because work beads are rig-local. |
 | `post-decision-file-or-sendback` | event (`brief.decided`) | Routes the decided brief: FILE (re-brief a successor bead) or SEND-BACK (archive). Never reassigns or merges. |
 

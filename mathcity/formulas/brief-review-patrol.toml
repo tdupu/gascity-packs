@@ -42,7 +42,7 @@ default = ".beads/briefs"
 
 [vars.operator_target]
 description = "Run target for patrol scan, frontmatter patching, and bookkeeping."
-default = "gc.run-operator"
+default = "mathcity.brief-operator"  # retargeted from gc.run-operator (gastown retired 2026-07-09 ba2ff381)
 
 [vars.stale_after]
 description = "Grace period: a pending brief younger than this (by deposited_at, falling back to file mtime) is presumed still in-pipeline and skipped."

@@ -18,6 +18,6 @@ scope = "rig"
 formula = "brief-review-patrol"
 trigger = "cooldown"
 interval = "30m"
-pool = "gc.run-operator"
+pool = "mathcity.brief-operator"
 timeout = "120s"
 idempotent = true

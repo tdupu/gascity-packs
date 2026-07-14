@@ -44,7 +44,7 @@ description = "Post-merge hook: create a brief-record and enter brief-prep when 
 [vars]
 [vars.prep_target]
 description = "Run target for brief-prep bookkeeping steps."
-default = "gc.run-operator"
+default = "mathcity.brief-operator"  # retargeted from gc.run-operator (gastown retired 2026-07-09 ba2ff381)
 
 [vars.artifact_root]
 description = "Brief pipeline artifact root relative to the city or rig root."

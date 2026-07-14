@@ -75,7 +75,15 @@ any other presentation or recording channel.
 **The flow:**
 `present-briefs` (present) → Taylor decides → `adjudicate-brief` (records
 the verdict + rings `brief.decided`) → machine cascade auto-fires on
-`mathcity.brief-operator`.
+`mathcity.brief-operator` → on approve: source bead reassigned to
+`<rig>/gc.publisher` (the "refinery") for merge-queue execution. The clerk
+does not track this final step — gc.publisher handles it automatically.
+
+**No-brainers:** briefs classified `compact_eligible: true` appear collapsed
+to a one-line block during `present-briefs` (CONFIRM: y / n / grill-me-further).
+This is a speed-up, **not a bypass** — Taylor still adjudicates. Full
+auto-execution (pile-processor he-x3se) is **not yet shipped**; no-brainer
+automation is currently inert beyond the compact presentation path.
 
 **Who may adjudicate:** both the **clerk** AND the **Mayor** are valid
 adjudicators. Either outside agent may run `present-briefs` and
@@ -83,12 +91,17 @@ adjudicators. Either outside agent may run `present-briefs` and
 
 ## The job, step by step
 
-1. Locate the live pilot root (currently `~/gt/hecke/.beads/briefs/`):
+1. Locate the live brief stack. For hecke work the stack lives at **both**
+   `~/gt/hecke/.beads/briefs/` (city side, 6 entries) and
+   `~/repos/hecke/.beads/briefs/` (repo side, 11 entries — more entries =
+   this is the operative stack for repo work per CLAUDE.md routing rules).
    `stack/` is presentation-ready, ordered by `unlock_count` desc via
-   `stack/manifest.jsonl`; `.pile/` is awaiting gate-keep promotion.
+   `stack/manifest.jsonl`; `.pile/` (city side only) is awaiting
+   gate-keep promotion. Skip any brief whose bead has `Status: HELD`.
 2. Present the top brief with `present-briefs` (which wraps `present-it`;
-   compact form when flagged compact-eligible). Decision-at-Top: the FIRST
-   thing Taylor hears is what is being decided.
+   no-brainers collapse to compact one-liners, full briefs go through
+   grill-and-present). Decision-at-Top: the FIRST thing Taylor hears is
+   what is being decided.
 3. Capture Taylor's verdict + one-line reason.
 4. Record it with `adjudicate-brief`: it writes the verdict fields onto
    the brief bead, closes it (B2.2), and rings `brief.decided` (route log

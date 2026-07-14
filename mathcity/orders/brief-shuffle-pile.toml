@@ -20,6 +20,6 @@ trigger = "condition"
 # NOT flat *.md files. The prior -mindepth 1 -maxdepth 1 -type f check found
 # nothing → the order never fired → auto-promotion was dead. Match depth 2.
 check = "find .beads/briefs/.pile -mindepth 2 -maxdepth 2 -type f -name 'brief.md' 2>/dev/null | grep -q ."
-pool = "gc.run-operator"
+pool = "mathcity.brief-operator"
 timeout = "60s"
 idempotent = true

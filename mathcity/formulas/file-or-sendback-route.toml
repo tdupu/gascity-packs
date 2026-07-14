@@ -41,7 +41,7 @@ default = ".beads/briefs"
 
 [vars.operator_target]
 description = "Run target for deterministic scanning and bookkeeping."
-default = "gc.run-operator"
+default = "mathcity.brief-operator"  # retargeted from gc.run-operator (gastown retired 2026-07-09 ba2ff381)
 
 [vars.decide_target]
 description = "Run target for the judgment-bearing routing fallback."

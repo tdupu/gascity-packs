@@ -25,7 +25,7 @@ default = ".beads/briefs"
 
 [vars.prep_target]
 description = "Run target for brief preparation bookkeeping and shuffler."
-default = "gc.run-operator"
+default = "mathcity.brief-operator"  # retargeted from gc.run-operator (gastown retired 2026-07-09 ba2ff381)
 
 [vars.review_target]
 description = "Run target for judgment-bearing brief review."
