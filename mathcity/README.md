@@ -82,11 +82,11 @@ The city's work is a directed graph with two coupled layers. The **brief layer**
 ### The coupling (multi-edge, asymmetric — not one bridge)
 
 - **work → brief** — a single label-on-close edge. `on-merge-brief-record` fires on `bead.closed` and acts only if the closed bead carries the `needs-decision` label (`mathcity/orders/on-merge-brief-record.toml`). Because it keys on the close event, it attaches at ANY terminus (close-source-anchor, `finalize`, `mol-do-work` close) — briefs enter at different phases by *when you close + label*, not via a phase-pinned hook. A manual mid-lifecycle path also exists: sling `brief-prep` against any bead at any time.
-- **brief → work** — four verdict edges from `brief-decision-dispatch` (`mathcity/formulas/brief-decision-dispatch.toml`): **approve** reassigns the source bead to `<rig>/gc.publisher` (publish phase only); **reject** files a fresh `[rejected]` bead; **revise** files a fresh `[revise]` bead; **defer** is a no-op. (FILE via `file-or-sendback-route` loops back *into the brief layer*, not into work.)
+- **brief → work** — four verdict edges from `brief-decision-dispatch` (`mathcity/formulas/brief-decision-dispatch.toml`): **approve** reassigns the source bead to `<rig>/gc.publisher` (publish phase only) (direct-commit beads with no `branch` metadata: decision is recorded and settled, no publisher handoff); **reject** files a fresh `[rejected]` bead; **revise** files a fresh `[revise]` bead; **defer** is a no-op. (FILE via `file-or-sendback-route` loops back *into the brief layer*, not into work.)
 
-### Known limitation (tracked: gt-yv8p2)
+### Direct-commit approve behavior (gt-yv8p2)
 
-The approve path hard-requires `branch` metadata on the source bead (`brief-decision-dispatch.toml:279-283`). A direct-commit bead (`mol-do-work` / `mol-polecat-commit` — work is already on main, no branch) therefore makes approve a **dead-end that retries forever**. Decision **gt-yv8p2** proposes a no-branch escape hatch so approve simply records the decision and closes the loop when there is no branch.
+The approve path uses a fail-closed three-state branch check: an approve of a direct-commit bead (`mol-do-work` / `mol-polecat-commit` — work is already on the default branch, no feature branch) where `gc bd show` succeeds and returns no `branch` metadata records the decision as a SUCCESS ledger line and settles with no publisher handoff; an approve with `branch` metadata present keeps the full publisher handoff path; a `gc bd show` error is retried (fail-closed — a transient error never silently settles as "no branch"). Fix tracked: gt-yv8p2.
 
 ### Cycle basis (brief layer)
 

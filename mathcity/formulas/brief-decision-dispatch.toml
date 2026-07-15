@@ -11,19 +11,27 @@ not overlap.
 Routing contract (approve=merge back edge — HQ decision gt-r4ou):
 
   approve  → Read the source bead's existing metadata (`gc bd update` idioms
-             below). Ensure the source branch exists on origin — push it from
-             the rig checkout if it is local-only (refineries merge from
-             origin; a local-only branch bounces). Fill `target` only if it is
-             missing — never clobber — using the rig's DETECTED default branch
-             (origin/HEAD, then origin main/master probe, then
-             GC_DEFAULT_BRANCH or "main" as last resort). Reuse the bead's
-             EXISTING `branch` metadata (polecat already wrote the real branch,
-             cycle suffix and all). If `branch` is absent, do NOT guess and do
-             NOT reassign: record a retryable failure instead. On success,
-             `gc bd update <id> --assignee <rig>/<merge_target>` moves polecat's work into
-             the owning rig's merge queue. This is the approval=merge back edge.
-             Metadata/assignee use `gc bd update <id> --set-metadata k=v` and
-             `gc bd update <id> --assignee <name>` (the current bd idioms).
+             below). Three-way branch-metadata check (fail-closed — gt-yv8p2):
+             (1) If `gc bd show` FAILS (non-zero exit) or output is not
+             parseable JSON → record a retryable failure (pending_retry line,
+             no dispatched_at); do NOT reassign; retry on next wake.
+             (2) If `gc bd show` succeeds AND the bead has NO `branch` metadata
+             (direct-commit bead: mol-do-work / mol-polecat-commit, work is
+             already on the default branch) → record a SUCCESS ledger line with
+             action "approve-recorded: source_bead <id> has no branch metadata
+             (direct-commit); decision recorded, no publisher handoff" and
+             settle. No reassignment, no target write, no bead mutation.
+             (3) If `gc bd show` succeeds AND `branch` is non-empty → the full
+             publisher handoff path: ensure the source branch exists on origin
+             — push it from the rig checkout if it is local-only (refineries
+             merge from origin; a local-only branch bounces). Fill `target`
+             only if missing — never clobber — using the rig's DETECTED default
+             branch (origin/HEAD, then origin main/master probe, then
+             GC_DEFAULT_BRANCH or "main" as last resort). On success,
+             `gc bd update <id> --assignee <rig>/<merge_target>` moves the work
+             into the owning rig's merge queue. This is the approval=merge back
+             edge. Metadata/assignee use `gc bd update <id> --set-metadata k=v`
+             and `gc bd update <id> --assignee <name>` (the current bd idioms).
   reject   → Create a follow-up bead in the source rig titled
              `[rejected] <brief_slug>` carrying the decision reason; no merge
              action.
@@ -90,8 +98,7 @@ default = "main"
 
 [vars.merge_target]
 description = "Session template (rig-qualified at dispatch) that approved source beads are reassigned to for merge-queue pickup."
-# gc.publisher is the gc-roles merge/land role. Cities importing the gastown
-# pack may pass gastown.refinery.
+# gc.publisher is the gc-roles merge/land role; override merge_target to use a different merge-queue session.
 default = "gc.publisher"
 
 [[steps]]
@@ -264,23 +271,30 @@ dispatch_slug() {
         outcome="failure"
         action_taken="approve failed: unknown rig for source_bead $source_bead (prefix=$bead_prefix)"
       else
-      # Approval = merge back edge. Do NOT guess a branch: polecat already
-      # wrote the real branch metadata (with cycle suffix). Read the bead's
-      # existing metadata, fill target only if missing, reuse the existing
-      # branch, then reassign to refinery via the current bd idioms.
+      # Approval = merge back edge. Fail-closed three-state branch check
+      # (gt-yv8p2): distinguish bd-show error from genuine no-branch.
       # source_bead is guaranteed non-empty by the terminalize guard above.
-      meta_json="$(gc bd show "$source_bead" --json 2>/dev/null || true)"
+      meta_json=""
+      bd_show_ok=true
+      if ! meta_json="$(gc bd show "$source_bead" --json 2>/dev/null)"; then
+        bd_show_ok=false
+      fi
       existing_branch=""
       existing_target=""
-      if [ -n "$meta_json" ] && command -v jq >/dev/null 2>&1; then
-        existing_branch="$(printf '%s' "$meta_json" | jq -r '.[0].metadata.branch // empty' 2>/dev/null)"
-        existing_target="$(printf '%s' "$meta_json" | jq -r '.[0].metadata.target // empty' 2>/dev/null)"
+      if $bd_show_ok && [ -n "$meta_json" ] && command -v jq >/dev/null 2>&1; then
+        existing_branch="$(printf '%s' "$meta_json" | jq -r '.[0].metadata.branch // empty' 2>/dev/null)" || bd_show_ok=false
+        existing_target="$(printf '%s' "$meta_json" | jq -r '.[0].metadata.target // empty' 2>/dev/null)" || true
       fi
-      if [ -z "$existing_branch" ]; then
-        # No branch metadata — do NOT guess and do NOT reassign. Record
-        # failure so the next wake retries once polecat's branch lands.
+      if ! $bd_show_ok; then
+        # State 1: bd show failed or JSON not parseable — retry (fail-closed;
+        # do NOT conflate with no-branch or we silently skip the publisher handoff).
         outcome="failure"
-        action_taken="approve failed: source_bead $source_bead has no branch metadata; not reassigning"
+        action_taken="approve failed: could not read metadata for $source_bead (bd show error); will retry"
+      elif [ -z "$existing_branch" ]; then
+        # State 2: bd show succeeded AND no branch metadata — direct-commit bead
+        # (mol-do-work / mol-polecat-commit: work already on default branch).
+        # Record the decision and settle; no reassignment, no bead mutation.
+        action_taken="approve-recorded: source_bead $source_bead has no branch metadata (direct-commit); decision recorded, no publisher handoff"
       else
         ok=true
         # Publish the source branch before handing to the refinery (gt-vtab
