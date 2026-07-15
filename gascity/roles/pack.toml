@@ -3,6 +3,9 @@ name = "gc-roles"
 version = "0.1.0"
 schema = 2
 
+[imports.gc]
+source = ".."
+
 # v2 replacement for removed fallback=true mechanism (pack-spec.md:406-408).
 # Agents in this pack had `fallback = true` which is silently ignored in v2.
 # These [[named_session]] entries restore on-demand dispatch for the build-basic fleet.
