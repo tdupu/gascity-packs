@@ -44,6 +44,65 @@ source bead closes (needs-decision label)
 
 ---
 
+## The Work / Brief Graph (two-layer model)
+
+Conceptual overview (P5.4 non-normative); the cited source files are authoritative.
+
+The city's work is a directed graph with two coupled layers. The **brief layer** is the decision plumbing (deciding what to do). The **work-execution layer** is where beads actually get worked (doing it). They are joined not by a single bridge but by a small bundle of asymmetric, multi-edge couplings.
+
+```
+  BRIEF LAYER (decision plumbing)
+  source-closed-nd ─▶ brief-record ─▶ pile ─▶ stack ─▶ decided ─▶ { publisher | followup | archived }
+        ▲                                                   │
+        │  work→brief: label-on-close (1 edge)              │  brief→work: 4 verdict edges
+        │  on-merge-brief-record on bead.closed             │  approve / reject / revise / defer
+        │  (acts only if `needs-decision`)                  ▼
+  ══════╪═══════════════════════════════════════════════════════════════════════
+  WORK-EXECUTION LAYER (two substrates)                     │
+    core mol-*  (flat, no lifecycle)  ◀──────────────────── approve → <rig>/gc.publisher
+      • mol-do-work      : edit cwd, commit in place, close                (publish phase only)
+      • mol-polecat-commit: worktree on base_branch, DIRECT commit+push,   reject  → fresh [rejected] bead
+                            NO feature branch, NO merge                    revise  → fresh [revise] bead
+    gascity build-basic (full factory)                                    defer   → no-op
+      requirements → plan → plan-review → decompose →
+      implement (FAN-OUT to N gc.implementation-worker, each in a
+      detached-HEAD worktree at <rig>/worktrees/<anchor-id>) →
+      FAN-IN (summarize) → review → finalize → publish
+```
+
+### Work-execution layer — two substrates
+
+- **core `mol-*`** — compiled into the `gc` binary (`~/repos/gascity/internal/bootstrap/packs/core/formulas/`). Flat, no lifecycle. `mol-do-work` edits in cwd, commits in place, and closes (`mol-do-work.toml`); `mol-polecat-commit` runs a worktree on `base_branch` and does a **direct commit + push to `base_branch` — NO feature branch, NO merge** (`mol-polecat-commit.toml:1-16`).
+- **gascity `build-basic`** — the full factory (`~/repos/gascity-packs/gascity/formulas/build-basic.formula.toml`): requirements → plan → plan-review → decompose → **implement (convoy FAN-OUT to N `gc.implementation-worker`, each in a detached-HEAD worktree at `<rig>/worktrees/<anchor-id>`)** → FAN-IN (summarize) → review → finalize → publish. Entry-point table at `gascity/README.md:73-81`; the launcher rig root is never mutated (`assets/workflows/do-work/prepare-worktree.md:20-28`, `implement.md:19-29`).
+
+### The critical truth
+
+**Nothing in gascity or core ever merges to main.** `publish` only pushes a branch / opens a PR and is **no-op by default** (`push`/`open_pr` = false) — `publish.formula.toml:19-45`, `build-basic/publish.md:1-11`, `REQUIREMENTS.md:145,779`. The "refinery merges branch to main" concept was a **gastown-pack vestige, removed 2026-07-09 (`ba2ff381`)**. `MergeQueuePolicy` defaults to `observe` (`github_pr_monitor.go:12,55-67`).
+
+### The coupling (multi-edge, asymmetric — not one bridge)
+
+- **work → brief** — a single label-on-close edge. `on-merge-brief-record` fires on `bead.closed` and acts only if the closed bead carries the `needs-decision` label (`mathcity/orders/on-merge-brief-record.toml`). Because it keys on the close event, it attaches at ANY terminus (close-source-anchor, `finalize`, `mol-do-work` close) — briefs enter at different phases by *when you close + label*, not via a phase-pinned hook. A manual mid-lifecycle path also exists: sling `brief-prep` against any bead at any time.
+- **brief → work** — four verdict edges from `brief-decision-dispatch` (`mathcity/formulas/brief-decision-dispatch.toml`): **approve** reassigns the source bead to `<rig>/gc.publisher` (publish phase only); **reject** files a fresh `[rejected]` bead; **revise** files a fresh `[revise]` bead; **defer** is a no-op. (FILE via `file-or-sendback-route` loops back *into the brief layer*, not into work.)
+
+### Known limitation (tracked: gt-yv8p2)
+
+The approve path hard-requires `branch` metadata on the source bead (`brief-decision-dispatch.toml:279-283`). A direct-commit bead (`mol-do-work` / `mol-polecat-commit` — work is already on main, no branch) therefore makes approve a **dead-end that retries forever**. Decision **gt-yv8p2** proposes a no-branch escape hatch so approve simply records the decision and closes the loop when there is no branch.
+
+### Cycle basis (brief layer)
+
+The brief layer's cycle space has dimension β₁ = |E| − |V| + C = 18 − 12 + 1, minus the dropped intake-consistency artifact → **6 fundamental loops**. A basis:
+
+- **B1** — merge/publish re-enters (now: approve → publisher → push/PR, NOT a merge).
+- **B2** — revise/reject follow-up.
+- **B3** — FILE re-prep.
+- **B4** — two routes to archive.
+- **B5** — no-brainer auto-execute.
+- **B6** — shuffle-reject sweep.
+
+Plus terminating (acyclic) paths: approve → publish when non-reentrant, and the decided → archived sink; defer is a no-op. Note that "enumerate every cycle" is ill-posed; the correct check is that this basis **spans** the cycle space, not that it lists all cycles.
+
+---
+
 ## Skill canonicality
 
 **The mathematics pack is the single source of truth for all brief-pipeline and math-workflow skills.**

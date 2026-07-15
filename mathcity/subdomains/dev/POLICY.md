@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Adopted |
-| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only) |
+| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only; amended 2026-07-14: P5.4 truth-is-in-the-code) |
 | Decided | Taylor Dupuy, via grilling session (three open questions resolved; record at bottom) |
 | Applies to | All packs Taylor owns in this repo — the **owned pack set** (§ Scope) |
 | Consumers | `check-hygiene` skill (to be built via skill-creator); mayor priming (`mayor-math`); any agent planning work in this repo |
@@ -329,6 +329,8 @@ inside gascity core); this is the pack-level, plan-time analogue.*
 
 - **P5.3 Use only real, documented bd types.** Any policy document, skill file, AGENTS.md, plan, or bead-touching code that references a bead type must use only the types documented in `bd create --help` (`--type` flag): `bug`, `feature`, `task`, `epic`, `chore`, `decision`, `spike`, `story`, `milestone`, `event`. Undocumented types (e.g., `research-journal`, `brief`) are hallucinated — they cannot be executed and produce silent failures when passed to `bd create -t`. Custom types require explicit `types.custom` configuration in bd and a documented approval bead before they may appear in any policy pass/fail criterion. The canonical check: `bd create --help | grep -- '--type'` lists the live type set; any type string not in that list with no corresponding `types.custom` config entry → **fail**. (Origin: 2026-07-12 grilling — `type: research-journal` appeared in brief-system POLICY.md B3.7; replaced with `type: spike` + `[RESEARCH_JOURNAL]` label.)
 
+- **P5.4 Behavioral claims are verified against source ("truth is in the code").** Any plan, skill doc, model, README, or workspace context file describing gascity / brief-system / workflow **behavior** must ground each behavioral claim in the authoritative source — the gascity Go source (`~/repos/gascity`), the workflow assets (`gascity/assets/workflows/**`), and the formula/order TOMLs — **not** in plan narratives or prior human summaries. Narrative/plan docs (e.g. `plans/*.md`) are orientation only and are presumed stale until checked. When a doc's behavioral claim contradicts the code, **the code wins**: the claim is corrected in the same pass (ties to P1.17 root-cause discipline and the fix-docs-inline habit). Pass: every non-trivial behavioral claim in a checked doc is traceable to a source file (Go/asset/TOML) and none contradicts current source. Fail: a plan/skill/model asserts gascity behavior that is unsourced **and** contradicted by the code, or repeats a known-stale narrative claim without re-verification. Exception: prose explicitly labeled non-normative ("conceptual overview") needn't cite source line-by-line but still may not contradict it. (Origin: 2026-07-14 grilling — `plans/gascity-restart-context.md` claimed `gc.publisher` "merges branch to main" — VERIFIED FALSE against code, no build/publish path merges to main; and carried command-drift bugs `gc config check` / `gc convoy show` / `gc dolt sql --db`, none of which exist in the binary. Taylor: "the truth is in the code." Cross-ref bd memory `truth-is-in-the-code`.)
+
 ## Pillar 6 — Observability & fail-loud
 
 - **P6.1 "Fail loud, never silent."** A plan, skill, order, formula, or code
@@ -455,6 +457,16 @@ no parallel vocabulary is introduced:
 ---
 
 ## Change Log
+
+### 2026-07-14 — P5.4 added: truth is in the code
+Behavioral claims about gascity/brief-system/workflow must be grounded in source
+(Go source, workflow assets, formula/order TOMLs), not plan narratives; code wins
+on contradiction and the doc is fixed in the same pass. Triggered by: 2026-07-14
+mayor-math grilling — `plans/gascity-restart-context.md` asserted `gc.publisher`
+"merges branch to main" (verified FALSE: no build/publish path merges to main; the
+gastown refinery was removed 2026-07-09/ba2ff381) and carried three non-existent
+`gc` commands. Exceptions: prose explicitly fenced as non-normative "conceptual
+overview" (still may not contradict source). Cross-ref: bd memory `truth-is-in-the-code`.
 
 ### 2026-07-12 — P1.18 added: city root imports the named-session fleet
 City root `pack.toml` must explicitly import a pack providing `[[named_session]]`
