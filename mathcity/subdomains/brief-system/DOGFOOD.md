@@ -11,7 +11,7 @@ The brief-system pack (`mathcity/subdomains/brief-system` + `mathcity/assets/bri
 
 ### Brief Workflow (End-to-End)
 
-Sources: `~/repos/gascity-packs/mathcity/subdomains/brief-system/POLICY.md`, `mathcity/assets/brief-pipeline/{gates,paths,thresholds}.toml`, `mathcity/formulas/brief-*.toml`, `mathcity/orders/`, skills `brief-prep`, `catch-no-brainer`, `create-brief`, `present-it`, `present-briefs`, bead `he-xkq3`, live state in `~/gt/hecke/.beads/briefs/`.
+Sources: `~/repos/gascity-packs/mathcity/subdomains/brief-system/POLICY.md`, `mathcity/assets/brief-pipeline/{gates,paths,thresholds}.toml`, `mathcity/formulas/brief-*.toml`, `mathcity/orders/`, skills `brief-prep`, `catch-no-brainer`, `create-brief`, `present-it`, `present-briefs`, bead `he-xkq3`, live state in `~/gt/.beads/briefs/`.
 
 1. **Idea / source** — a bead, branch, PR, GH issue, or diff.
 2. **Produce** — `brief-prep` (skill, and formula `brief-prep.toml`): classify artifact → run tests (G1 evidence: command + scope + exit code + date; G16 base ref) → run `catch-no-brainer` (steps: G5 server-touching → G5b user-skill-touching → capability-blocker → he-lele 5-criterion cat-A/B/C/D → 3 new v0.2 paths: defer-ratify-held, close-done-cited-commit, execution-confirmation-proof → else "candidate") → draft per `create-brief` with the **Decision-at-Top INVARIANT** (B1.1: first content = "What is being decided"), compact form only when all four B1.3 conditions hold → self-review → external `coordinate-review` gate (G4, cap 4 rounds) → bookkeeping (G8: `[brief-record]` tracker bead, follow-up beads) → **submit to `.pile/`** (producers never write the stack).
@@ -93,7 +93,7 @@ Phase 0 — baseline (read-only, no authorization needed):
 **Executor: Homer (or any read-only agent) — no fleet writes; Taylor reviews the baseline snapshot output.**
 
 0. **Adopt `brief-system/POLICY.md` before gates enforce it (PP2.1).** The policy is currently `Status: Draft revision` — a Draft policy may not be cited in check skills or gate formulas. Run `/new-brief-policy` with a version-bump micro-proposal (no rule changes) to flip Status to Adopted and record Taylor's sign-off. This step is a prerequisite for all downstream gate enforcement. Taylor's approval in *this session* satisfies PP2.2.
-1. Snapshot current state: `ls ~/gt/hecke/.beads/briefs/{stack,.pile,.pile/.no-brainer,decisions,presentations}` and `wc -l stack/manifest.jsonl decisions.jsonl`; save to `~/gt/tmp-for-taylor/briefs-dogfood-baseline/`.
+1. Snapshot current state: `ls ~/gt/.beads/briefs/{stack,.pile,.pile/.no-brainer,decisions,presentations}` and `wc -l stack/manifest.jsonl decisions.jsonl`; save to `~/gt/tmp-for-taylor/briefs-dogfood-baseline/`.
 2. Taylor decision (itself a mini-brief): **which rig hosts the dogfood** — (a) hecke (works today, paths already match) or (b) gascity-packs (cleaner: pack adjudicates itself in its own rig, but requires gsp-n9u first and `mkdir .beads/briefs/{.pile,stack,archive,decisions,.staging}` scaffolding). Recommendation: start in hecke (option a), migrate after gsp-n9u lands.
 
 Phase 1 — minimal viable dogfood (1 brief, 1 verdict, 1 route):

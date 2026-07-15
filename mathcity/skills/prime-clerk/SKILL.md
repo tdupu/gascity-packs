@@ -92,7 +92,7 @@ adjudicators. Either outside agent may run `present-briefs` and
 ## The job, step by step
 
 1. Locate the live brief stack. For hecke work the stack lives at **both**
-   `~/gt/hecke/.beads/briefs/` (city side, 6 entries) and
+   `~/gt/.beads/briefs/` (HQ city stack) and
    `~/repos/hecke/.beads/briefs/` (repo side, 11 entries — more entries =
    this is the operative stack for repo work per CLAUDE.md routing rules).
    `stack/` is presentation-ready, ordered by `unlock_count` desc via

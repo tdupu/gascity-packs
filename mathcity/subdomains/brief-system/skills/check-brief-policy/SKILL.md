@@ -73,7 +73,7 @@ field. Verify that higher-count entries appear earlier in the stack (the
 single-writer `brief-shuffle` should sort on promote).
 
 ```bash
-cat ~/gt/hecke/.beads/briefs/stack/manifest.jsonl | \
+cat ~/gt/.beads/briefs/stack/manifest.jsonl | \
   python3 -c "
 import sys,json
 rows = [json.loads(l) for l in sys.stdin if l.strip()]
@@ -92,7 +92,7 @@ is still open. The no-resurface check is therefore a simple state check:
 no closed brief bead may appear in the stack or pile.
 
 ```bash
-STACK_DIR=~/gt/hecke/.beads/briefs/stack
+STACK_DIR=~/gt/.beads/briefs/stack
 for f in "$STACK_DIR"/*.md; do
   slug=$(basename "$f" .md)
   # derive bead ID from slug; check its status
@@ -151,9 +151,9 @@ Check for briefs older than 7 days in the stack without a presented-at
 record in `presentations/`:
 
 ```bash
-ls -lt ~/gt/hecke/.beads/briefs/stack/*.md | head
+ls -lt ~/gt/.beads/briefs/stack/*.md | head
 # Compare with presentations/ directory mtime
-ls ~/gt/hecke/.beads/briefs/presentations/ | head
+ls ~/gt/.beads/briefs/presentations/ | head
 ```
 
 Flag any brief with a stack entry and no corresponding `*-presented.toml`
@@ -175,8 +175,8 @@ and may be empty:
 
 ```bash
 bd list --type decision --all --json | head   # brief beads; closed = adjudicated
-wc -l ~/gt/hecke/.beads/briefs/decisions.jsonl
-ls ~/gt/hecke/.beads/briefs/decisions/ | wc -l
+wc -l ~/gt/.beads/briefs/decisions.jsonl
+ls ~/gt/.beads/briefs/decisions/ | wc -l
 ```
 
 ### 8. Gate registry join-layer (PP1.7, PP4.1)
