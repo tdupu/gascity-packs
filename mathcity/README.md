@@ -148,6 +148,7 @@ These skills ship with the parent pack (subdomain child packs carry their own â€
 | `immediate-work` | In-session synchronous dispatch: spawn the right agent NOW for a specific bead or task (no pool, no queue). |
 | `priority-work` | Async targeted dispatch: bump a bead to P0 and dispatch it to a NAMED agent immediately, bypassing queue order. |
 | `mayor-math` | Supplements `gc.mayor` with rig-scoped sling mechanics for the mathcity workflow. |
+| `mayor-math-restart` | Full QUIMBY session orientation; restart context auto-injected via PreToolUse hook before the skill fires. Run at the start of every new QUIMBY session. |
 | `authorize-git-operation` | Taylor-authorization gate for irreversible git operations (push, merge, PR, delete, release); records the verdict as a decision bead. |
 | `remember-this` | Routes a mid-session insight to the right durable store (`bd remember`, decision bead, MEMORY.md pointer). |
 | `gc-recycle-bead` | Graceful lifecycle transitions for research beads: ABSORB (merge unique content into canonical bead, close with `absorbed_by` metadata), ARCHIVE (add `archived-research` label + defer to prevent dispatch), MATERIALIZE (write key content to versioned file). |
