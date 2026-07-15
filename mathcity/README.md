@@ -231,6 +231,50 @@ Orders wire formulas to triggers.
 
 ---
 
+## Rig wiring — how mathcity reaches every rig
+
+How the rig-scoped orders above (and the pack's agents/formulas) get bound
+per rig. Source of truth (P5.4): gascity `internal/config/pack.go` at
+commits `8f7947af` (defaults expansion) and `17f066839` (fan-out exclusion);
+verified live 2026-07-15 — `gc order list` shows `on-merge-brief-record`
+bound for the HQ instance (`rig="-"`) **plus one instance per rig**, and the
+per-rig instances fire order-run beads tagged
+`order:on-merge-brief-record:rig:<rig>`.
+
+**Mechanism.** mathcity is declared in two places in the gt city, serving
+two scopes:
+
+- `~/gt/city.toml` `[defaults.rig.imports.mathcity]` — composed as a base
+  layer under **every rig's** import table at composition time
+  (`expandPacks`). A rig that authors its own `[rigs.imports.mathcity]`
+  wins wholesale; the merge is composition-only (`rig.Imports` is never
+  rewritten), so `gc config` rewrites never persist the injected defaults.
+- `~/gt/pack.toml` `[imports.mathcity]` — the **HQ (city-scope)** instance:
+  brief-pipeline orders/formulas at `rig=""`. Child rigs do NOT get their
+  binding from this entry: the per-rig fan-out of city imports skips any
+  binding covered by `[defaults.rig.imports]` (invariant: an import binding
+  composes into a rig at most once; precedence rig-authored > city defaults
+  > city-import fan-out — gascity `17f066839`, bead gs-lmf).
+
+**Rig onboarding.** New rigs need no mathcity wiring: `gc rig add` creates
+the rig and the defaults cover it at the next composition — no re-import
+pass, no per-rig `[rigs.imports]` block. (Pre-existing rigs were proven
+covered at deployment: all 15 rigs bound with zero per-rig edits.
+`gc rig add` additionally materializes the defaults into the new rig's
+authored imports — a redundancy tracked upstream as gs-nc5; harmless, the
+authored copy simply wins.)
+
+**Per-rig off-switch.** To disable one of these orders on one rig without
+touching the pack, use an order override in `~/gt/city.toml` (via a pack
+update per P1.2, never a hand-edit):
+
+```toml
+[[orders.overrides]]
+name = "on-merge-brief-record"
+rig = "<rig-name>"
+enabled = false
+```
+
 ## Agents
 
 ### codex-worker
