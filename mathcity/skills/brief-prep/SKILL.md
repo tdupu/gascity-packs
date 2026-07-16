@@ -80,7 +80,10 @@ Draft the brief per [[create-brief]] — the gated `.md`-artifact producer (fron
 
 **Invokability fallback**: if your session cannot invoke the Agent tool (e.g., in polecat/overnight-supervisor sessions where Agent/Task/Workflow dispatch is stripped — note: Skill tool remains available in polecats and should be used normally), inline-compose the sections per the [[present-it]] full-form template directly. The 7 grill-ordered sections are: §1 What is being decided, §2 Recommended answer + rationale, §3 Assumptions surfaced, §4 Alternatives named, §5 Risks foregrounded, §6 Supporting evidence (why-created, LoC, tests, math, timeline), §7 Plan membership + required gates. Do not skip sections; if a section is genuinely empty, write "None surfaced" + 1-line reason.
 
-Save to: `~/gt/.beads/briefs/<artifact-safe-name>-brief.md`.
+Save to: `~/gt/.beads/briefs/.pile/<artifact-safe-name>-brief.md` — FLAT in
+`.pile/` (no per-slug subdirectory). The brief-shuffle-pile order only globs
+depth-1 flat `.pile/*.md` (P1.17 invariant, orders/brief-shuffle-pile.toml);
+a brief saved anywhere else is invisible to the shuffle and never promotes.
 
 Add frontmatter per [[project_brief_stack_workflow]] schema:
 
@@ -97,6 +100,23 @@ server_touching: <bool>                  # see "Safety overrides" below
 user_skill_touching_override: <bool>     # see "Safety overrides" below
 ---
 ```
+
+**Write the `## Gate Evidence` section (REQUIRED — the shuffle rejects
+without it).** The shuffle's apply-gates step applies
+`assets/brief-pipeline/gates.toml` with `fail_closed = true`: any gate of the
+active profile that fails **or is missing** an entry under the literal
+heading `Gate Evidence` rejects the brief. Mirror the formula twin
+(`formulas/brief-prep.toml` draft-brief step): one explicit entry for EVERY
+gate of the active profile — `standard` for candidate/full-form briefs
+(G1–G16 **plus G5b** — 17 entries), `no_brainer` for compact briefs — each
+keyed by the gate's `evidence_key` (e.g. `G1 Test-evidence`), each marked
+`PASS`, `FAIL`, `BLOCKED`, or `N/A`. Every `N/A` must cite the surface check
+that makes it not applicable.
+
+**G14 (Test-execution-silent) is special**: it must carry the literal
+tri-state token `PASSED` / `NOT APPLICABLE` / `REQUIRED` (T7,
+gates.toml G14). An informal "N/A" on G14 is auto-throwback — write
+`NOT APPLICABLE` verbatim plus the one-sentence reason.
 
 **Compute unlock_count** (1-2 bd queries per [[project_brief_stack_workflow]]):
 
@@ -132,6 +152,7 @@ Apply [[is-good-experiment]] / [[is-good-test]] rules to each test that wasn't a
 - **Full-form only:** §5 risks section with at least one entry per flavor (both "currently-working paths" and "downstream commitments"; "None surfaced" with a 1-line reason is acceptable, blank is not).
 - **Full-form only:** §3 assumptions section with at least one entry OR explicit "None surfaced" + reason.
 - **Full-form only:** §4 alternatives section listing every plausible non-recommended verdict with one-line implications.
+- **`## Gate Evidence` section complete** — an explicit entry for EVERY gate of the active gates.toml profile (standard = G1–G16 + G5b for full-form; no_brainer profile for compact), each keyed by its `evidence_key`; G14 carries the literal tri-state (`PASSED` / `NOT APPLICABLE` / `REQUIRED`); every `N/A` cites its surface check. Missing section, missing entries, or informal G14 → fix before deposit (the shuffle rejects fail-closed).
 - **Compact only:** all four lines present (`DECISION`, `CONTEXT`, `RECOMMEND`, `CONFIRM y/n/grill-me-further`); each of DECISION and CONTEXT is a SINGLE sentence; safety-override booleans are both `false`; catch-no-brainer output was `compact_eligible: true` and shape is not `capability-blocker`.
 - All cross-referenced beads/branches/intrinsics exist (run `bd show` / `git rev-parse` / `grep` to verify).
 
@@ -143,7 +164,7 @@ Invoke [[coordinate-review]] on the brief:
 
 ```
 coordinate-review
-  artifact=$HOME/gt/.beads/briefs/<artifact-safe-name>-brief.md
+  artifact=$HOME/gt/.beads/briefs/.pile/<artifact-safe-name>-brief.md
   reviewer_persona=<the persona for this artifact type>
   cap=4
   store_beads=false
@@ -151,8 +172,8 @@ coordinate-review
 
 Update status field at each iteration: `in-review-iter-1`, `in-review-iter-2`, etc. Run `/compact` between iterations N and N+1 so the prior round's transcript does not bloat context for the next round.
 
-- On APPROVING within 4 rounds: status → `approved`. Proceed to Phase 6.
-- On 4 rounds without APPROVING: status → `review-failed`. STOP — do NOT deposit-and-pretend; file a follow-up bead and surface to Mayor.
+- On APPROVING within 4 rounds: stamp BOTH `status: approved` AND `review_gate: approved` in the frontmatter. Proceed to Phase 6. (The review-patrol backstop that used to patch `review_gate` post-promotion is paused city-wide; a brief left at `review_gate: pending` is pull-ineligible in the stack — stamp it here, at the source.)
+- On 4 rounds without APPROVING: stamp `status: review-failed` AND `review_gate: review-failed` (the patrol's vocabulary). STOP — do NOT deposit-and-pretend; file a follow-up bead and surface to Mayor.
 
 **BETWEEN PHASES 5 and 5b: Run `/compact` to free context** before the optional second-opinion gate. This clears the working memory from the first coordinate-review iteration, preserving the summary for the second opinion phase.
 
@@ -185,7 +206,7 @@ Return ONE concise summary to the caller:
 
 ```
 ARTIFACT: <artifact-id>
-BRIEF-PATH: ~/gt/.beads/briefs/<file>.md
+BRIEF-PATH: ~/gt/.beads/briefs/.pile/<file>.md
 VERDICT: <brief's recommended action — MERGE / DELETE / CLOSE-CONFIRMED / INVESTIGATE / ...>
 UNLOCK-COUNT: <int>
 FP-ROUNDS: <N> (and <M> for second-opinion if triggered)
@@ -286,3 +307,4 @@ Rationale: user-skill files are loaded by every polecat session globally. An err
 - **v1.1 — user-skill-touching SAFETY OVERRIDE** (2026-06-24, per [[as-wjv]]): added "Safety overrides" section codifying both server-touching (he-lele cat-E) and user-skill-touching (as-wjv) negative classifiers; brief-prep now computes `server_touching` and `user_skill_touching_override` frontmatter booleans in Phase 3 for downstream enforcement by catch-no-brainer ([[he-6wej]]) / shuffler ([[he-p2jv]]) / pile-processor ([[he-x3se]]).
 - **v1.2 — better briefs: Decision-at-Top INVARIANT + compact form + capability-blocker awareness** (2026-06-30, per as-niek per Taylor "better briefs" epic): hardened §1 ("What is being decided") from convention to invariant with auto-reject enforcement in Phase 4; adopted the grill-with-docs shape from [[present-it]] (decision-first; §3 assumptions surfaced, §4 alternatives named, §5 risks foregrounded, §6 evidence, §7 gates); added Phase 3 shape-branch selecting between full-form and compact form based on [[catch-no-brainer]] output (compact requires cat-A/B/C/D + `compact_eligible: true` + BOTH safety overrides clear + shape ≠ `capability-blocker`); added `capability-blocker` awareness — briefs where the recommended disposition WOULD be no-brainer if a permission/capability gap were resolved route through "resolve the blocker, then re-classify", never compact; added self-rejection conditions #1 (invariant violated) and #2 (compact misclassified).
 - **v1.3 — two-skill split recomposition** (2026-07-03, per as-4nu): Phase 3 now drafts per [[create-brief]] (the new gated `.md`-artifact producer); [[present-it]] is terminal-only (context dump in-conversation, no file, no gates, no batch) and supplies only the section structure; migrated residual old-numbering references (§10 → §2/§5/§7, test-evidence declarations → §6) left over from the pre-as-niek 10-section template.
+- **v1.4 — shuffle-conformant output** (2026-07-16, QUIMBY 10 S10 root-cause + gsp beads): the SKILL had drifted from its formula twin — briefs it produced had NO `## Gate Evidence` section and informal G14, so the shuffle's fail-closed apply-gates rejected every one (gt-vx0g3). Phase 3 now requires the Gate Evidence section (one entry per active-profile gate, evidence_key-keyed, G14 literal tri-state); Phase 4 checks it; Phase 5 stamps `review_gate: approved`/`review-failed` alongside `status` (patrol paused — stamp at source); deposit path codified FLAT to `.beads/briefs/.pile/<slug>.md` (P1.17 glob invariant).

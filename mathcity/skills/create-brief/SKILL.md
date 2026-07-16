@@ -30,7 +30,7 @@ artifact: <branch | bead-id | PR-number | gh-issue-N>
 status: pending-review | in-review-iter-N | review-failed | approved | pulled | presented | adjudicated | archived
 deposited_at: <ISO 8601>
 deposited_by: <polecat session ID or worker name>
-review_gate: pending | iter-N | APPROVED | REJECT
+review_gate: pending | iter-N | approved | review-failed   # lowercase — the patrol/shuffle vocabulary (brief-review-patrol.toml)
 unlock_count: <int>
 priority: P0 | P1 | P2 | P3 | P4
 server_touching: <bool>                  # he-lele cat-E mechanical test — see [[brief-prep]] §"Safety overrides"
@@ -44,6 +44,8 @@ user_skill_touching_override: <bool>     # as-wjv mechanical test — see [[brie
 - **Compact form:** `DECISION` / `CONTEXT` / `RECOMMEND` / `CONFIRM y/n/grill-me-further` per [[present-it]] §"Compact form" — ONLY when [[catch-no-brainer]] emitted `compact_eligible: true` AND both safety-override booleans are `false` AND the shape is not `capability-blocker`.
 
 The FIRST content after the frontmatter MUST be "What is being decided." A brief file violating the Decision-at-Top INVARIANT is malformed: rewrite before depositing; [[brief-prep]] Phase 4 auto-rejects it.
+
+**`## Gate Evidence` section (required in both shapes):** one explicit entry per gate of the active `assets/brief-pipeline/gates.toml` profile, keyed by `evidence_key`, each `PASS`/`FAIL`/`BLOCKED`/`N/A` with every `N/A` citing its surface check; G14 uses the literal tri-state `PASSED`/`NOT APPLICABLE`/`REQUIRED`. The shuffle's apply-gates is fail-closed — a brief without this section is structurally guaranteed rejection (see [[brief-prep]] Phase 3 for the full spec).
 
 ## Gates (HARD — a brief file that fails any of these is not stack-eligible)
 
