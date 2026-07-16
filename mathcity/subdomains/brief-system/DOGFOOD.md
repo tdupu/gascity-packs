@@ -1,7 +1,7 @@
 # Briefs Pack Dogfood Plan
 
 Author: outside planning agent (for Taylor) · Date: 2026-07-11
-Status: PROPOSAL — no briefs submitted, no gates triggered, no bead state modified.
+Status: LIVING DOCUMENT — T4 confirmed 2026-07-16 (gsp-7x9f); D2 path proven; this plan updated to reflect settled mechanism status.
 
 ## Executive Summary
 
@@ -15,6 +15,7 @@ Sources: `~/repos/gascity-packs/mathcity/subdomains/brief-system/POLICY.md`, `ma
 
 1. **Idea / source** — a bead, branch, PR, GH issue, or diff.
 2. **Produce** — `brief-prep` (skill, and formula `brief-prep.toml`): classify artifact → run tests (G1 evidence: command + scope + exit code + date; G16 base ref) → run `catch-no-brainer` (steps: G5 server-touching → G5b user-skill-touching → capability-blocker → he-lele 5-criterion cat-A/B/C/D → 3 new v0.2 paths: defer-ratify-held, close-done-cited-commit, execution-confirmation-proof → else "candidate") → draft per `create-brief` with the **Decision-at-Top INVARIANT** (B1.1: first content = "What is being decided"), compact form only when all four B1.3 conditions hold → self-review → external `coordinate-review` gate (G4, cap 4 rounds) → bookkeeping (G8: `[brief-record]` tracker bead, follow-up beads) → **submit to `.pile/`** (producers never write the stack).
+(For factory work slunged via `build-basic-briefed`, the terminal slot runs `brief-prep` automatically — no manual `gc sling … brief-prep --formula` required. Mechanism B above covers non-convoy / manual backfill cases. T4 confirmed, gsp-7x9f, 2026-07-16.)
 3. **Promote** — `brief-shuffle` (order `brief-shuffle-pile`): single-writer under `.shuffle.lock`, one item per run, applies the gate registry via `brief-gate-keep` (profiles: `standard` = G1–G16 incl. G5b; `no_brainer` = 10 gates; `test_execution` = 7; `experiment` = 8; all `fail_closed`), then promotes to `stack/` + appends `stack/manifest.jsonl`, or rejects to `.pile/.rejected/`.
 4. **No-brainer branch** — `no-brainer-classify` formula / `catch-no-brainer` skill copies `no_brainer:true` briefs into `.pile/.no-brainer/`; auto-execute runs by DEFAULT per Adopted N5 (2026-07-12) unless a kill switch is engaged — city `~/gt/.beads/auto_merge_enabled`, then rig `~/gt/hecke/.beads/auto_merge_enabled` (paths.toml `kill_switch_city`/`kill_switch_rig`): a flag that exists and reads `false` halts; **absent or `true` = ON**. Stop gates G5/G5b fire before G12 is even consulted.
 5. **Refill** — `brief-watchdog-refill` keeps stack between `low_water = 2` and `high_water = 5` (thresholds.toml), max 3 new briefs/run, 30m cooldown; `brief.stack_low` event rings when the combo signal ≤ 1.
@@ -53,6 +54,10 @@ Observed in `~/gt/hecke/.beads/briefs/` (read-only inspection, 2026-07-11):
 ### What "Dogfooding" Means Here
 
 **The brief-system pack adjudicates its own development.** Every meaningful change to the pack — de-hardcoding paths, shipping the pile-processor, migrating the artifact root, fixing manifest drift — becomes a source bead that must travel the full pipeline: `brief-prep` produces a gated brief on it, the shuffler promotes it under the G1–G16 registry, `catch-no-brainer` classifies it, the clerk presents it, Taylor issues a verdict, `brief-record-decision` records it, and `file-or-sendback-route` logs FILE/SEND-BACK. The pack's development history becomes the pipeline's test suite.
+
+Primary dispatch path (D2): Route work through a build-basic-briefed convoy; the terminal publish slot fires brief-prep automatically and deposits the brief into the pile. No manual gc sling … brief-prep step required for convoy-tracked work.
+
+Universal firing intent (designed/pending): A Mayor sling-wrapper skill and dispatch doctrine will make every convoy fire a brief by default. This is designed but not yet shipped. Until then, the convoy must be explicitly launched with build-basic-briefed rather than build-basic.
 
 This is qualitatively better than synthetic testing because pack-dev work naturally spans the classifier's category space (mechanical renames = cat-A, doc-only updates = cat-D, close-with-cited-commit shapes, capability-blockers when creds/permissions are missing, and user-skill-touching overrides when SKILL.md files change — G5b will fire on real inputs). Each cycle emits durable evidence (decision toml, route-log line, presentation record) that doubles as regression fixtures.
 
