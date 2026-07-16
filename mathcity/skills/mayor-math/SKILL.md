@@ -9,6 +9,21 @@ Supplement to [[gc.mayor]] with Gas Town (gt HQ) sling mechanics. The upstream g
 skill is community-shared and cannot be edited — use this skill to apply the correct
 rig-scoped rules for our setup.
 
+## Canonical operation docs — READ FIRST (regression-proofed QUIMBY onboarding)
+
+The hard-won gold, derived over 11 QUIMBY generations, lives in the mathcity pack
+(`~/gt/gascity-packs/mathcity/docs/`):
+- **QUIMBY-ONBOARDING.md** — index + S11-corrected operational truths (start here)
+- **CITY-RESTART-CHECKLIST.md** — Phase 0–6 step-by-step to bring the city up + verify
+- **CITY-OPERATION-REFERENCE.md** — architecture, pools/agents, brief pipeline, correct command surface
+- **TEST-CYCLE-GUIDE.md** + **DOGFOOD-WORKFLOW.md** — the dogfood/test cycle
+
+**Current dispatch pattern (S11):** sling `--on build-basic-briefed` (fires a decision brief
+instead of publishing; `push=false`) with `interaction_mode=autonomous` for unattended pool
+runs. The `build-basic` / `interaction_mode=interactive` pattern below is retained for
+reference — prefer build-basic-briefed. (`gastown.polecat` is a dead identity; use a live
+`gc.*` target.)
+
 ## Rule 1 — Always use the rig-scoped coordinator
 
 The bare `gc.run-operator` does NOT resolve at HQ level. Always use:
