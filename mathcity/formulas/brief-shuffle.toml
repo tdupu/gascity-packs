@@ -6,7 +6,10 @@ most one pile item per run, applies gate-keep rules, and either promotes it to
 the stack with a manifest append or rejects it into `.pile/.rejected`.
 """
 formula = "brief-shuffle"
-version = 1
+# v2 (2026-07-16): reject branch no longer dead-ends — files a remediation
+# bead via escalate.sh + emits brief.gate_rejected (QUIMBY 10 S10 finding:
+# nothing reads .pile/.rejected/).
+version = 2
 
 [requires]
 formula_compiler = ">=2.0.0"
@@ -104,7 +107,19 @@ The `status` key is NOT written here; brief-record-decision adds it later
 
 For `Disposition: reject` or `Disposition: blocked`, move the brief under
 `{{artifact_root}}/.pile/.rejected/<slug>/` and do not append to the stack
-manifest.
+manifest. A rejection MUST NOT dead-end there (`.rejected/` has no reader) —
+perform BOTH send-back actions:
+
+1. File a remediation bead (the same mechanism brief-review-patrol uses):
+   `.gc/scripts/escalate.sh --title "[brief-shuffle] gate-rejected: <slug>"
+   --body "<failed gates + remediation guidance from the rejection record>"
+   --priority 2`. The bead IS the send-back-to-work.
+2. Emit `gc event emit brief.gate_rejected --subject <slug>` so future
+   routing can act on rejections without another shuffle edit.
+
+(Full auto re-prep routing — reprep-vs-close by rejection type, with a
+reject→reprep→reject loop guard — is judgment-bearing and tracked as a
+separate follow-up bead; do NOT improvise it here.)
 
 EMPTY-PILE ROUTE (gsp-3al3): if select-pile-item recorded `selection: none
 (pile empty)`, this step is a NO-OP — write nothing and complete immediately.
