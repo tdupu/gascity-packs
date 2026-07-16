@@ -20,7 +20,7 @@ This skill is **composition by reference**: the section structure comes from [[p
 
 ## Artifact format
 
-**Path:** `~/gt/hecke/.beads/briefs/<artifact-safe-name>-brief.md` — the canonical stack per `project_brief_stack_workflow.md` (hecke's stack serves all rigs until cross-rig consolidation moves it to `~/gt/.beads/briefs/`). One canonical file per artifact; revisions in place with a `.bak` before any FP-revision; no `-vN-` suffixes.
+**Path:** `~/gt/.beads/briefs/<artifact-safe-name>-brief.md` — the canonical HQ stack (S6 2026-07-15: cross-rig consolidation completed; ALL rigs deposit briefs here for uniform landing, per Taylor — supersedes the old per-rig `~/gt/hecke/.beads/briefs/` hardcode). One canonical file per artifact; revisions in place with a `.bak` before any FP-revision; no `-vN-` suffixes.
 
 **Frontmatter (required, per the stack schema + safety overrides):**
 
@@ -65,7 +65,7 @@ Some dispositions are pre-authorized to skip Taylor adjudication. This skill doe
 
 - **Classification** comes from [[catch-no-brainer]] (he-lele 5-criterion, cats A–D; cat-E and user-skill-touching are negative classifiers).
 - **Safety overrides** (`server_touching`, `user_skill_touching_override`) are computed mechanically per [[brief-prep]] §"Safety overrides" and recorded in frontmatter. Either being `true` forbids auto-approval regardless of category.
-- **Auto-approval** additionally requires the auto-merge kill-switch (`~/gt/hecke/.beads/auto_merge_enabled`, default OFF/missing=false; Mayor or Taylor authority only) per `project_brief_pipeline_workflow.md` §4, with dry-run + executed JSONL records.
+- **Auto-approval** additionally requires the auto-merge kill-switch (`~/gt/.beads/auto_merge_enabled`, default OFF/missing=false; Mayor or Taylor authority only) per `project_brief_pipeline_workflow.md` §4, with dry-run + executed JSONL records.
 - Everything else → **stack-insert** ranked by `unlock_count` for Taylor adjudication.
 
 The mechanical policy itself lives in the gate registry and the gate-keep architecture (`project_gate_keep_architecture.md`: X-policy + X-gate + improve-X trinities). As gate-keep lands, this section delegates to it; until then, treat "pre-authorized" as: no-brainer category match AND both overrides false AND kill-switch true — otherwise Taylor decides.

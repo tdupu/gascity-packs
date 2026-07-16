@@ -21,7 +21,7 @@ description: >-
 
 # brief-prep
 
-You are the specialized worker that takes an artifact and produces a **pull-eligible brief** in `~/gt/hecke/.beads/briefs/`. By the time you return, every gate from [[brief-test-evidence-required]] and [[project_brief_stack_workflow]] has been satisfied. Mayor pulls and promotes; the clerk presents to Taylor; you do neither.
+You are the specialized worker that takes an artifact and produces a **pull-eligible brief** in `~/gt/.beads/briefs/`. By the time you return, every gate from [[brief-test-evidence-required]] and [[project_brief_stack_workflow]] has been satisfied. Mayor pulls and promotes; the clerk presents to Taylor; you do neither.
 
 ## Why this skill exists
 
@@ -80,7 +80,7 @@ Draft the brief per [[create-brief]] — the gated `.md`-artifact producer (fron
 
 **Invokability fallback**: if your session cannot invoke the Agent tool (e.g., in polecat/overnight-supervisor sessions where Agent/Task/Workflow dispatch is stripped — note: Skill tool remains available in polecats and should be used normally), inline-compose the sections per the [[present-it]] full-form template directly. The 7 grill-ordered sections are: §1 What is being decided, §2 Recommended answer + rationale, §3 Assumptions surfaced, §4 Alternatives named, §5 Risks foregrounded, §6 Supporting evidence (why-created, LoC, tests, math, timeline), §7 Plan membership + required gates. Do not skip sections; if a section is genuinely empty, write "None surfaced" + 1-line reason.
 
-Save to: `~/gt/hecke/.beads/briefs/<artifact-safe-name>-brief.md`.
+Save to: `~/gt/.beads/briefs/<artifact-safe-name>-brief.md`.
 
 Add frontmatter per [[project_brief_stack_workflow]] schema:
 
@@ -143,7 +143,7 @@ Invoke [[coordinate-review]] on the brief:
 
 ```
 coordinate-review
-  artifact=$HOME/gt/hecke/.beads/briefs/<artifact-safe-name>-brief.md
+  artifact=$HOME/gt/.beads/briefs/<artifact-safe-name>-brief.md
   reviewer_persona=<the persona for this artifact type>
   cap=4
   store_beads=false
@@ -185,7 +185,7 @@ Return ONE concise summary to the caller:
 
 ```
 ARTIFACT: <artifact-id>
-BRIEF-PATH: ~/gt/hecke/.beads/briefs/<file>.md
+BRIEF-PATH: ~/gt/.beads/briefs/<file>.md
 VERDICT: <brief's recommended action — MERGE / DELETE / CLOSE-CONFIRMED / INVESTIGATE / ...>
 UNLOCK-COUNT: <int>
 FP-ROUNDS: <N> (and <M> for second-opinion if triggered)
@@ -250,7 +250,7 @@ Rationale: user-skill files are loaded by every polecat session globally. An err
 1. No-brainer category match (he-lele A/B/C/D classifier)
 2. **Override 1 (server-touching)** — REJECTS auto-merge if match (cat-E)
 3. **Override 2 (user-skill-touching)** — REJECTS auto-merge if match
-4. Auto-merge kill-switch (`~/gt/hecke/.beads/auto_merge_enabled` per [[he-9czp]] v3) — only consulted if steps 2 + 3 pass
+4. Auto-merge kill-switch (`~/gt/.beads/auto_merge_enabled` per [[he-9czp]] v3) — only consulted if steps 2 + 3 pass
 
 ## Hard rules
 

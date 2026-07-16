@@ -51,7 +51,7 @@ bd list --status open --metadata-field brief_status=approved \
 ### Method 2 — directory scan (fallback)
 
 ```bash
-BRIEF_DIR="${BRIEF_QUEUE_PATH:-$HOME/gt/hecke/.beads/briefs}"
+BRIEF_DIR="${BRIEF_QUEUE_PATH:-$HOME/gt/.beads/briefs}"
 find "$BRIEF_DIR" -maxdepth 1 -name "*.md" \
   | xargs grep -l "^status: approved" 2>/dev/null \
   | while read f; do
@@ -124,7 +124,7 @@ After the initial batch:
    - Look up the full slug from the manifest (find `manifest.jsonl` entry where `source == artifact_id`; use its `slug` field)
    - Invoke `brief-record-decision` via `gc sling`:
      ```bash
-     # Identify rig from brief path (e.g. ~/gt/hecke/.beads/briefs → hecke)
+     # Identify rig from brief path (e.g. ~/gt/.beads/briefs → hecke)
      gc sling <rig>/gc.run-operator brief-record-decision --formula \
        --var brief_slug=<slug> \
        --var decision=<approve|reject|revise|defer> \
@@ -171,7 +171,7 @@ On each decision: `hot.pop(0)` → present immediately; `queue.pop(0)` → fan o
 
 - **`/present-it`** — single-artifact presentation (this skill wraps it); delegates all research and brief-writing there
 - **`/brief-prep`** — upstream producer that populates the ripe queue with approved briefs
-- **Brief-pipeline substrate** — the brief-stack (`~/gt/hecke/.beads/briefs/`) this skill consumes
+- **Brief-pipeline substrate** — the brief-stack (`~/gt/.beads/briefs/`) this skill consumes
 - **Workflow tool** — powers the parallel fan-out in Phase 2
 
 ## What this skill does NOT do

@@ -227,8 +227,8 @@ gc sling hecke/gc.run-operator brief-prep --formula \
 
 # 3. Shuffle: happens automatically (brief-shuffle-pile order fires on a
 #    non-empty pile). Check the outcome:
-ls ~/gt/hecke/.beads/briefs/stack/          # promoted
-ls ~/gt/hecke/.beads/briefs/.pile/.rejected # or rejected, with reasons
+ls ~/gt/.beads/briefs/stack/          # promoted
+ls ~/gt/.beads/briefs/.pile/.rejected # or rejected, with reasons
 
 # 4. Present: drain the stack. The outside clerk (or Mayor) runs the
 #    present-briefs skill — presentation is human-facing, not a gc order.
