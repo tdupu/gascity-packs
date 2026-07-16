@@ -2,11 +2,13 @@
 name: check-brief-policy
 description: >-
   Audit the current brief pipeline state against the brief-system POLICY.md
-  (B1.x–B3.x, N.x, L.x, E.x, T.x, D.x, S.x rules). Use when the user says
-  "check brief policy", "run check-brief-policy", "is the pipeline compliant",
-  "audit brief pipeline", "does the current pipeline violate any rules", or
-  before a major brief pipeline change. Read-only: reports drift but never
-  mutates bead state, files, or config (PP1.3). Returns approve / revise /
+  (PP1.1 trinity, B2.x structure/ordering/resurface/freshness, B3.x decision
+  records, N5 kill-switch, PP4.1 gate registry). Per-brief rule checks
+  (L.x, E.x, T.x, D.x, S.x) happen at gate time, not here. Use when the
+  user says "check brief policy", "run check-brief-policy", "is the pipeline
+  compliant", "audit brief pipeline", "does the current pipeline violate any
+  rules", or before a major brief pipeline change. Read-only: reports drift but
+  never mutates bead state, files, or config (PP1.3). Returns approve / revise /
   defer. Companion to new-brief-policy (write path). Policy home:
   mathcity/subdomains/brief-system/POLICY.md.
 ---
