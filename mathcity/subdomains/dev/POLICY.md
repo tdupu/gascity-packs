@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Adopted |
-| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only; amended 2026-07-14: P5.4 truth-is-in-the-code) |
+| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only; amended 2026-07-14: P5.4 truth-is-in-the-code; amended 2026-07-15: P1.19 append-don't-edit beads) |
 | Decided | Taylor Dupuy, via grilling session (three open questions resolved; record at bottom) |
 | Applies to | All packs Taylor owns in this repo — the **owned pack set** (§ Scope) |
 | Consumers | `check-hygiene` skill (to be built via skill-creator); mayor priming (`mayor-math`); any agent planning work in this repo |
@@ -217,6 +217,33 @@ recreate what you're running; upstream must remain pullable.*
   `pack.toml` has at least one `[[named_session]] template =
   "implementation-worker"`. Fail: no such import exists AND `gc session list`
   shows 0 HQ-scope named worker sessions → **revise**.
+- **P1.19 Append, don't edit beads.** When new information arrives about an
+  existing bead, a plan/convoy must **append a new linked bead** — never
+  rewrite the original's recorded content. New info about bead X → `bd create`
+  a new bead and link it: `bd dep relate <new> <X>` (bidirectional
+  `relates_to`), `--parent=<X>`, or `bd supersede <X> --with=<new>` when the
+  new bead fully replaces X. Do **not** `bd update <X> --notes/--description`,
+  perform description surgery, or delete X to carry new information — the
+  appended chain **is** the update history. Correspondingly (read side): before
+  acting on bead X, walk `bd dep tree X` + children and read every attached
+  bead created **after** X — the newest attached beads carry current truth; X
+  alone may be stale. Rationale: in the multi-clone Dolt setup (`~/gt/<rig>` ↔
+  `~/repos/<rig>` ↔ `tdupu/<rig>-dolt`) a row-write to a shared bead is the
+  merge-conflict surface, while an additive insert merges cleanly; immutable
+  beads are also a better audit trail (supersede records, never rewrite them —
+  cf. decision-recording discipline and P5.4). *Allowed exceptions (precise):*
+  (a) **status lifecycle on a bead you solo-own** — `bd update --claim`,
+  `bd close --reason`, open/close transitions — is allowed (it does not rewrite
+  recorded content); (b) an **immediate typo fix on a bead you just created and
+  have not yet synced**; (c) in a **diverged store**, even lifecycle writes stay
+  single-writer-per-side. Pass: every plan/convoy step that records new
+  information about an existing bead does so by appending a new linked bead;
+  content-bearing writes to an existing bead appear only under the carve-outs.
+  Fail: any plan/convoy step that rewrites an existing bead's content
+  (`bd update --notes/--description`, description surgery, or deletion) to carry
+  new information, outside the carve-outs → **revise**. (Origin: Taylor
+  directive 2026-07-15, after a `bd update --notes` on a shared bead deepened a
+  live Dolt row-conflict in the multi-clone setup.)
 
 ## Pillar 2 — Ownership boundary
 
@@ -457,6 +484,16 @@ no parallel vocabulary is introduced:
 ---
 
 ## Change Log
+
+### 2026-07-15 — P1.19 added: append, don't edit beads
+New information about an existing bead is recorded by appending a new linked
+bead (`bd dep relate` / `--parent` / `bd supersede`), never by rewriting the
+original (`bd update --notes/--description`); readers walk `bd dep tree` for
+newer attached beads. Triggered by: Taylor directive 2026-07-15 — row-writes to
+shared beads are the merge-conflict surface in the multi-clone Dolt setup;
+additive inserts merge cleanly and give a better audit trail. Exceptions: status
+lifecycle on solo-owned beads; typo fix on a just-created unsynced bead;
+single-writer-per-side in a diverged store.
 
 ### 2026-07-14 — P5.4 added: truth is in the code
 Behavioral claims about gascity/brief-system/workflow must be grounded in source
