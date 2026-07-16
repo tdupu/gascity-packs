@@ -16,10 +16,23 @@ description = "Promote or reject one brief whenever the pile has pending markdow
 scope = "rig"
 formula = "brief-shuffle"
 trigger = "condition"
-# Pile items are <slug>/brief.md subdirectories (paths.toml: brief = "brief.md"),
-# NOT flat *.md files. The prior -mindepth 1 -maxdepth 1 -type f check found
-# nothing → the order never fired → auto-promotion was dead. Match depth 2.
-check = "find .beads/briefs/.pile -mindepth 2 -maxdepth 2 -type f -name 'brief.md' 2>/dev/null | grep -q ."
+# Pile items are FLAT .pile/<slug>.md files — that is what brief-prep's
+# submit-to-pile step actually deposits (formulas/brief-prep.toml:136 sets
+# gc.brief.path = "{{artifact_root}}/.pile/{{brief_slug}}.md") and what the
+# live stack holds. The prior depth-2 <slug>/brief.md glob was a MISDIAGNOSIS
+# (gsp-*, QUIMBY 10 S10 shuffler audit): the earlier depth-1 check found
+# nothing because of the pre-gsp-3al3 scope/deadlock defects, not the glob —
+# depth-1-flat matches brief-prep output; depth-2 matched NOTHING, so the
+# order never fired and pile→stack promotion was universally dead. This
+# reverts to depth-1 flat. paths.toml [filenames].brief="brief.md" (subdir
+# intent) is unused by the pile/stack — behavior wins (P5.4), FLAT is
+# canonical.
+# P1.17 invariant: the order's pile glob MUST match the shape brief-prep's
+# submit-to-pile step writes (gc.brief.path in formulas/brief-prep.toml) —
+# change them together or not at all.
+# Depth-1 -type f never descends, so .rejected/ and .no-brainer/ subdirs are
+# excluded structurally; ! -name '.*' skips hidden/partial files.
+check = "find .beads/briefs/.pile -maxdepth 1 -type f -name '*.md' ! -name '.*' 2>/dev/null | grep -q ."
 pool = "mathcity.brief-operator"
 timeout = "60s"
 idempotent = true
