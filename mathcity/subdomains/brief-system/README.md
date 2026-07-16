@@ -228,6 +228,10 @@ gc bd show he-x8dk           # same, via the city tooling
 - **Audit:** the `check-brief-policy` skill audits the live pipeline against
   every rule in POLICY.md and reports approve / revise / defer with specific
   violations.
+- **Policy amendment:** to add or amend a brief-system rule, invoke the
+  `new-brief-policy` skill. It is the sole write path for changes to POLICY.md
+  (PP1.4) — editing POLICY.md directly without going through this skill is a
+  policy violation.
 - **Remember:** the bead store is canonical. The directories under
   `.beads/briefs/` (pile, stack, archive — layout in
   `mathcity/assets/brief-pipeline/paths.toml`) are a regenerable cache; if a
