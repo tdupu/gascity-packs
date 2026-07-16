@@ -79,6 +79,29 @@ gc sling hecke/gc.run-operator brief-prep --formula \
 
 ---
 
+## Mechanism status (settled as of 2026-07-16)
+
+The brief system can publish work via several mechanisms. As of 2026-07-16
+the architecture is settled:
+
+| ID | Status | Description |
+|---|---|---|
+| **D2** | PRIMARY (proven) | Build-basic-briefed convoy: the terminal slot runs brief-prep SKILL, depositing the brief in the pile. The briefed publish slot **never pushes, never opens a PR, never merges**; an APPROVE verdict edge gates shipping via brief-decision-dispatch → gc.publisher. |
+| **B** | MANUAL COMPLEMENT | Human-initiated publish: Taylor runs a formula manually or uses `gc sling` directly. Remains valid; used for off-cycle or emergency publishes. |
+| **A** | DEAD | Structural race (bead `gsp-510c`): the original auto-publish-on-close path had a race between the work-close event and the merge gate check. Abandoned in favour of the briefed path. |
+| **D1** | DEFERRED | P1.2 city.toml tension: the direct-to-merge-queue mechanism conflicts with the pack portability constraint in P1.2. Deferred pending a policy ruling. |
+
+**Proven E2E chain (D2, confirmed 2026-07-16):**
+
+```
+source bead → build-basic-briefed convoy → terminal slot: brief-prep SKILL
+  → catch-no-brainer → .pile → brief-shuffle promotes → stack
+  → present-briefs + adjudicate-brief → APPROVE verdict
+  → brief-decision-dispatch → gc.publisher → real publish
+```
+
+---
+
 ## Where it goes: pile → shuffle → stack
 
 - **The pile** (`.beads/briefs/.pile/`) is the single accumulation point for
@@ -284,9 +307,7 @@ not yet carried live traffic. Known state:
   presentation to date has gone through the interactive skills.
 - **`brief-decision-dispatch` has never run** — no verdict has yet flowed
   through the automatic approve/reject/revise executor.
-- **First end-to-end pass pending:** the pipeline awaits Taylor's first
-  verdict recorded under the one-bead model to exercise steps 4–6 of the
-  worked example for real.
+- **T4 confirmed (2026-07-16, gsp-7x9f):** a live build-basic-briefed convoy fired an APPROVED decision brief at the terminal slot (gc.publish_mode=brief, no push/PR). The full chain source → convoy → pile → shuffle → stack → present → adjudicate → dispatch is now proven end-to-end.
 - **Legacy backfill running** (bead `he-irjq9`): 46 pre-existing open brief
   beads, 10 stack documents, and a 318-line verdict ledger are being
   reconciled into the adopted system (verdict backfill onto beads, document
