@@ -38,6 +38,8 @@ Routing contract (approve=merge back edge — HQ decision gt-r4ou):
   revise   → Create a follow-up bead in the source rig titled
              `[revise] <brief_slug>` carrying the decision reason so the
              author can act on the feedback; no merge action.
+             (Rig resolved from the source_bead prefix via the rig registry;
+             records with no source_bead file at HQ.)
   defer    → No-op beyond marking the record dispatched (the brief stays in
              the archive; no follow-up bead created).
 
@@ -77,7 +79,7 @@ gc runtime drain-ack
 ```
 """
 formula = "brief-decision-dispatch"
-version = 1
+version = 2
 # phase=vapor (not [requires] formula_compiler): a graph-v2 root is a blocked
 # container the demand probe never counts; a vapor root is the one shape gc
 # 1.3 demonstrably staffs to pools via orders (cf. bd pack mol-dog-*).
@@ -120,9 +122,9 @@ scan point. The ledger makes repeat runs safe (idempotent).
 
 **Phase 2 — dispatch.** For each pending slug: read the decision record,
 execute the routing action, and append one JSONL line to the ledger. The rig
-checkout RIG_DIR is derived from the source_bead ID prefix (W2: global
-artifact_root no longer encodes the rig in its path): `he-*` → hecke,
-`as-*` → agent_skills, `gsp-*` → gascity-packs.
+checkout RIG_DIR and rig name are resolved from the source_bead ID prefix via
+the city's rig registry (`gc rig list --json`; longest-prefix match, HQ
+included). No per-rig knowledge lives in this formula.
 
 **Retry semantics (C3c):** the ledger is append-only with two line shapes. A
 SUCCESS line has `"dispatched_at"` set — treated as dispatched, never
@@ -174,6 +176,26 @@ detect_default_branch() {
     done
   fi
   [ -n "$db" ] && printf '%s' "$db" || printf '%s' "$DEFAULT_BRANCH"
+}
+
+# Resolve a bead id -> owning rig via gc's AUTHORITATIVE registry
+# (city.toml [[rigs]] surfaced by `gc rig list --json`). Mirrors gc's own
+# resolver (cmd_bd.go resolveBdScopeTarget/bdRigForArg + handler_beads.go
+# beadIDHasConfiguredPrefix): longest configured prefix wins; the HQ row
+# ("gt") is included, so HQ beads resolve to the city root checkout.
+RIG_REGISTRY_JSON=""
+load_rig_registry() {
+  [ -n "$RIG_REGISTRY_JSON" ] && return 0
+  RIG_REGISTRY_JSON="$(gc rig list --json 2>/dev/null)" || RIG_REGISTRY_JSON=""
+  [ -n "$RIG_REGISTRY_JSON" ]
+}
+# resolve_rig <bead-id> -> two lines: name, then path. Empty output = no match.
+resolve_rig() {
+  load_rig_registry || return 1
+  printf '%s' "$RIG_REGISTRY_JSON" | jq -r --arg id "$1" '
+    [(.rigs // [])[] | select(.prefix as $p | $id | startswith($p + "-"))]
+    | sort_by(.prefix | length) | last // empty
+    | select(. != null) | .name, .path'
 }
 
 # A slug is dispatched only when a SUCCESS line (has dispatched_at) names it.
@@ -259,17 +281,14 @@ dispatch_slug() {
 
   case "$decision" in
     approve)
-      # Derive rig checkout from source_bead prefix (W2: global artifact_root).
-      bead_prefix="$(printf '%s' "$source_bead" | cut -d- -f1)"
-      case "$bead_prefix" in
-        he)  RIG_DIR="$CITY/hecke" ;;
-        as)  RIG_DIR="$CITY/agent_skills" ;;
-        gsp) RIG_DIR="$CITY/gascity-packs" ;;
-        *)   RIG_DIR="" ;;
-      esac
+      # Resolve rig name + checkout from the source_bead prefix via the city's
+      # authoritative rig registry (no per-rig knowledge in this formula).
+      rig_info="$(resolve_rig "$source_bead")"
+      RIG_NAME="$(printf '%s' "$rig_info" | sed -n 1p)"
+      RIG_DIR="$(printf '%s' "$rig_info" | sed -n 2p)"
       if [ -z "$RIG_DIR" ] || [ ! -d "$RIG_DIR" ]; then
         outcome="failure"
-        action_taken="approve failed: unknown rig for source_bead $source_bead (prefix=$bead_prefix)"
+        action_taken="approve failed: unknown rig for source_bead $source_bead (registry resolve empty or dir missing)"
       else
       # Approval = merge back edge. Fail-closed three-state branch check
       # (gt-yv8p2): distinguish bd-show error from genuine no-branch.
@@ -320,7 +339,7 @@ dispatch_slug() {
         # default gc.publisher). Rig-qualify the name: a bare session name does
         # not match the rig session's queue query (run-2 of the gt-vtab dispatch
         # test sat unpicked; run-1's working assignment was rig-qualified).
-        rig_name="$(basename "$RIG_DIR")"
+        rig_name="$RIG_NAME"
         gc bd update "$source_bead" --assignee "$rig_name/{{merge_target}}" 2>/dev/null || ok=false
         if $ok; then
           action_taken="reassigned-to-refinery (branch=$existing_branch target=$set_target)"
@@ -336,19 +355,43 @@ dispatch_slug() {
       # a single JSON blob (--metadata), NOT repeatable --set-metadata (which bd
       # create does not accept). A "brief_slug" key marks the bead as
       # dispatch-created so file-or-sendback-route can exclude it (I1b).
+      # The follow-up is created IN THE SOURCE RIG (routing contract): resolve
+      # the rig from source_bead and pass --rig. A non-empty source_bead that
+      # does not resolve is a retryable failure — never silently fall back to
+      # HQ. An empty source_bead (record shape allows it) files at HQ by
+      # design, noted in the action string.
       case "$decision" in reject) tag="[rejected]" ;; revise) tag="[revise]" ;; esac
-      meta="$(jq -n --arg sb "$source_bead" --arg slug "$slug" --arg r "$reason" \
-        '{brief_slug: $slug, decision_reason: $r} + (if $sb == "" then {} else {source_bead: $sb} end)')"
-      follow_up_bead="$(gc bd create \
-        --type=task \
-        --title="$tag $slug" \
-        --metadata "$meta" \
-        --json 2>/dev/null | jq -r '.id // empty' 2>/dev/null)"
-      if [ -n "$follow_up_bead" ]; then
-        action_taken="created $decision follow-up bead: $follow_up_bead"
+      rig_scope_args=""
+      hq_note=""
+      resolve_ok=true
+      if [ -n "$source_bead" ]; then
+        RIG_NAME="$(resolve_rig "$source_bead" | sed -n 1p)"
+        if [ -z "$RIG_NAME" ]; then
+          resolve_ok=false
+          outcome="failure"
+          action_taken="$decision failed: unknown rig for source_bead $source_bead (registry resolve empty); will retry"
+        else
+          rig_scope_args="--rig $RIG_NAME"
+        fi
       else
-        outcome="failure"
-        action_taken="$decision failed: follow-up bead not created"
+        hq_note=" (no source_bead — follow-up filed at HQ)"
+      fi
+      if $resolve_ok; then
+        meta="$(jq -n --arg sb "$source_bead" --arg slug "$slug" --arg r "$reason" \
+          '{brief_slug: $slug, decision_reason: $r} + (if $sb == "" then {} else {source_bead: $sb} end)')"
+        # rig_scope_args is intentionally word-split (empty or "--rig <name>")
+        # shellcheck disable=SC2086
+        follow_up_bead="$(gc bd $rig_scope_args create \
+          --type=task \
+          --title="$tag $slug" \
+          --metadata "$meta" \
+          --json 2>/dev/null | jq -r '.id // empty' 2>/dev/null)"
+        if [ -n "$follow_up_bead" ]; then
+          action_taken="created $decision follow-up bead: $follow_up_bead$hq_note"
+        else
+          outcome="failure"
+          action_taken="$decision failed: follow-up bead not created"
+        fi
       fi
       ;;
     defer)
