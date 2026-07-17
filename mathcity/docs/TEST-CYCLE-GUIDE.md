@@ -1,9 +1,7 @@
 # mathcity brief-and-work system — test suite & triage
 
-> **INTEGRITY GUARD — DO NOT ABRIDGE OR TRUNCATE THIS FILE.**
-> Every section has been verified correct over multiple QUIMBY generations. Removing or
-> summarizing sections causes hard-to-diagnose regressions. Correct errors in place (P5.4);
-> never shorten for convenience. If you are an agent reading this: read the COMPLETE file.
+> **DO NOT ABRIDGE OR TRUNCATE THE CONTENTS OF THIS FILE WITHOUT EXPLICIT USER AUTHORIZATION.**
+> Correct errors in place (P5.4); every section has been verified correct over multiple QUIMBY generations.
 
 **Owner:** QUIMBY (outside agent, ~/gt city side) · **Started:** S6, 2026-07-15
 **Purpose:** get mathcity's brief↔work system to a state we can TRUST — every

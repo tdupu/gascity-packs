@@ -13,20 +13,17 @@
    to bring the city up from cold and verify orders/formulas/events actually fire.
    *The single most valuable doc — it has restarted the city for 11 QUIMBYs.*
 
-**Read on-demand only — NOT at startup. When triggered, read the COMPLETE file — never
-partial reads, never summaries. These docs encode hard-won operational knowledge; missing
-any section has caused regressions in past QUIMBY sessions.**
+**Read on-demand only — NOT at startup. Each doc carries its own integrity guard; obey it.**
 
 2. **[CITY-OPERATION-REFERENCE.md](./CITY-OPERATION-REFERENCE.md)** — system architecture,
    pools/agents/workers, brief-pipeline lifecycle, no-brainer system, correct command surface.
-   *Trigger: you need to verify a command exists, understand fleet architecture, or diagnose
-   a brief-pipeline issue.*
+   *Trigger: verifying a command exists, diagnosing fleet/brief-pipeline issues.*
 3. **[TEST-CYCLE-GUIDE.md](./TEST-CYCLE-GUIDE.md)** — dogfood/test cycle, two-layer
    system-under-test, test matrix, fix-at-source (P5.4) triage.
-   *Trigger: you are about to run any test OR triage a test/pipeline failure.*
+   *Trigger: before running any test or triaging a pipeline failure.*
 4. **[DOGFOOD-WORKFLOW.md](./DOGFOOD-WORKFLOW.md)** — ~/gt↔~/repos duality and how a
    change actually reaches the running city.
-   *Trigger: you are about to apply a hotfix, make a pack change, or deploy anything.*
+   *Trigger: before applying a hotfix, making a pack change, or deploying anything.*
 
 The live trust record is per-session shards in `~/gt/mathcity-tests/run-log/`.
 Write each session to `run-log/S{N}.md` (new file). KEEP AND EXPAND — Taylor
@@ -97,3 +94,24 @@ These are the things a fresh QUIMBY must know to operate the city as well as QUI
 ## Handoff-bead chain (each holds that session's full arc)
 S1 gt-gnh7m · S2 gt-v6azs · S3 gt-a6ty4 · S4 gt-shezv · S5 gt-yygvi · S6 gt-n587i ·
 S7 gt-00snc · S8 gt-mvq3s · S9 gt-qion7 · S10 gt-49683 · S11 gt-h16p88.
+
+## Policies
+
+Meta-policy governance (how policies work, lifecycle, cross-domain precedence):
+**[POLICY-POLICY.md](../POLICY-POLICY.md)**
+
+Canonical prefix + status registry for all domains:
+**[docs/rule-prefix-registry.md](./rule-prefix-registry.md)**
+
+| Domain | POLICY.md | Prefixes | Status |
+| --- | --- | --- | --- |
+| Meta-policy | [POLICY-POLICY.md](../POLICY-POLICY.md) | PP | Adopted |
+| Brief system | [subdomains/brief-system/POLICY.md](../subdomains/brief-system/POLICY.md) | B N L E T D S | Adopted |
+| Dev / build hygiene | [subdomains/dev/POLICY.md](../subdomains/dev/POLICY.md) | P | Adopted |
+| LaTeX | [subdomains/latex/POLICY.md](../subdomains/latex/POLICY.md) | LX | Draft |
+| Magma packages | [subdomains/magma/POLICY.md](../subdomains/magma/POLICY.md) | M | Draft |
+| LMFDB | [subdomains/lmfdb/POLICY.md](../subdomains/lmfdb/POLICY.md) | LM | Draft |
+| Computing | [subdomains/computing/POLICY.md](../subdomains/computing/POLICY.md) | C | Draft |
+
+When citing a rule in a bead or skill, use the rule ID (e.g., `P1.6`, `B3.7`), not prose.
+Adopted policies govern over any conflicting skill or implementation (PP1.7).

@@ -27,17 +27,15 @@ reads its own context. Corrected 2026-07-16.) Do these in order:
    Read that file (~3–10KB). It holds the prior session's S<N>.x rows.
 6. **Handoff bead** named in the PROMPT (`bd show <id>`).
 
-**On-demand only (NOT at startup). When triggered, read the COMPLETE file — never partial
-reads, never summaries. These docs encode hard-won operational knowledge; past sessions
-have caused regressions by skipping sections. Each doc carries an integrity guard in its
-own header — obey it.**
+**On-demand only (NOT at startup). Each doc carries its own integrity guard — obey it.**
 
-- `CITY-OPERATION-REFERENCE.md` (32KB) — architecture, command surface, brief pipeline.
+- [`CITY-OPERATION-REFERENCE.md`](../../docs/CITY-OPERATION-REFERENCE.md) (32KB) — architecture, command surface, brief pipeline.
   *Trigger: verifying a command exists, diagnosing fleet / brief-pipeline issues.*
-- `TEST-CYCLE-GUIDE.md` (11KB) — test/triage cycle.
+- [`TEST-CYCLE-GUIDE.md`](../../docs/TEST-CYCLE-GUIDE.md) (11KB) — test/triage cycle.
   *Trigger: before running any test or triaging a pipeline failure.*
-- `DOGFOOD-WORKFLOW.md` (11KB) — hotfix → hygienic loop, ~/gt↔~/repos duality.
+- [`DOGFOOD-WORKFLOW.md`](../../docs/DOGFOOD-WORKFLOW.md) (11KB) — hotfix → hygienic loop, ~/gt↔~/repos duality.
   *Trigger: before applying a hotfix, making a pack change, or deploying anything.*
+- [**Policies**](../../docs/QUIMBY-ONBOARDING.md#policies) — see the Policies section of QUIMBY-ONBOARDING.md for the full navigation tree.
 
 ## 2. File onboarding briefs (async)
 

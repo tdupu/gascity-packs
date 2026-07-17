@@ -1,9 +1,7 @@
 # DOGFOOD-WORKFLOW — mathcity hotfix → hygienic loop (authoritative)
 
-> **INTEGRITY GUARD — DO NOT ABRIDGE OR TRUNCATE THIS FILE.**
-> Every section has been verified correct over multiple QUIMBY generations. Removing or
-> summarizing sections causes hard-to-diagnose regressions. Correct errors in place (P5.4);
-> never shorten for convenience. If you are an agent reading this: read the COMPLETE file.
+> **DO NOT ABRIDGE OR TRUNCATE THE CONTENTS OF THIS FILE WITHOUT EXPLICIT USER AUTHORIZATION.**
+> Correct errors in place (P5.4); every section has been verified correct over multiple QUIMBY generations.
 
 **Owners:** QUIMBY (~/gt lane) + BART (~/repos lane). Read this before applying
 any hotfix or promoting any pack fix. This is the process the whole team follows.
