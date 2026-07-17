@@ -54,16 +54,6 @@ These are the things a fresh QUIMBY must know to operate the city as well as QUI
   drain_policy=separate --var push=false --var open_pr=false`). It runs the full build and
   fires a **decision brief** at the terminal slot instead of publishing — `push=false` means
   nothing ships; briefs accumulate on Taylor's stack.
-- **ALWAYS verify the sling took**: after `--on build-basic-briefed`, `bd show <bead>` must
-  show a non-empty **Assignee** (or `tmux -L gt ls` a fresh `gc__run-operator` session). An
-  unverified sling may have stranded silently.
-- **Don't misread a slow build as a strand (S14)**: build-basic-briefed WORKS (the Q13
-  "silent strand" was a misdiagnosis — `bd recall great-regression-misdiagnosis-s14`). A
-  molecule ROOT stays OPEN by design until its terminal (finalize + brief) steps close —
-  count closed `✓` steps via `bd show <root>`; they climb over minutes. `gc status`
-  "stopped/0" is usually a probe TIMEOUT (stale fallback), not an idle fleet — trust
-  `tmux -L gt ls` + rising step-counts, not the dashboard (`gs-0cy2`). The brief appears only
-  after the terminal "Produce decision brief" step; earlier absence is latency, not loss.
 - Flow: work → build-basic-briefed → brief → catch-no-brainer → `.pile` → brief-shuffle →
   `stack` → `/present-briefs` → Taylor adjudicates → verdict edge → `gc.publisher` → BART lands.
 - **FINDING #1 (every build)**: the build's commits live in DETACHED-HEAD worktrees that

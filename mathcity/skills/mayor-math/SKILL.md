@@ -9,21 +9,17 @@ Supplement to [[gc.mayor]] with Gas Town (gt HQ) sling mechanics. The upstream g
 skill is community-shared and cannot be edited — use this skill to apply the correct
 rig-scoped rules for our setup.
 
-## Canonical operation docs — READ FIRST (regression-proofed QUIMBY onboarding)
+## Canonical operation docs — READ FIRST
 
-The hard-won gold, derived over 11 QUIMBY generations, lives in the mathcity pack
-(`~/gt/gascity-packs/mathcity/docs/`):
-- **QUIMBY-ONBOARDING.md** — index + S11-corrected operational truths (start here)
+The hard-won gold lives in the mathcity pack (`~/gt/gascity-packs/mathcity/docs/`):
+- **QUIMBY-ONBOARDING.md** — index + corrected operational truths (start here)
 - **CITY-RESTART-CHECKLIST.md** — Phase 0–6 step-by-step to bring the city up + verify
 - **CITY-OPERATION-REFERENCE.md** — architecture, pools/agents, brief pipeline, correct command surface
 - **TEST-CYCLE-GUIDE.md** + **DOGFOOD-WORKFLOW.md** — the dogfood/test cycle
 
-## Feed the machine via `build-basic-briefed` (S14-verified working)
-
-**This is the dispatch mechanism for real work — use it.** build-basic-briefed does NOT
-strand (the Q13 "silent strand / dead role-agents" alarm was a misdiagnosis — the
-`named_session` fleet config was fixed 2026-07-14; every "stranded" build actually ran its
-molecule steps; `he-j9wms` is moot; see `bd recall great-regression-misdiagnosis-s14`).
+**Current dispatch pattern:** sling `--on build-basic-briefed` (fires a decision brief at
+the terminal step; `push=false` ships nothing) with `interaction_mode=autonomous` for
+unattended pool runs.
 
 ```
 gc sling <rig>/gc.run-operator <bead> --on build-basic-briefed \
@@ -31,31 +27,13 @@ gc sling <rig>/gc.run-operator <bead> --on build-basic-briefed \
   --var drain_policy=separate --var push=false --var open_pr=false
 ```
 
-It runs the full build and fires a **decision brief** at the terminal step (not a publish;
-`push=false` ships nothing) — that brief is how the machine surfaces work to Taylor's stack.
-The `build-basic` / `interaction_mode=interactive` pattern below is retained for reference;
-prefer build-basic-briefed. (`gastown.polecat` is a dead identity; use a live `gc.*` target.)
+**After slinging:** verify the sling took — `bd show <bead>` must show a non-empty
+**Assignee**, or `tmux -L gt ls` shows a fresh `gc__run-operator` session. A molecule
+root stays OPEN by design until its terminal step fires (count closed `✓` steps climbing
+via `bd show <root>`). `gc status` "stopped / 0 sessions" is often a probe timeout —
+trust `tmux -L gt ls` + rising step-counts (`gs-0cy2`).
 
-**ALWAYS verify the sling took (mandatory).** Immediately after slinging, confirm a worker
-claimed it: `bd show <bead>` → non-empty **Assignee**, or `tmux -L gt ls` shows a fresh
-`gc__run-operator` / `gc__implementation-worker` session. A sling you didn't verify is a
-sling that may have stranded.
-
-**Do NOT misread a slow build as a strand (S14 — this false alarm cost a whole session).**
-build-basic-briefed molecules are SLOW and multi-step; three things look like failure but
-are NORMAL:
-- A molecule **ROOT stays OPEN by design** until every terminal step (finalize + brief)
-  closes. An open root with closed child steps is *in-flight*, not stranded — count closed
-  (`✓`) steps via `bd show <root>`; they climb over minutes.
-- **`gc status` "stopped / 0 sessions" is usually a probe TIMEOUT**, not an idle fleet (it
-  prints a stale fallback). Ground truth = `tmux -L gt ls` + climbing step-counts, never the
-  dashboard count (`gs-0cy2`).
-- The brief appears only AFTER the molecule reaches its terminal "Produce decision brief"
-  step — no brief before then is latency, not a missing brief.
-
-**Doctrine (S13/S14): feed the machine, don't hand-sling one-by-one.** The Mayor's job is
-queue health + unblocking (file beads right, remove blockers, keep the graph clean); dispatch
-ready work through build-basic-briefed and let the fleet pull. Stay available to Taylor.
+The `build-basic` / `interaction_mode=interactive` pattern below is retained for reference.
 
 ## Rule 1 — Always use the rig-scoped coordinator
 
@@ -120,7 +98,23 @@ gc sling <rig>/gc.run-operator <convoy-id> --on build-basic \
   --var open_pr=false
 ```
 
-For atomic tasks: `gc sling <rig>/gc.run-operator <bead-id>` (`gastown.polecat` is dead).
+For atomic tasks: `gc sling <rig>/gc.run-operator <bead-id>`
+
+## Handoff discipline (session-catalog `charge_for_next`)
+
+Keep `charge_for_next` under 200 words. The catalog is a routing table, not a history
+book. Use this format:
+
+```
+TOP: (1) <one-line priority> (2) <one-line priority>
+OPEN: <bead-id> <one-line status>, <bead-id> <one-line status>
+BLOCKED: <bead-id> blocked on <bead-id>
+CITY: <one sentence — fleet status, Dolt ms, anything unusual>
+```
+
+No prose narratives. No incident post-mortems. No "READ THIS FIRST" warnings. If a past
+incident matters, file a `bd remember` entry and cite the key — let the next QUIMBY pull
+context on demand rather than front-loading it.
 
 ## Reference
 

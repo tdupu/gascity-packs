@@ -421,22 +421,6 @@ gc sling <bead-id>
 gc sling --dry-run hecke/gc.run-operator brief-prep --formula
 ```
 
-> **Feeding the machine (canonical, S14-verified).** Real work is fed through the
-> `build-basic-briefed` formula — it runs the full build and deposits a **decision brief**
-> at its terminal step (nothing publishes; `push=false`):
-> ```
-> gc sling <rig>/gc.run-operator <bead> --on build-basic-briefed \
->   --var interaction_mode=autonomous --var review_mode=agent \
->   --var drain_policy=separate --var push=false --var open_pr=false
-> ```
-> ALWAYS verify the sling took: `bd show <bead>` → non-empty **Assignee** (or a fresh
-> `gc__run-operator` in `tmux -L gt ls`). build-basic-briefed does NOT strand (the Q13
-> "silent strand" alarm was a misdiagnosis — `bd recall great-regression-misdiagnosis-s14`):
-> a molecule ROOT stays **OPEN by design** until its terminal (finalize + brief) steps close,
-> so an open root with closed child (`✓`) steps is *in-flight*, not stranded. `gc status`
-> "stopped / 0 sessions" is usually a probe **timeout** (stale fallback), not an idle fleet
-> (`gs-0cy2`) — trust `tmux -L gt ls` + climbing step-counts.
-
 ### Import / Pack
 
 ```bash
