@@ -53,16 +53,19 @@ Spawns an agent on a bead. What happens:
 ~/repositories/HQ/
 ├── city.toml                     ← city config + rig registry (the city marker)
 ├── .gc/                          ← RuntimeRoot: gascity runtime directory
-│   ├── worktrees/                ← WorktreesRoot
+│   ├── worktrees/                ← WorktreesRoot (override: $GC_WORKTREES_DIR or $T3CODE_HOME)
 │   │   ├── repo1/
 │   │   │   └── <bead-id>/        ← each agent bead gets a git worktree here
 │   │   │       ├── .git          ← FILE: "gitdir: ~/repositories/repo1/.repo.git/worktrees/<bead-id>"
 │   │   │       └── <checked-out files on that bead's branch>
 │   │   └── repo2/
 │   │       └── ...
-│   ├── cache/packs/<hash>/       ← git-URL pack caches (local-path imports skip this)
+│   ├── cache/packs/              ← local pack materializations (city-local only)
+│   │                                git-URL imports cache to ~/.gc/cache/repos/<hash>/ (user-global)
 │   ├── agents/                   ← agent session bookkeeping
 │   ├── controller.sock           ← supervisor UNIX socket
+│   │                                (falls back to /tmp/gascity-controller/<sha256>.sock
+│   │                                 when the city path length exceeds 100 chars)
 │   ├── events.jsonl              ← city event log
 │   ├── nudges/
 │   └── tmp/
