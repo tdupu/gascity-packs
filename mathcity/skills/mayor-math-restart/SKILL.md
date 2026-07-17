@@ -8,20 +8,29 @@ description: Full QUIMBY session orientation. Run at the start of every new QUIM
 Full QUIMBY onboarding. (There is NO auto-injecting PreToolUse hook — this skill
 reads its own context. Corrected 2026-07-16.) Do these in order:
 
-## 1. Read the durable context (regression-proofed over 11 QUIMBY generations)
+## 1. Read the bounded context (~30KB total — do not exceed)
+
+**Mandatory reads (always):**
 
 1. **`~/gt/mathcity-mayor/restart/PROMPT-mayor-restart.txt`** — this session's background,
    standing rules, city state, and charge.
-2. **`~/gt/gascity-packs/mathcity/docs/QUIMBY-ONBOARDING.md`** — the index + S11-corrected
-   operational truths (the gold). It points to:
-   - `CITY-RESTART-CHECKLIST.md` — Phase 0–6 step-by-step to bring the city up + verify.
-   - `CITY-OPERATION-REFERENCE.md` — architecture, pools/agents, brief pipeline, correct
-     command surface.
-   - `TEST-CYCLE-GUIDE.md` + `DOGFOOD-WORKFLOW.md` — the dogfood/test cycle.
-3. **`~/gt/mathcity-mayor/session-catalog.json`** — one entry per prior QUIMBY (arc,
-   city state, charge). Read the last few.
-4. The **handoff bead** named in the PROMPT (`bd show <id>`) + `~/gt/mathcity-tests/run-log.md`
-   (the prior session's S<N>.x rows).
+2. **`~/gt/gascity-packs/mathcity/docs/QUIMBY-ONBOARDING.md`** — S11-corrected operational
+   truths (the gold). Contains pointer to CITY-RESTART-CHECKLIST.md.
+3. **`~/gt/gascity-packs/mathcity/docs/CITY-RESTART-CHECKLIST.md`** — Phase 0–6 step-by-step
+   to bring the city up + verify.
+4. **`~/gt/mathcity-mayor/session-catalog-recent.json`** — last 5 QUIMBY sessions (arc,
+   city state, charge). Full history is in `session-catalog.json` if needed.
+5. **Latest shard** in `~/gt/mathcity-tests/run-log/` — find and read it:
+   ```bash
+   ls -t ~/gt/mathcity-tests/run-log/*.md | grep -v archive | head -1
+   ```
+   Read that file (~3–10KB). It holds the prior session's S<N>.x rows.
+6. **Handoff bead** named in the PROMPT (`bd show <id>`).
+
+**On-demand only (NOT at startup — read when the task actually requires them):**
+- `CITY-OPERATION-REFERENCE.md` — architecture, pools/agents, brief pipeline, command surface
+- `TEST-CYCLE-GUIDE.md` — dogfood/test cycle (read when running tests)
+- `DOGFOOD-WORKFLOW.md` — ~/gt↔~/repos duality (read when making pack changes)
 
 ## 2. File onboarding briefs (async)
 
@@ -40,9 +49,13 @@ only for explicit interactive design sessions.
 
 ## 4. At session end
 
-- Write a handoff bead; update `~/gt/mathcity-mayor/restart/PROMPT-mayor-restart.txt`; expand
-  `~/gt/mathcity-tests/run-log.md`; and add one entry to
-  `~/gt/mathcity-mayor/session-catalog.json`:
+1. Write a handoff bead.
+2. Update `~/gt/mathcity-mayor/restart/PROMPT-mayor-restart.txt`.
+3. Write session notes to a **new shard file** `~/gt/mathcity-tests/run-log/S{N}.md`
+   (where N is your session number). Do NOT append to the old `run-log.md` monolith —
+   it is preserved as archive but not extended.
+4. Add one entry to **both** `session-catalog.json` (full record) and
+   `session-catalog-recent.json` (keep last 5):
 
 ```json
 {
@@ -53,4 +66,16 @@ only for explicit interactive design sessions.
   "city_state": "<city state for the next QUIMBY>",
   "charge_for_next": "<priority charge for the next QUIMBY>"
 }
+```
+
+To update `session-catalog-recent.json` (keep last 5 entries):
+```bash
+python3 -c "
+import json, pathlib
+p = pathlib.Path('/Users/tdupuy/gt/mathcity-mayor/session-catalog-recent.json')
+data = json.loads(p.read_text())
+data.append({NEW_ENTRY})
+data = data[-5:]
+p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n')
+"
 ```

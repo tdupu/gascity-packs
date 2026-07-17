@@ -5,21 +5,30 @@
 > throw it away. When something here proves wrong at source, correct it here in
 > the same pass (P5.4). Home: `mathcity/docs/`.
 
-## The four reference docs (read in this order)
+## Reference docs — mandatory vs on-demand
+
+**Read at every startup (mandatory):**
 
 1. **[CITY-RESTART-CHECKLIST.md](./CITY-RESTART-CHECKLIST.md)** — Phase 0–6 step-by-step
    to bring the city up from cold and verify orders/formulas/events actually fire.
    *The single most valuable doc — it has restarted the city for 11 QUIMBYs.*
+
+**Read on-demand only — NOT at startup:**
+
 2. **[CITY-OPERATION-REFERENCE.md](./CITY-OPERATION-REFERENCE.md)** — the userguide:
    system architecture, pools/agents/workers, brief-pipeline lifecycle, no-brainer
    system, and the **correct command surface** (what actually exists vs what doesn't).
+   *Read when you need architecture details or to verify a command exists.*
 3. **[TEST-CYCLE-GUIDE.md](./TEST-CYCLE-GUIDE.md)** — the dogfood/test cycle: the
    two-layer system-under-test, the test matrix, and fix-at-source (P5.4) triage.
+   *Read when you are about to run tests or triage a test failure.*
 4. **[DOGFOOD-WORKFLOW.md](./DOGFOOD-WORKFLOW.md)** — the ~/gt↔~/repos duality and how
    a change actually reaches the running city.
+   *Read when you are about to make a pack change or need to deploy something.*
 
-The live trust record is `~/gt/mathcity-tests/run-log.md` (per-session S<N>.x).
-KEEP AND EXPAND IT — Taylor values the command→result log highly.
+The live trust record is per-session shards in `~/gt/mathcity-tests/run-log/`.
+Write each session to `run-log/S{N}.md` (new file). KEEP AND EXPAND — Taylor
+values the command→result log highly. Full archive at `run-log/archive-S1-S15.md`.
 
 ## S11-corrected operational truths (the hard-won gold)
 
