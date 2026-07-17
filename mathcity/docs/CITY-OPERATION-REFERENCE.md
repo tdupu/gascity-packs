@@ -1,5 +1,10 @@
 # Gascity Restart: Context Reference
 
+> **INTEGRITY GUARD — DO NOT ABRIDGE OR TRUNCATE THIS FILE.**
+> Every section has been verified correct over multiple QUIMBY generations. Removing or
+> summarizing sections causes hard-to-diagnose regressions. Correct errors in place (P5.4);
+> never shorten for convenience. If you are an agent reading this: read the COMPLETE file.
+
 > Narrative reference for the ~/gt city restart, brief system verification, and hecke #335 work.
 > Not a checklist — see gascity-restart-checklist.md for step-by-step.
 

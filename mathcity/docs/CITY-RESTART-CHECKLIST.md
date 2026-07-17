@@ -1,5 +1,10 @@
 # Gascity Restart & Brief System Verification Checklist
 
+> **INTEGRITY GUARD — DO NOT ABRIDGE OR TRUNCATE THIS FILE.**
+> Every section has been verified correct over multiple QUIMBY generations. Removing or
+> summarizing sections causes hard-to-diagnose regressions. Correct errors in place (P5.4);
+> never shorten for convenience. If you are an agent reading this: read the COMPLETE file.
+
 **City:** `~/gt`  
 **Date:** 2026-07-14  
 **Goal:** Confirm brief pipeline, no-brainer system, and PR pipeline work end-to-end after binary rebuild and city restart.

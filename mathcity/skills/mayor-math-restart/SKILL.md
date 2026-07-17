@@ -27,10 +27,17 @@ reads its own context. Corrected 2026-07-16.) Do these in order:
    Read that file (~3–10KB). It holds the prior session's S<N>.x rows.
 6. **Handoff bead** named in the PROMPT (`bd show <id>`).
 
-**On-demand only (NOT at startup — read when the task actually requires them):**
-- `CITY-OPERATION-REFERENCE.md` — architecture, pools/agents, brief pipeline, command surface
-- `TEST-CYCLE-GUIDE.md` — dogfood/test cycle (read when running tests)
-- `DOGFOOD-WORKFLOW.md` — ~/gt↔~/repos duality (read when making pack changes)
+**On-demand only (NOT at startup). When triggered, read the COMPLETE file — never partial
+reads, never summaries. These docs encode hard-won operational knowledge; past sessions
+have caused regressions by skipping sections. Each doc carries an integrity guard in its
+own header — obey it.**
+
+- `CITY-OPERATION-REFERENCE.md` (32KB) — architecture, command surface, brief pipeline.
+  *Trigger: verifying a command exists, diagnosing fleet / brief-pipeline issues.*
+- `TEST-CYCLE-GUIDE.md` (11KB) — test/triage cycle.
+  *Trigger: before running any test or triaging a pipeline failure.*
+- `DOGFOOD-WORKFLOW.md` (11KB) — hotfix → hygienic loop, ~/gt↔~/repos duality.
+  *Trigger: before applying a hotfix, making a pack change, or deploying anything.*
 
 ## 2. File onboarding briefs (async)
 

@@ -13,18 +13,20 @@
    to bring the city up from cold and verify orders/formulas/events actually fire.
    *The single most valuable doc — it has restarted the city for 11 QUIMBYs.*
 
-**Read on-demand only — NOT at startup:**
+**Read on-demand only — NOT at startup. When triggered, read the COMPLETE file — never
+partial reads, never summaries. These docs encode hard-won operational knowledge; missing
+any section has caused regressions in past QUIMBY sessions.**
 
-2. **[CITY-OPERATION-REFERENCE.md](./CITY-OPERATION-REFERENCE.md)** — the userguide:
-   system architecture, pools/agents/workers, brief-pipeline lifecycle, no-brainer
-   system, and the **correct command surface** (what actually exists vs what doesn't).
-   *Read when you need architecture details or to verify a command exists.*
-3. **[TEST-CYCLE-GUIDE.md](./TEST-CYCLE-GUIDE.md)** — the dogfood/test cycle: the
-   two-layer system-under-test, the test matrix, and fix-at-source (P5.4) triage.
-   *Read when you are about to run tests or triage a test failure.*
-4. **[DOGFOOD-WORKFLOW.md](./DOGFOOD-WORKFLOW.md)** — the ~/gt↔~/repos duality and how
-   a change actually reaches the running city.
-   *Read when you are about to make a pack change or need to deploy something.*
+2. **[CITY-OPERATION-REFERENCE.md](./CITY-OPERATION-REFERENCE.md)** — system architecture,
+   pools/agents/workers, brief-pipeline lifecycle, no-brainer system, correct command surface.
+   *Trigger: you need to verify a command exists, understand fleet architecture, or diagnose
+   a brief-pipeline issue.*
+3. **[TEST-CYCLE-GUIDE.md](./TEST-CYCLE-GUIDE.md)** — dogfood/test cycle, two-layer
+   system-under-test, test matrix, fix-at-source (P5.4) triage.
+   *Trigger: you are about to run any test OR triage a test/pipeline failure.*
+4. **[DOGFOOD-WORKFLOW.md](./DOGFOOD-WORKFLOW.md)** — ~/gt↔~/repos duality and how a
+   change actually reaches the running city.
+   *Trigger: you are about to apply a hotfix, make a pack change, or deploy anything.*
 
 The live trust record is per-session shards in `~/gt/mathcity-tests/run-log/`.
 Write each session to `run-log/S{N}.md` (new file). KEEP AND EXPAND — Taylor
