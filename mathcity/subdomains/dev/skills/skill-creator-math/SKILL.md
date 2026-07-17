@@ -120,7 +120,24 @@ Pack-dev skills (anything derived from
    git commit -m "refactor: symlink <name> to mathcity pack (pack canonical)"
    git push origin main
    ```
-7. **Final verification.** Both `ls -la ~/.claude/skills/<name>/SKILL.md`
+7. **Update the skills index** — append the new skill to
+   `mathcity/README-skills.md`, the single canonical cross-pack index of
+   every mathcity skill (parent + all subdomains). This is a required
+   creation step; skipping it makes the index drift.
+   - Add ONE row under the correct section (Parent pack, or the matching
+     `subdomains/<sub>` section), alphabetical by skill name:
+     `` | `<name>` | `<alias>` | <one-sentence purpose> | `` where
+     `<alias>` is `mathcity.<name>` (parent) or `mathcity-<sub>.<name>`
+     (subdomain) per Step 0, and `<one-sentence purpose>` is the first
+     sentence of the skill's frontmatter `description:`.
+   - Bump the section count and the total count in the header line.
+   - **Do NOT create a second skills index.** `README-skills.md` is the one
+     source of truth; the `## Skills` table in `README.md` and the
+     `subdomains/*/README.md` tables are pack-local views that point here.
+     `update-README` full-syncs this same file on any pack change — if
+     unsure about drift, run `/update-README` rather than hand-patching.
+   - Commit it with the pack changes (same fork `tdupu/gascity-packs`).
+8. **Final verification.** Both `ls -la ~/.claude/skills/<name>/SKILL.md`
    and `ls -la ~/gt/.claude/skills/<sink-name>/SKILL.md` must resolve (the
    Step 5 gate already asserted this; re-confirm after the commit). New
    Claude Code sessions see the skill at startup; running sessions pick it

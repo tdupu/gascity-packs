@@ -6,6 +6,7 @@
 
 - Gas City platform: https://github.com/gastownhall/gascity
 - Beads issue tracker docs: https://gastownhall.github.io/beads/
+- **Installation & user guide (start here):** [docs/INSTALL.md](./docs/INSTALL.md)
 
 ---
 
@@ -122,6 +123,8 @@ Skills currently managed under this policy:
 ---
 
 ## Skills
+
+> **Complete index:** for the single cross-pack table of **all** mathcity skills (parent + every subdomain), see **[README-skills.md](./README-skills.md)** — the canonical index. The table below is the parent-pack local view.
 
 These skills ship with the parent pack (subdomain child packs carry their own — see `subdomains/*/README.md`). They are bare `SKILL.md` composition units — no wrapper scripts. The `grill-with-docs` and its derivatives are based off [Matt Popocock's Skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs). Most of the skill formulas and plans were developed using a ``fixed point finder'' where artifacts (in this case the skill) goes through a comprehensive review until the agents converge on the skill. (The fixed point finder is now deprecated in favor of the gascity native version.)
 
