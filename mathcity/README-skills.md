@@ -1,0 +1,148 @@
+# mathcity — skills index
+
+**Single canonical cross-pack index of every skill in the mathcity pack family.**
+
+94 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+
+**Maintenance (single source of truth — no competing updater):**
+- `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
+- `update-README` reconciles this file against the `skills/` trees on any pack change (full drift-sync).
+- Both target THIS file; neither writes a parallel index. Alias form: `mathcity.<name>` (parent), `mathcity-<sub>.<name>` (subdomain) per ADR 0002.
+
+_Regenerate/verify with `/update-README`._
+
+### Parent pack — `mathcity/skills/`  (41)
+
+| Skill | Alias | What it does |
+|---|---|---|
+| `adjudicate-brief` | `mathcity.adjudicate-brief` | Use whenever a STANDALONE decision needs to be recorded persistently in a bd-managed rig — Taylor adjudications, architecture choices, policy locks, gate-criterion additions |
+| `authorize-git-operation` | `mathcity.authorize-git-operation` | Explicit Taylor-authorization gate for irreversible git operations — push, force-push, merge, PR creation, branch deletion, release tag |
+| `bead-check` | `mathcity.bead-check` | Use when the disposition of a specific bead is in question — stale, possibly superseded, mis-filed, orphaned, or in the wrong rig — and a recommendation is needed before anyone acts on it |
+| `brief-prep` | `mathcity.brief-prep` | Specialized worker that owns the brief-prep pipeline end-to-end |
+| `catch-no-brainer` | `mathcity.catch-no-brainer` | PRELIMINARY v0.2 — classify a brief against the he-lele 5-criterion no-brainer test, plus recognize the capability-blocker shape (would-be no-brainer stalled by a permission/capability gap) and signal compact-form eligibility to downstre… |
+| `communicate-with-other-agent` | `mathcity.communicate-with-other-agent` | Send and read messages between concurrent Claude Code agents via the shared inbox ~/gt/.claude/.agent-inbox.md |
+| `compare-artifacts` | `mathcity.compare-artifacts` | Semantic-diff between two text artifacts |
+| `coordinate-review` | `mathcity.coordinate-review` | Run an artifact through an iterative create/review loop until it converges to an approved state |
+| `create-artifact` | `mathcity.create-artifact` | Dispatched by coordinate-review (payload contains a spec field and an optional artifact_type field, no action_items field) to produce a new artifact from a spec, or triggered directly by user phrases like "draft a skill for X", "draft a… |
+| `create-brief` | `mathcity.create-brief` | Produce the durable, gated `.md` brief artifact for the brief stack from a code artifact (branch, bead-id, PR, diff, GH-issue-N) |
+| `create-convoy` | `mathcity.create-convoy` | Create a properly configured OWNED convoy for an epic bead — the fan-out container for one WIP-dispatcher slot |
+| `critical-review` | `mathcity.critical-review` | Act as a rigorous, adversarial reviewer of any artifact — SKILL.md files, plans, theorems, LaTeX, code, or any LLM-generated output |
+| `dolt-init` | `mathcity.dolt-init` | Initialize the bd (beads) Dolt database and set the dolt remote in BOTH ~/gt/<repo-name> and ~/repos/<repo-name> |
+| `dolt-pull` | `mathcity.dolt-pull` | Commit any pending beads changes locally, then pull from the Dolt remote |
+| `dolt-push` | `mathcity.dolt-push` | Commit any pending beads changes and push to the Dolt remote |
+| `fan-out` | `mathcity.fan-out` | Fan an epic bead out into sub-beads (convoy members) WITHOUT consuming additional WIP-dispatcher slots |
+| `file-briefs` | `mathcity.file-briefs` | Async brief-filing variant of grill-with-docs for Mayor onboarding |
+| `formula-creator` | `mathcity.formula-creator` | Create a new formula TOML in any gascity-packs pack and validate gc/bd command surface before committing |
+| `fp-finder-skill` | `mathcity.fp-finder-skill` | Fixed-point convergence engine for SKILL.md files |
+| `gate-test-execution-silent` | `mathcity.gate-test-execution-silent` | G14 gate (test-execution-silent) |
+| `gc-recycle-bead` | `mathcity.gc-recycle-bead` | Handle graceful lifecycle transitions for research beads — beads that contain mathematical decisions, session notes, or research context rather than purely actionable task steps |
+| `get-best-apis` | `mathcity.get-best-apis` | Fetches live LLM benchmark rankings (IFScale / AA Intelligence Index) and current API pricing (input $/1M, output $/1M) across OpenRouter, Ollama, OpenCode, Anthropic, and OpenAI, then renders a self-contained HTML table sorted by score… |
+| `get-best-models` | `mathcity.get-best-models` | Recommends the best open-weights / local LLM for a given hardware constraint and use case, using IFScale as the primary ranking metric and the memory-constraint formula (P*b <= available RAM) to filter candidates |
+| `grill-and-present` | `mathcity.grill-and-present` | Produce decision-ready brief(s) on artifact(s) (branch, bead, PR, diff) by gathering all present-it sections, grilling the decision-maker on ambiguity one question at a time, running the artifact's tests (divide-and-conquer in parallel),… |
+| `immediate-work` | `mathcity.immediate-work` | In-session synchronous dispatch — spawn the right agent NOW in the current session to complete a specific bead or task |
+| `improve-test-execution-silent` | `mathcity.improve-test-execution-silent` | G14 improve step (test-execution-silent) |
+| `intercept-bead` | `mathcity.intercept-bead` | Coordinator/Mayor-side skill for catching an INFLIGHT bead — a new bead that may supersede or affect an existing (old) bead — before it lands and gets lost, duplicated, or auto-dispatched |
+| `is-good-experiment` | `mathcity.is-good-experiment` | Critical-review variant specialized for experiment proposals |
+| `is-good-test` | `mathcity.is-good-test` | Thin wrapper around is-good-experiment specialized for test files |
+| `mayor-math-restart` | `mathcity.mayor-math-restart` | Full QUIMBY session orientation |
+| `mayor-math` | `mathcity.mayor-math` | Supplement to gc.mayor for Gas Town (gt HQ) context |
+| `nudge-city` | `mathcity.nudge-city` | Revive city workers that are stalled/asleep after a usage-limit reset by nudging each one to resume, finish its task, and free its run-operator slot |
+| `present-briefs` | `mathcity.present-briefs` | Batch-present N briefs in parallel and maintain a hot queue (≥2 pre-presented at all times) |
+| `present-it` | `mathcity.present-it` | Dump decision-ready context into the CURRENT conversation for ONE specific question about a code artifact (branch, bead, PR, diff, GH-issue), so the decision-maker can decide with no prior knowledge |
+| `prime-clerk` | `mathcity.prime-clerk` | Prime a clerk session on its job as an OUTSIDE agent in Taylor's Gas City — brief-reading duty under the one-bead model, verdict recording, and the mandatory agent-inbox channel to the mayor for questions |
+| `prime-outsider` | `mathcity.prime-outsider` | Prime an outside (non-gascity) agent after compaction or a new session |
+| `priority-work` | `mathcity.priority-work` | Async targeted dispatch — bump a bead to P0 and dispatch it explicitly to a NAMED agent (polecat or codex target) immediately, bypassing queue order |
+| `remember-this` | `mathcity.remember-this` | Route an important mid-session insight to the right DURABLE store so it survives session death and is retrievable by ANY agent (Claude, Codex, future LLMs) |
+| `repo-to-city` | `mathcity.repo-to-city` | Reference skill mapping repository names to their city rig (~/gt/<name>) and working copy (~/repos/<name>) |
+| `revise-artifact` | `mathcity.revise-artifact` | Apply a set of action items to an artifact (SKILL.md, plan, code, LaTeX, theorem, etc.) and produce a revised version |
+| `xkcd-927` | `mathcity.xkcd-927` | Reconcile or fix an issue that is spread across several beads / plans / PERTs / policy docs that duplicate, contradict, or prose-supersede each other — by CONSOLIDATING into the single existing source of truth, NEVER by writing a fresh a… |
+
+### Brief-system — `subdomains/brief-system/skills/`  (2)
+
+| Skill | Alias | What it does |
+|---|---|---|
+| `check-brief-policy` | `mathcity-brief-system.check-brief-policy` | Audit the current brief pipeline state against the brief-system POLICY.md (PP1.1 trinity, B2.x structure/ordering/resurface/freshness, B3.x decision records, N5 kill-switch, PP4.1 gate registry) |
+| `new-brief-policy` | `mathcity-brief-system.new-brief-policy` | Propose and apply an amendment to the brief-system POLICY.md (mathcity/subdomains/brief-system/POLICY.md) |
+
+### Computing — `subdomains/computing/skills/`  (9)
+
+| Skill | Alias | What it does |
+|---|---|---|
+| `check-computing-policy` | `mathcity-computing.check-computing-policy` | Audit computation code, a diff, or a project against the Computing Policy (mathcity/subdomains/computing/POLICY.md, C1.x–C4.x rules) |
+| `check-mre` | `mathcity-computing.check-mre` | Check whether an MRE (Minimum Reproducible Example) file submitted by an agent satisfies the project's MRE policy at .claude/MRE-POLICY.md |
+| `improve-package-README` | `mathcity-computing.improve-package-README` | Add or update documentation in a Magma or Sage project's README files and the corresponding README test files |
+| `mag-to-notebook` | `mathcity-computing.mag-to-notebook` | Convert a Magma .mag test/script file into a Jupyter notebook (.ipynb) with a Magma kernel so the user can run and iterate on it interactively |
+| `new-computing-policy` | `mathcity-computing.new-computing-policy` | Propose and apply an amendment to the Computing Policy (mathcity/subdomains/computing/POLICY.md, C1.x–C4.x rules) |
+| `notebook-to-mag` | `mathcity-computing.notebook-to-mag` | Pull fixes and new code from a modified Jupyter notebook back into a versioned .mag file with an incremented index, then git add it |
+| `notebook-to-package` | `mathcity-computing.notebook-to-package` | Promote Magma functions from a Jupyter notebook into proper package intrinsics in the appropriate package-*.mag file |
+| `profile-magma` | `mathcity-computing.profile-magma` | Wrap the Magma code the user is working on in a profiling harness to find bottlenecks (slow intrinsics, memory hogs) |
+| `update-issue` | `mathcity-computing.update-issue` | Replace a GitHub issue's body with a single up-to-date canonical statement, consolidating all prior body versions into ONE archive comment per issue (folded via HTML <details> blocks) |
+
+### Pack development / hygiene — `subdomains/dev/skills/`  (7)
+
+| Skill | Alias | What it does |
+|---|---|---|
+| `audit-recent-work` | `mathcity-dev.audit-recent-work` | Produce a full accounting of work adjudicated in a session or date range — brief-record beads, decision beads, stack archives, and in-flight molecules — across all rigs. Distinguishes mid-flight build-basic-briefed molecules from genuine dispatch gaps. |
+| `check-build-hygiene` | `mathcity-dev.check-build-hygiene` | Audit the CURRENT live install — gc/bd binaries, the three source repos, pack imports, and skill sinks — against the Pack Portability & Boundary Policy (mathcity/subdomains/dev/POLICY.md) |
+| `check-plan-hygiene` | `mathcity-dev.check-plan-hygiene` | Gate a plan doc or beads convoy against the Pack Portability & Boundary Policy (mathcity/subdomains/dev/POLICY.md) BEFORE any build starts |
+| `check-zero` | `mathcity-dev.check-zero` | ZFC (Zero-Framework-Cognition) compliance checker — scans a skill, formula, or pipeline artifact and flags every place a framework makes a reasoning decision that should be a model call |
+| `new-hygiene-policy` | `mathcity-dev.new-hygiene-policy` | Propose and apply an amendment to the mathcity hygiene policy (mathcity/subdomains/dev/POLICY.md) |
+| `skill-creator-math` | `mathcity-dev.skill-creator-math` | Create a new skill in the gascity-packs mathcity pack family (~/repos/gascity-packs/mathcity/ — parent skills/ or a subdomain child pack per ADR 0002) and expose it to plain sessions (agent-skills symlink) and city agents (hand-placed ~/… |
+| `update-README` | `mathcity-dev.update-README` | Keep the mathcity pack family's READMEs and skill exposure in sync after ANY owned-pack change — the pack-dev sibling of improve-package-README (which serves Magma/Sage packages) |
+
+### LaTeX — `subdomains/latex/skills/`  (6)
+
+| Skill | Alias | What it does |
+|---|---|---|
+| `check-labels-and-refs` | `mathcity-latex.check-labels-and-refs` | Scan LaTeX files for label/reference consistency, orphan labels/refs, and non-pinpoint cross-references |
+| `check-latex-hygiene` | `mathcity-latex.check-latex-hygiene` | Audit LaTeX beads, branches, or .tex diffs against the LaTeX Subdomain Policy (mathcity/subdomains/latex/POLICY.md, LX-rules) |
+| `check-latex` | `mathcity-latex.check-latex` | Produce the evidence block Taylor needs to approve or reject a notes.tex (or any notes-tier .tex) change before push/merge |
+| `merge-latex-sections` | `mathcity-latex.merge-latex-sections` | STATUS: PLACEHOLDER — full F2 implementation deferred until F1 (latex-hurdle five-hurdle formula) is complete |
+| `new-latex-bead` | `mathcity-latex.new-latex-bead` | Create a new LaTeX work bead that is well-formed under the LaTeX Subdomain Policy (mathcity/subdomains/latex/POLICY.md, LX-rules) and BEADPOLICY.md BP7 from birth - real bd type (never an invented type, P5.3), [LATEX] label plus exactly… |
+| `new-latex-policy` | `mathcity-latex.new-latex-policy` | Propose and apply an amendment to the LaTeX Subdomain Policy (mathcity/subdomains/latex/POLICY.md, LX-rules) |
+
+### LMFDB — `subdomains/lmfdb/skills/`  (27)
+
+| Skill | Alias | What it does |
+|---|---|---|
+| `check-lmfdb-hygiene` | `mathcity-lmfdb.check-lmfdb-hygiene` | Audit an LMFDB-type bead, diff, experiment proposal, or live type against the LMFDB Subdomain Policy (mathcity/subdomains/lmfdb/POLICY.md) — labels valid, experiment reproducible, server operations authorized, type fully wired |
+| `configure-database` | `mathcity-lmfdb.configure-database` | Interactively create the project-local lmfdb-pipeline.conf by walking through each value one at a time (PGDATABASE, PGSCHEMA, DATA_DIR, SCHEMA_MD) |
+| `configure-server` | `mathcity-lmfdb.configure-server` | Interactively create the project-local lmfdb-server.conf by walking through each SSH and compute-server connection value one at a time (REMOTE_HOST, REMOTE_USER, REMOTE_REPO, SSH_JUMP, SSH_KEY, MAX_PARALLEL, ALERT_EMAILS) |
+| `create-lmfdb-type` | `mathcity-lmfdb.create-lmfdb-type` | Scaffold a new LMFDB data type in the Clifford-Bianchi Magma codebase (package-LMFDB.mag, package-IO.mag, schema.md) |
+| `database-to-lmfdb-object` | `mathcity-lmfdb.database-to-lmfdb-object` | Restore an LMFDB wrapper object from PostgreSQL instead of a flat file |
+| `database-to-magma` | `mathcity-lmfdb.database-to-magma` | Restore a native Magma object (CliffOrd, GrpPSL2Cliff, etc.) directly from the PostgreSQL lmfdb schema |
+| `database-to-textfile` | `mathcity-lmfdb.database-to-textfile` | Export one or more objects from the lmfdb PostgreSQL tables back to DATA/ flat files |
+| `database-update` | `mathcity-lmfdb.database-update` | Update a stored object in the lmfdb database by pulling it into Magma, applying user-specified recomputations or field changes, and writing it back |
+| `lmfdb-object-to-database` | `mathcity-lmfdb.lmfdb-object-to-database` | Insert or update an LMFDB wrapper object directly into the lmfdb PostgreSQL schema, bypassing the DATA/ flat-file step |
+| `lmfdb-object-to-string` | `mathcity-lmfdb.lmfdb-object-to-string` | Serialize an LMFDB wrapper object (or list of objects) to a pipe-delimited string |
+| `lmfdb-object-to-textfile` | `mathcity-lmfdb.lmfdb-object-to-textfile` | Write an LMFDB wrapper object directly to its data file in one step |
+| `magma-to-lmfdb-object` | `mathcity-lmfdb.magma-to-lmfdb-object` | Convert a native Magma object (CliffOrd, GrpPSL2Cliff, Gamma0, etc.) into its LMFDB wrapper type |
+| `magma-to-textfile` | `mathcity-lmfdb.magma-to-textfile` | Serialize a raw Magma object (CliffOrd, GrpPSL2Cliff, etc.) all the way to disk in one pipeline |
+| `new-lmfdb-type-policy` | `mathcity-lmfdb.new-lmfdb-type-policy` | Create a new LMFDB type the policy-conformant way — gate the justification (LM4.1), design and freeze the label scheme first (LM1.x, LM4.4), then drive create-lmfdb-type + update-schema, record the webpage decision, and finish with a che… |
+| `plan-an-lmfdb-webpage` | `mathcity-lmfdb.plan-an-lmfdb-webpage` | Plan the full task breakdown and PERT chart for adding a new mathematical object type to the LMFDB website |
+| `pull-data-from-server` | `mathcity-lmfdb.pull-data-from-server` | Pull computed flat files from the remote server to local disk — rsync into a timestamped snapshot under magma/DATA/snapshots/, then replace canonical local DATA/ working dirs from the most recent snapshot |
+| `push-data-to-server` | `mathcity-lmfdb.push-data-to-server` | rsync canonical local magma/DATA/ working folders to the remote compute server, skipping all snapshot directories (data-*/) |
+| `push-to-server` | `mathcity-lmfdb.push-to-server` | SSH into the remote compute server and git pull the latest master branch |
+| `search-lmfdb` | `mathcity-lmfdb.search-lmfdb` | Query the LMFDB (L-functions and Modular Forms Database) via its MCP server |
+| `setup-lmfdb-pipeline` | `mathcity-lmfdb.setup-lmfdb-pipeline` | Meta-setup skill: runs configure-database then configure-server to create both project-root confs the LMFDB skills need |
+| `string-to-lmfdb-object` | `mathcity-lmfdb.string-to-lmfdb-object` | Restore an LMFDB wrapper object from a pipe-delimited string |
+| `string-to-textfile` | `mathcity-lmfdb.string-to-textfile` | Write a pipe-delimited LMFDB string to the correct data file on disk |
+| `textfile-to-database` | `mathcity-lmfdb.textfile-to-database` | Load DATA/ flat files into the local PostgreSQL database (clifford_bianchi_local) |
+| `textfile-to-lmfdb-object` | `mathcity-lmfdb.textfile-to-lmfdb-object` | Restore an LMFDB wrapper object directly from disk in one step |
+| `textfile-to-magma` | `mathcity-lmfdb.textfile-to-magma` | Restore a native Magma object directly from DATA/ in one pipeline |
+| `textfile-to-string` | `mathcity-lmfdb.textfile-to-string` | Read raw pipe-delimited LMFDB strings from disk |
+| `update-schema` | `mathcity-lmfdb.update-schema` | Update the LMFDB database schema across ALL affected files for the hecke/Clifford-Bianchi codebase |
+
+### Magma — `subdomains/magma/skills/`  (2)
+
+| Skill | Alias | What it does |
+|---|---|---|
+| `check-magma-hygiene` | `mathcity-magma.check-magma-hygiene` | Audit a Magma package, a diff, or a whole Magma project against the Magma Packages Policy (mathcity/subdomains/magma/POLICY.md) |
+| `new-magma-package` | `mathcity-magma.new-magma-package` | Scaffold a new Magma package compliant with the Magma Packages Policy (mathcity/subdomains/magma/POLICY.md) — the package-<topic>.mag file with header block, the spec entry in dependency order, a README section stub (Purpose/Functions/De… |
+
+### Proof assistants — `subdomains/proof-assist/skills/`  (1)
+
+| Skill | Alias | What it does |
+|---|---|---|
+| `search-arxiv` | `mathcity-proof-assist.search-arxiv` | Search arXiv by paper ID or keyword and return title, abstract, authors, and BibTeX |
+
