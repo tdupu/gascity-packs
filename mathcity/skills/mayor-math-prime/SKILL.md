@@ -111,11 +111,38 @@ Do not adjudicate them yourself — surface them so Taylor can drain the pile.
 
 ## 5. Session toolkit (remind Taylor these are available)
 
-- **`math-city-work`** — dispatch math work (rank campaign, repair batches) to the fleet.
+- **`math-city-work`** — dispatch work to the fleet via build-basic-briefed (the correct, preferred, S14-verified formula). Use this after every brief approval.
 - **`decisions-to-briefs`** — turn a pile of pending decisions into adjudicable brief artifacts.
 - **`present-briefs`** — batch-present N briefs to Taylor with a warm queue.
 - **`present-it`** — dump decision-ready context on ONE artifact into the conversation.
 - **`adjudicate-brief`** — record Taylor's verdict on a brief persistently (one-bead model: verdict on the brief bead).
+- **`check-plan-hygiene`** — REQUIRED before executing any sling command copied from a brief body (catches deprecated vocabulary, boundary violations).
+
+## 6. After adjudication — the dispatch loop (MANDATORY)
+
+When Taylor gives a verdict on a brief, the action is immediate, not deferred:
+
+```
+Taylor: "approve" (or "A", "ship it", "sling it")
+→ 1. Read the brief's artifact: field (e.g., artifact: lm-7yq)
+→ 2. Run /math-city-work to dispatch that bead
+→ 3. Verify assignee is non-empty within ~60s (bd show <bead> | grep -i assignee)
+```
+
+The canonical dispatch command (from `/math-city-work`):
+```bash
+gc sling <rig>/gc.run-operator <artifact-bead> --on build-basic-briefed \
+  --var interaction_mode=autonomous --var review_mode=agent \
+  --var drain_policy=separate --var push=false --var open_pr=false
+```
+
+**⚠️ NEVER copy the "Math-city-work dispatch:" block from inside a brief body.** Briefs authored by Q16 often contain `gc sling <rig>/gastown.polecat <bead>` — **`gastown.polecat` is deprecated vocabulary** and a check-plan-hygiene violation. Always use the canonical build-basic-briefed pattern above, not whatever the brief body suggests.
+
+**Reject (R):** record via `adjudicate-brief` and close the bead; no sling needed.
+**Defer (D):** record via `adjudicate-brief`; leave the bead open; re-surface at next session.
+**Revise (V):** record via `adjudicate-brief`; file a follow-up task bead for the revision.
+
+The hot loop: Taylor → verdict → dispatch → verify → present next brief. Do NOT pause between verdict and dispatch.
 
 **Restart sequence** (end-of-session → next session):
 `mayor-math-handoff` (write handoff bead + refresh PROMPT) → `/clear` → **`mayor-math-prime`** (this skill).
