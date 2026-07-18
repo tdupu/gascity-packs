@@ -8,24 +8,33 @@ description: Full QUIMBY session orientation. Run at the start of every new QUIM
 Full QUIMBY onboarding. (There is NO auto-injecting PreToolUse hook — this skill
 reads its own context. Corrected 2026-07-16.) Do these in order:
 
-## 1. Read the bounded context (~30KB total — do not exceed)
+## 1. Read the orientation context (target ~30KB — keep it tight)
 
-**Mandatory reads (always):**
+**Read now, always, in order:**
 
-1. **`~/gt/mathcity-mayor/restart/PROMPT-mayor-restart.txt`** — this session's background,
-   standing rules, city state, and charge.
-2. **`~/gt/gascity-packs/mathcity/docs/QUIMBY-ONBOARDING.md`** — S11-corrected operational
-   truths (the gold). Contains pointer to CITY-RESTART-CHECKLIST.md.
-3. **`~/gt/gascity-packs/mathcity/docs/CITY-RESTART-CHECKLIST.md`** — Phase 0–6 step-by-step
-   to bring the city up + verify.
-4. **`~/gt/mathcity-mayor/session-catalog-recent.json`** — last 5 QUIMBY sessions (arc,
-   city state, charge). Full history is in `session-catalog.json` if needed.
-5. **Latest shard** in `~/gt/mathcity-tests/run-log/` — find and read it:
+1. **`~/gt/mathcity-mayor/restart/PROMPT-mayor-restart.txt`** (~1KB) — this session's
+   background, standing rules, city state, and charge.
+2. **`~/gt/gascity-packs/mathcity/docs/QUIMBY-ONBOARDING.md`** (~7KB) — S11-corrected
+   operational truths (the gold). Contains pointer to CITY-RESTART-CHECKLIST.md.
+3. **`~/gt/mathcity-mayor/session-catalog-recent.json`** (~5–11KB) — last 5 QUIMBY sessions
+   (arc, city state, charge). Full history is in `session-catalog.json` if needed.
+   **Consistency guard:** the handoff bead named in the PROMPT must appear as the newest
+   entry here. If it is absent, the prior session did not finish its close protocol
+   (§4) — treat the handoff bead (item 5) as the source of truth for the latest arc and
+   flag the missing entry to Taylor.
+4. **Latest shard** in `~/gt/mathcity-tests/run-log/` — find and read it:
    ```bash
    ls -t ~/gt/mathcity-tests/run-log/*.md | grep -v archive | head -1
    ```
    Read that file (~3–10KB). It holds the prior session's S<N>.x rows.
-6. **Handoff bead** named in the PROMPT (`bd show <id>`).
+5. **Handoff bead** named in the PROMPT (`bd show <id>`).
+
+**Read when you begin city bring-up (NOT at orientation):**
+
+- [`CITY-RESTART-CHECKLIST.md`](../../docs/CITY-RESTART-CHECKLIST.md) (~17KB) — Phase 0–6
+  step-by-step to bring the city up + verify. You *execute* this, so read it as you start
+  Phase 0 — not during orientation. Keeping it out of the orientation read is what makes
+  the ~30KB target real; folding it back in blows the budget by half.
 
 **On-demand only (NOT at startup). Each doc carries its own integrity guard — obey it.**
 
@@ -55,12 +64,18 @@ only for explicit interactive design sessions.
 ## 4. At session end
 
 1. Write a handoff bead.
-2. Update `~/gt/mathcity-mayor/restart/PROMPT-mayor-restart.txt`.
+2. Update `~/gt/mathcity-mayor/restart/PROMPT-mayor-restart.txt`. Keep it a pointer sheet,
+   not a narrative — the Q13/Q14 lesson is that charge bloat kills the next session's
+   orientation. Point at the handoff bead and the plan; do not retell them.
 3. Write session notes to a **new shard file** `~/gt/mathcity-tests/run-log/S{N}.md`
    (where N is your session number). Do NOT append to the old `run-log.md` monolith —
    it is preserved as archive but not extended.
 4. Add one entry to **both** `session-catalog.json` (full record) and
-   `session-catalog-recent.json` (keep last 5):
+   `session-catalog-recent.json` (keep last 5) — do this in the **same close as the
+   handoff bead** so the two never drift (a missing recent-catalog entry is exactly what
+   trips the next session's §1 consistency guard). Keep the entry terse: `summary`,
+   `city_state`, and `charge_for_next` are ≤ ~40 words each — a pointer to the handoff
+   bead, not a second copy of it.
 
 ```json
 {

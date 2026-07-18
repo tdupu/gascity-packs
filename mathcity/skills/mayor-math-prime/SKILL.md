@@ -33,18 +33,41 @@ state, and charge. The script resolves, in order:
    exists yet, the script prints the generic statement and bootstrap
    instructions instead of failing.
 
-## 1. Read the durable context (regression-proofed over 12+ QUIMBY generations)
+## 1. Read the orientation context (target ~30KB — keep it tight)
 
-1. **`~/gt/gascity-packs/mathcity/docs/QUIMBY-ONBOARDING.md`** — the index +
-   corrected operational truths (the gold). It points to:
-   - `CITY-RESTART-CHECKLIST.md` — Phase 0–6 step-by-step to bring the city up + verify.
-   - `CITY-OPERATION-REFERENCE.md` — architecture, pools/agents, brief pipeline, correct
-     command surface.
-   - `TEST-CYCLE-GUIDE.md` + `DOGFOOD-WORKFLOW.md` — the dogfood/test cycle.
-2. **`~/gt/mathcity-mayor/session-catalog.json`** — one entry per prior QUIMBY
-   (arc, city state, charge). Read the last few.
-3. The **handoff bead** named in the PROMPT (`bd show <id>`) +
-   `~/gt/mathcity-tests/run-log.md` (the prior session's S<N>.x rows).
+**Read now, always:**
+
+1. **`~/gt/gascity-packs/mathcity/docs/QUIMBY-ONBOARDING.md`** (~7KB) — the index +
+   S11-corrected operational truths (the gold). It names the deeper docs but does NOT
+   ask you to read them now; each is tiered below.
+2. **`~/gt/mathcity-mayor/session-catalog-recent.json`** (~5–11KB) — last 5 QUIMBY
+   sessions (arc, city state, charge). Full history is in `session-catalog.json` only if
+   you need it. **Consistency guard:** the handoff bead named in the PROMPT must be the
+   newest entry here; if it is absent, the prior session skipped its close protocol — treat
+   the handoff bead (item 4) as the source of truth for the latest arc and flag the gap.
+3. **Latest run-log shard** — find and read it:
+   ```bash
+   ls -t ~/gt/mathcity-tests/run-log/*.md | grep -v archive | head -1
+   ```
+   Read that file (~3–10KB) for the prior session's S<N>.x rows. Do NOT read
+   `run-log.md` — it is the frozen 190KB archive monolith, not the live log; reading it
+   at orientation is exactly the bloat that derails a fresh session.
+4. The **handoff bead** named in the PROMPT (`bd show <id>`).
+
+**Read when you begin city bring-up (NOT at orientation):**
+
+- `CITY-RESTART-CHECKLIST.md` (~17KB) — Phase 0–6 step-by-step to bring the city up +
+  verify. You *execute* this, so read it as you start Phase 0. Folding it into orientation
+  blows the ~30KB target by half.
+
+**On-demand only. Each doc carries its own integrity guard — obey it.**
+
+- `CITY-OPERATION-REFERENCE.md` (~32KB) — architecture, pools/agents, command surface,
+  brief pipeline. *Trigger: verifying a command exists, diagnosing fleet/pipeline issues.*
+- `TEST-CYCLE-GUIDE.md` (~11KB) — test/triage cycle. *Trigger: before running a test or
+  triaging a pipeline failure.*
+- `DOGFOOD-WORKFLOW.md` (~11KB) — hotfix → hygienic loop, ~/gt↔~/repos duality.
+  *Trigger: before a hotfix, a pack change, or any deploy.*
 
 **Standing dispatch rule (MR1.x):** default dispatch = SLING. The Agent tool
 (in-session fork) is only acceptable when ALL THREE hold: result needed in
@@ -67,3 +90,32 @@ availability and violates [[mayor-no-direct-grilling]]). Keep
 2. Report the session's top priority to Taylor before taking any other action.
 3. Confirm with BART (`80b87468`) what BART is supposed to be doing before
    starting work.
+
+## 4. Surface pending decisions
+
+List the briefs **ready to adjudicate** for Taylor in short form (one line each:
+`#N slug — the decision`). Read them from the decisions-track manifest and show
+only those still awaiting a call:
+
+```bash
+python3 -c "
+import json
+for l in open('/Users/tdupuy/gt/.beads/decisions-track/manifest.jsonl'):
+    r=json.loads(l)
+    if r.get('status')=='ready':
+        print('#'+str(r.get('id')), r.get('slug') or r.get('title',''))
+"
+```
+
+Do not adjudicate them yourself — surface them so Taylor can drain the pile.
+
+## 5. Session toolkit (remind Taylor these are available)
+
+- **`math-city-work`** — dispatch math work (rank campaign, repair batches) to the fleet.
+- **`decisions-to-briefs`** — turn a pile of pending decisions into adjudicable brief artifacts.
+- **`present-briefs`** — batch-present N briefs to Taylor with a warm queue.
+- **`present-it`** — dump decision-ready context on ONE artifact into the conversation.
+- **`adjudicate-brief`** — record Taylor's verdict on a brief persistently (one-bead model: verdict on the brief bead).
+
+**Restart sequence** (end-of-session → next session):
+`mayor-math-handoff` (write handoff bead + refresh PROMPT) → `/clear` → **`mayor-math-prime`** (this skill).
