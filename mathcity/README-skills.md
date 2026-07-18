@@ -2,7 +2,7 @@
 
 **Single canonical cross-pack index of every skill in the mathcity pack family.**
 
-94 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+96 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
 
 **Maintenance (single source of truth — no competing updater):**
 - `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
@@ -11,7 +11,7 @@
 
 _Regenerate/verify with `/update-README`._
 
-### Parent pack — `mathcity/skills/`  (41)
+### Parent pack — `mathcity/skills/`  (43)
 
 | Skill | Alias | What it does |
 |---|---|---|
@@ -22,6 +22,7 @@ _Regenerate/verify with `/update-README`._
 | `catch-no-brainer` | `mathcity.catch-no-brainer` | PRELIMINARY v0.2 — classify a brief against the he-lele 5-criterion no-brainer test, plus recognize the capability-blocker shape (would-be no-brainer stalled by a permission/capability gap) and signal compact-form eligibility to downstre… |
 | `communicate-with-other-agent` | `mathcity.communicate-with-other-agent` | Send and read messages between concurrent Claude Code agents via the shared inbox ~/gt/.claude/.agent-inbox.md |
 | `compare-artifacts` | `mathcity.compare-artifacts` | Semantic-diff between two text artifacts |
+| `create-bead-manifest` | `mathcity.create-bead-manifest` | Snapshot all genuine open beads (noise-filtered) into a dated hierarchical triage table at ~/gt/bead-manifests/manifest-<date>-<ordinal>.md with 11 action categories and epic/convoy grouping |
 | `coordinate-review` | `mathcity.coordinate-review` | Run an artifact through an iterative create/review loop until it converges to an approved state |
 | `create-artifact` | `mathcity.create-artifact` | Dispatched by coordinate-review (payload contains a spec field and an optional artifact_type field, no action_items field) to produce a new artifact from a spec, or triggered directly by user phrases like "draft a skill for X", "draft a… |
 | `create-brief` | `mathcity.create-brief` | Produce the durable, gated `.md` brief artifact for the brief stack from a code artifact (branch, bead-id, PR, diff, GH-issue-N) |
@@ -54,6 +55,7 @@ _Regenerate/verify with `/update-README`._
 | `priority-work` | `mathcity.priority-work` | Async targeted dispatch — bump a bead to P0 and dispatch it explicitly to a NAMED agent (polecat or codex target) immediately, bypassing queue order |
 | `remember-this` | `mathcity.remember-this` | Route an important mid-session insight to the right DURABLE store so it survives session death and is retrievable by ANY agent (Claude, Codex, future LLMs) |
 | `repo-to-city` | `mathcity.repo-to-city` | Reference skill mapping repository names to their city rig (~/gt/<name>) and working copy (~/repos/<name>) |
+| `refine-bead-manifest` | `mathcity.refine-bead-manifest` | Convert a bead manifest into a partition B of work beads + one brief per b', where every bead in S is acted on by exactly one b'; approving b' triggers the corresponding dispatch action via math-city-work |
 | `revise-artifact` | `mathcity.revise-artifact` | Apply a set of action items to an artifact (SKILL.md, plan, code, LaTeX, theorem, etc.) and produce a revised version |
 | `xkcd-927` | `mathcity.xkcd-927` | Reconcile or fix an issue that is spread across several beads / plans / PERTs / policy docs that duplicate, contradict, or prose-supersede each other — by CONSOLIDATING into the single existing source of truth, NEVER by writing a fresh a… |
 
