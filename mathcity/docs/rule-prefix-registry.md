@@ -7,12 +7,13 @@ All rule ID prefixes for mathcity policies are reserved here. Rule IDs are globa
 | B, N, L, E, T, D, S | Brief system (multi-pillar) | `subdomains/brief-system/POLICY.md` | Adopted (2026-07-12) | B1.4, N5, L2, E3, T1, D2, S7 |
 | P | Dev / build hygiene | `subdomains/dev/POLICY.md` | Adopted (amended 2026-07-12) | P1.6, P5.3 |
 | SK | Agent skills | `agent-skills/POLICY.md` | Pending (file not yet written) | SK1.1 |
-| BP | Bead policy | `BEADPOLICY.md` (pack root) | Draft (2026-07-12) | BP1.1, BP4.3 |
+| BP | Bead policy | `POLICY-beads.md` (pack root) | Draft (2026-07-12) | BP1.1, BP4.3 |
 | PP | Policy-policy (meta) | `POLICY-POLICY.md` (pack root) | Draft (2026-07-12) | PP1.1, PP3.2 |
 | LX | LaTeX subdomain (bead-side LaTeX work) | `subdomains/latex/POLICY.md` | Draft (2026-07-12) | LX1.1, LX4.6 |
 | M | Magma packages (naming, READMEs, testing, bead lifecycle, profiling, pipelines) | `subdomains/magma/POLICY.md` | Draft (2026-07-12) | M1.3, M7.5 |
 | LM | LMFDB subdomain (labels, experiments, server usage, type creation) | `subdomains/lmfdb/POLICY.md` | Draft (2026-07-12) | LM1.3, LM3.4 |
 | C | Computing (caching/memoization, DRY/code-factoring, intrinsic testing, regression testing) | `subdomains/computing/POLICY.md` | Draft (2026-07-12) | C1.1, C3.2, C4.1 |
+| PD | Policies subdomain (meta-policy tooling, skill lifecycle for policy management skills) | `subdomains/policies/POLICY.md` | Draft (2026-07-19) | PD1.1 |
 
 ## Rules
 

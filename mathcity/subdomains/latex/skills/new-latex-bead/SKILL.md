@@ -1,6 +1,6 @@
 ---
 name: new-latex-bead
-description: Create a new LaTeX work bead that is well-formed under the LaTeX Subdomain Policy (mathcity/subdomains/latex/POLICY.md, LX-rules) and BEADPOLICY.md BP7 from birth - real bd type (never an invented type, P5.3), [LATEX] label plus exactly one latex-* stage label, named root compilation target, declared gate coverage (he-jwmy scope test), section-scoped atomization with the LX4.6 cap, computation and claim dependency edges (bd dep), and gate-evidence acceptance criteria pre-filled. Refuses monolith shapes and routes document-scale work to an epic decomposition. Trigger on "new latex bead", "create a latex bead", "file a bead for this .tex work", "track this section rewrite", "new-latex-bead <root-file>", or when check-latex-hygiene reports work that should have been beaded (LX1.1). NOTE - this skill creates BEADS, not policy rules; amendments to the LX policy go through the future new-latex-policy trinity skill.
+description: Create a new LaTeX work bead that is well-formed under the LaTeX Subdomain Policy (mathcity/subdomains/latex/POLICY.md, LX-rules) and POLICY-beads.md BP7 from birth - real bd type (never an invented type, P5.3), [LATEX] label plus exactly one latex-* stage label, named root compilation target, declared gate coverage (he-jwmy scope test), section-scoped atomization with the LX4.6 cap, computation and claim dependency edges (bd dep), and gate-evidence acceptance criteria pre-filled. Refuses monolith shapes and routes document-scale work to an epic decomposition. Trigger on "new latex bead", "create a latex bead", "file a bead for this .tex work", "track this section rewrite", "new-latex-bead <root-file>", or when check-latex-hygiene reports work that should have been beaded (LX1.1). NOTE - this skill creates BEADS, not policy rules; amendments to the LX policy go through the future new-latex-policy trinity skill.
 ---
 
 # new-latex-bead
@@ -10,7 +10,7 @@ Create a LaTeX bead with the LX-required fields pre-filled, so it passes
 `new-math-bead-policy` (which own the BP5–BP9 math-item lifecycle); this skill
 owns the LaTeX-workflow shape.
 
-Read [POLICY.md](../../POLICY.md) (LX-rules) and `mathcity/BEADPOLICY.md`
+Read [POLICY.md](../../POLICY.md) (LX-rules) and `mathcity/POLICY-beads.md`
 Pillar 7 before creating anything.
 
 ## Pre-flight (P1.14)
@@ -156,7 +156,7 @@ compilation-ready"):
 ## Cross-references
 
 - `mathcity/subdomains/latex/POLICY.md` — LX-rules (source of truth)
-- `mathcity/BEADPOLICY.md` — BP1 (types), BP7 (LaTeX bead well-formedness), BP8 (claims)
+- `mathcity/POLICY-beads.md` — BP1 (types), BP7 (LaTeX bead well-formedness), BP8 (claims)
 - [[check-latex-hygiene]] — the audit this bead must pass from birth
 - [[check-latex]] — produces the acceptance-criteria evidence
 - [[create-convoy]] — decomposition tooling for the epic path

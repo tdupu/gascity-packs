@@ -1,6 +1,6 @@
 # Bead Types Reference (mathcity)
 
-Reference document for the bd bead types and their intended use in the mathcity ecosystem. This is a reference, not a policy — the binding rules live in [BEADPOLICY.md](BEADPOLICY.md) (rules BP1.x–BP4.x).
+Reference document for the bd bead types and their intended use in the mathcity ecosystem. This is a reference, not a policy — the binding rules live in [POLICY-beads.md](POLICY-beads.md) (rules BP1.x–BP4.x).
 
 ## The 9 bd types
 
@@ -20,7 +20,7 @@ These are the only types bd supports (`bd create --help`). Aliases: `enhancement
 
 ## Mathematical research vs technical investigation
 
-These are two different kinds of "research" and they must not be conflated. A **mathematical research bead** is original mathematical work — exploring a theorem, deriving a formula, proving a conjecture, working through examples. Its output is NEW MATHEMATICS. It is never time-boxed (it can take months), and it is never "investigating technical uncertainty" — it IS the work. Mathematical research beads are **never** `type: spike`. Ongoing math research is `type: task` or `type: feature` with the `[MATH_RESEARCH]` label. When the work completes and the result is a permanent reference, the bead gets the `[RESEARCH_JOURNAL]` label plus `bd defer` protection so it can never be destructively closed (brief-system rule B3.7; BEADPOLICY BP2.x).
+These are two different kinds of "research" and they must not be conflated. A **mathematical research bead** is original mathematical work — exploring a theorem, deriving a formula, proving a conjecture, working through examples. Its output is NEW MATHEMATICS. It is never time-boxed (it can take months), and it is never "investigating technical uncertainty" — it IS the work. Mathematical research beads are **never** `type: spike`. Ongoing math research is `type: task` or `type: feature` with the `[MATH_RESEARCH]` label. When the work completes and the result is a permanent reference, the bead gets the `[RESEARCH_JOURNAL]` label plus `bd defer` protection so it can never be destructively closed (brief-system rule B3.7; POLICY-beads.md BP2.x).
 
 A **technical investigation (deep-research) bead** investigates a technical question about code, infrastructure, or system state — "why does this fail?", "what does this function do?", "is this approach feasible?". Its output is KNOWLEDGE ABOUT THE SYSTEM, not new mathematics. This IS a `type: spike` bead: time-boxed, produces a finding, and leads to further work. Examples: "investigate why decisions/ is empty", "research what bd types are available", "check if Option Z propagates retroactively". Rule of thumb: if the deliverable would go in a math paper, it is math research (task/feature); if the deliverable is a finding about the system that unblocks other work, it is a spike.
 
@@ -72,4 +72,4 @@ When a brief recommends `gc sling … --formula build-basic`, it must state `int
 
 ## Full rules
 
-See [BEADPOLICY.md](BEADPOLICY.md) for the binding policy: type selection (BP1.x), research bead protection (BP2.x), memory policy (BP3.x), and old/stale bead removal (BP4.x).
+See [POLICY-beads.md](POLICY-beads.md) for the binding policy: type selection (BP1.x), research bead protection (BP2.x), memory policy (BP3.x), and old/stale bead removal (BP4.x).

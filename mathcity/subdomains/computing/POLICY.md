@@ -199,6 +199,33 @@ packages/functions that transitively import or call the changed code.*
 
 ---
 
+## Pillar 5 — Repository hygiene for computation artifacts (C5.x)
+
+*Files produced by running processes have no place in version control.
+A file that changes when a computation runs is a runtime artifact, not
+source code — tracking it creates merge conflicts on every server where
+computations execute, and misleads readers into thinking the file is
+authored rather than generated.*
+
+- **C5.1 Computation output files must not be tracked.** Any file whose
+  contents are determined by a running computation process at runtime —
+  output logs, audit lists, generated manifests, or intermediate artifacts —
+  must not appear in `git ls-files`. Such files belong in `.gitignore` or
+  in a directory already covered by a wildcard ignore rule. Whether a file
+  is runtime-generated is a model-judgment call on its path, naming, and
+  location relative to computation directories. Presence of such a file in
+  `git ls-files` → **revise**.
+
+- **C5.2 Transient server and orchestration state must not be committed.**
+  Any file that encodes transient server or orchestration state — job
+  queues, dispatch priority lists, process locks, runtime configuration
+  written by a server process — must not appear in `git ls-files`. Such
+  files block `git merge --ff-only` on any server where they are modified
+  locally. Presence in `git ls-files` → **fail**. `.gitignore` absence for
+  a known queue or dispatch-config path → **revise**.
+
+---
+
 ## Anti-patterns (quick audit list)
 
 Any of these in a diff or audit is an automatic finding:
@@ -217,6 +244,8 @@ Any of these in a diff or audit is an automatic finding:
 | Blast-radius caller with no regression test | C4.2 |
 | Ad hoc expected-output golden file outside `expected/` | C4.4 |
 | Slow regression test (>30 s) with no slow marker | C4.5 |
+| Computation output file present in `git ls-files` | C5.1 |
+| Runtime queue or dispatch-config file tracked in git | C5.2 |
 
 ---
 
@@ -241,3 +270,4 @@ Any of these in a diff or audit is an automatic finding:
 | Date | Change | Rationale |
 | --- | --- | --- |
 | 2026-07-12 | Initial draft, 17 rules across 4 pillars | Taylor directive: computing/testing policy for mathcity; scaffolded by outside-agent session |
+| 2026-07-19 | Add Pillar 5 (C5.1–C5.2): repository hygiene for computation artifacts | Taylor approved; motivated by hecke #335 server incident — 4 tracked log files blocked `git merge --ff-only` on aia-s27 |
