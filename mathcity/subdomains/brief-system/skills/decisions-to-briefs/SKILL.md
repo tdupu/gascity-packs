@@ -26,21 +26,27 @@ Input shapes accepted:
 
 ## Procedure
 
-1. **CLASSIFY the decision shape** (table below). This is the load-bearing
+1. **CLASSIFY input type.** Inspect each input item:
+   - **`branch-artifact`** — matches `feat/*` or `he-*` branch pattern, or is a
+     commit hash (40-char hex string, or short 7–12-char hex). Route to the branch
+     pipeline ([[create-brief]] / [[brief-prep]]); skip steps 2–6.
+   - **`policy-disposition`** — everything else (no git artifact). Continue with
+     steps 2–6.
+2. **CLASSIFY the decision shape** (table below). This is the load-bearing
    step: shape determines form, action-block content, and whether any
    auto-action is permitted at all.
-2. **PICK compact vs full form.** Same rules as [[present-it]] /
+3. **PICK compact vs full form.** Same rules as [[present-it]] /
    [[catch-no-brainer]]: compact ONLY for y/n-shaped decisions with no
    safety override; named-options, judgment-heavy, math-content, or
    safety-flagged decisions are full-form. Either way the brief must fit
    **one terminal screen** — full-form here means "carries §options and
    §risks", not "long".
-3. **DRAFT the brief**: frontmatter, then §1 "What is being decided" as the
+4. **DRAFT the brief**: frontmatter, then §1 "What is being decided" as the
    FIRST body content (Decision-at-Top INVARIANT), then the recommended
    verdict with a one-line rationale.
-4. **ATTACH the ACTION-BLOCK** (schema below) as a fenced `yaml` block in
+5. **ATTACH the ACTION-BLOCK** (schema below) as a fenced `yaml` block in
    the brief. Apply the safety invariant BEFORE writing any auto-action.
-5. **DEPOSIT on a pile via [[create-brief]] conventions** — one file per
+6. **DEPOSIT on a pile via [[create-brief]] conventions** — one file per
    decision, `NN-<slug>-brief.md`, plus one line in the pile's
    `manifest.jsonl`. Never present in the Mayor's terminal; the clerk /
    present-briefs channel drains the pile.
@@ -157,6 +163,18 @@ hygiene still apply in full.
   gsp-ft64 extends to parse and execute action-blocks.
 - [[file-briefs]] (gsp-geuo) — the onboarding sibling this skill
   generalizes; wire as related, do not compete.
+
+## Example Mapping
+
+**Example D — Policy question (policy-disposition):**
+- Input: `'should we extend the Dolt retention window to 90 days?'` (no branch, no
+  commit hash)
+- Artifact type: `policy-disposition` → continues through steps 2–6
+- Shape: **named options** (yes / no / defer on the retention window)
+- Form: compact (reversible y/n scope)
+- Outcome: condensed brief produced via existing procedure; no [[create-brief]]
+  skill invocation; no brief-stack deposit — deposited to the decision pile per
+  §Pile conventions
 
 ## Versioning
 
