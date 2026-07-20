@@ -51,6 +51,56 @@ Input shapes accepted:
    `manifest.jsonl`. Never present in the Mayor's terminal; the clerk /
    present-briefs channel drains the pile.
 
+## Branch-artifact pipeline
+
+When step 1 routes an item as `branch-artifact`, execute this pipeline instead
+of steps 2–6. All git research runs here — before the adjudication session
+starts — so present-briefs never issues git calls (REQ-004).
+
+### TS-5 — Overlap detection (batch of ≥2 branches)
+
+Before generating any brief, compute pairwise file overlap for all
+branch-artifacts in the batch:
+
+1. For each pair (A, B), find the common merge base:
+   `git merge-base A B`
+2. Compute changed files per branch vs the merge base:
+   `git diff --name-only <base>...<branch>`
+3. Exclude `*.spec` files and `CLAUDE.md` from both sets (noise-inducing;
+   Q1 resolution).
+4. For any pair with |intersection| ≥ 1 file, prepare this §6 note for injection
+   into each affected brief:
+   `Joint evaluation required: shares [<files>] with <other-branch>.
+   Regression-test requirement: [relevant test] must pass after merging either branch.`
+
+Single-item batches skip this step.
+
+### TS-2 — Full brief via [[create-brief]]
+
+For each branch-artifact, invoke [[create-brief]] synchronously (inline, same
+session). Required sections:
+
+| Section | Content |
+|---|---|
+| **§1 decision-at-top** | `Keep / delete / merge <branch>?` |
+| **§2 origin** | branch creation date; source bead if traceable from name pattern (e.g. `feat/he-XXXX`) |
+| **§3 math/content** | file types changed; Magma intrinsics added/modified; `.ipynb` summary if present |
+| **§4 git evidence** | `git log --oneline <base>..<branch>`; `git diff --stat <base>..<branch>` |
+| **§5 test evidence** | `test-*.mag` files touched; pass/fail if available; `no test evidence` if none |
+| **§6 risks** | file-overlap notes from TS-5 (pre-injected); improve-README gate result (record `REVISION REQUIRED — <reason>` but do not block adjudication) |
+| **§7 action-block** | `branch-disposition` shape — keep / delete / merge verdict edges |
+
+### TS-3 — Brief stack deposit
+
+After [[create-brief]] produces the brief:
+
+1. Deposit to the brief stack pile as `NN-<slug>-brief.md`. Verify the correct
+   pile root against existing create-brief depositions before hardcoding the path.
+2. Append one line to `manifest.jsonl` beside the pile:
+   `{"n": NN, "slug": "<slug>", "source_bead": "<branch>", "form": "full", "track": "branch-disposition", "status": "ready"}`
+3. Do NOT write an inline condensed record to the decisions-track for branch-artifact
+   items (pointer format is handled by Bead C).
+
 ## Shape classification
 
 | Shape | Symptoms | Form | Auto-action allowed? |
