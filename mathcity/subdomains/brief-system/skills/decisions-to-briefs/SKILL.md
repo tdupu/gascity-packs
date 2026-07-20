@@ -99,7 +99,42 @@ After [[create-brief]] produces the brief:
 2. Append one line to `manifest.jsonl` beside the pile:
    `{"n": NN, "slug": "<slug>", "source_bead": "<branch>", "form": "full", "track": "branch-disposition", "status": "ready"}`
 3. Do NOT write an inline condensed record to the decisions-track for branch-artifact
-   items (pointer format is handled by Bead C).
+   items (see TS-6 for the pointer format written after TS-4).
+
+### TS-4 — catch-no-brainer filtering
+
+After all briefs in the batch are deposited (TS-3 complete), filter each
+brief through [[catch-no-brainer]]:
+
+1. Invoke `catch-no-brainer` on the brief file.
+2. **If no-brainer criteria are met:** Move the brief file to the no-brainer
+   pile directory (`~/gt/.beads/briefs/.pile/.no-brainer/`) and update the
+   corresponding `manifest.jsonl` entry to `"status": "auto-dispatched"`.
+   SAFETY NOTE: moving to the no-brainer pile does NOT execute branch
+   deletion or any irreversible action. The HARD SAFETY INVARIANT governs —
+   auto-dispatch of a brief is not authorization to act on its verdict.
+3. **If not a no-brainer:** Leave the brief in the adjudication queue
+   (status stays `"ready"` from TS-3).
+
+No-brainer items never reach Taylor's adjudication queue.
+
+### TS-6 — Decisions-track pointer format
+
+After TS-3 deposit and TS-4 filtering, append one pointer entry per
+branch-artifact to the decisions-track (e.g.
+`~/gt/.beads/decisions-track/`). Use the pointer format — no inline brief
+content:
+
+```yaml
+type: pointer
+brief_stack_ref: <NN-slug>
+status: filed
+branch: <branch-name>
+```
+
+`brief_stack_ref` is the `NN-<slug>` prefix of the brief file deposited in
+TS-3 (e.g. `07-feat-he-abc-brief` for `07-feat-he-abc-brief.md`).
+`branch` is the branch name (e.g. `feat/he-abc`).
 
 ## Shape classification
 
@@ -234,3 +269,8 @@ hygiene still apply in full.
   gsp-ft64 notes, after 10 adjudications the accumulated verdict data
   triggers part (b) — the full 3-part design (skill + schema + verdict-edge
   execution).
+- **v0.2 — branch-artifact pipeline** (2026-07-20, he-timtb): TS-5 overlap
+  detection, TS-2 full brief via [[create-brief]], TS-3 brief stack deposit.
+- **v0.3 — no-brainer filtering + pointer format** (2026-07-20, he-19qmt):
+  TS-4 catch-no-brainer pass post-deposit; TS-6 decisions-track pointer
+  format (no inline content).
