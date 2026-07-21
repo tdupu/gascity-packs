@@ -266,6 +266,49 @@ grep -rln "FundamentalDomain\|SmithForm\|Eigenvalues" \
 
 ---
 
+## Check 5 — Repository hygiene (C5.x)
+
+Enforcing C5.x requires model judgment, not glob matching. The classification
+of "is this file a computation output?" or "is this file runtime state?" is
+a semantic property that file extensions alone cannot determine. Use a
+@sonnet-tier call for judgment over `git ls-files` output.
+
+### C5.1 — Computation output files not tracked
+
+```bash
+# Collect all tracked files in the project
+git -C "$PROJECT" ls-files > /tmp/c5-tracked-files.txt
+wc -l /tmp/c5-tracked-files.txt
+```
+
+Pass the file list to a model call with this prompt:
+> "You are auditing a repository for computing policy C5.1. From the
+> following list of tracked files (from `git ls-files`), identify any that
+> appear to be computation output files: output logs, audit lists, generated
+> manifests, dispatch lists, or intermediate artifacts produced by running
+> a script or computation. These should NOT be in version control.
+> Return only the file paths that are likely computation outputs, one per
+> line. If none, return 'none'. List: [paste /tmp/c5-tracked-files.txt]"
+
+For each identified file: flag as C5.1 finding → **revise** (add to
+`.gitignore`; run `git rm --cached <file>`).
+
+### C5.2 — Runtime queue and dispatch-config files not tracked
+
+Using the same `git ls-files` output, pass to a model call:
+> "From the following list of tracked files, identify any that appear to
+> encode transient server or orchestration state: job queues, dispatch
+> priority lists, process locks, or runtime configuration written by a
+> server process (e.g., priority.conf, queue files, server job registries).
+> These must not be committed as they change during server operation and
+> block `git merge --ff-only`. Return only the file paths, one per line.
+> If none, return 'none'. List: [paste /tmp/c5-tracked-files.txt]"
+
+For each identified file: flag as C5.2 finding → **fail** (remove from
+tracking immediately; add to `.gitignore`).
+
+---
+
 ## Verdict
 
 After each check, emit one of:
@@ -301,6 +344,10 @@ verdict: ...
 ### C4 — Regression testing
 verdict: ...
 [findings]
+
+### C5 — Repository hygiene
+verdict: ...
+[findings: C5.x — <file> — one-line description]
 
 ## Overall: approve | revise | defer | fail
 [Summary of all revise/defer/fail items with rule IDs]

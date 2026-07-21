@@ -30,7 +30,7 @@ too.
 - The policy needs a lifecycle transition (Draft → Adopted per PP2.2, or a
   scope change to the covered-rig list in the header table)
 - A rule owned by a neighboring policy (L-rules in brief-system, BP7/BP8 in
-  BEADPOLICY.md, he-jwmy charter items) needs an LX-side counterpart — check
+  POLICY-beads.md, he-jwmy charter items) needs an LX-side counterpart — check
   the division-of-labor block at the top of POLICY.md FIRST so the rule
   lands in the right document (misplaced rules go to that domain's own
   new-X-policy skill instead)

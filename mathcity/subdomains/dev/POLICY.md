@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Adopted |
-| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only; amended 2026-07-14: P5.4 truth-is-in-the-code; amended 2026-07-15: P1.19 append-don't-edit beads) |
+| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only; amended 2026-07-14: P5.4 truth-is-in-the-code; amended 2026-07-15: P1.19 append-don't-edit beads; amended 2026-07-20: P3.2 upstream issue template required before pr-pipeline) |
 | Decided | Taylor Dupuy, via grilling session (three open questions resolved; record at bottom) |
 | Applies to | All packs Taylor owns in this repo — the **owned pack set** (§ Scope) |
 | Consumers | `check-hygiene` skill (to be built via skill-creator); mayor priming (`mayor-math`); any agent planning work in this repo |
@@ -274,9 +274,32 @@ you. Allowed — through the front door only.*
 
 - **P3.1 PR only, never direct push** to anything outside the owned set —
   even trivial-looking fixes (per OUTSIDE-AGENTS.md).
-- **P3.2 Bugs: MRE first, then pr-pipeline.** Minimal reproducible example,
-  then plan → blast-radius mapping → scorecard self-review → pre-push gate.
-  No scattershot exploratory diffs against someone else's pack.
+- **P3.2 All upstream PRs go through mol-pr-from-issue — two steps.**
+  `mol-pr-from-issue` is the correct mechanism for every upstream PR (bugs,
+  docs, features). The process is always:
+
+  **Step 1 — File a GitHub issue using the appropriate template.**
+  All upstream issues for `gastownhall/gascity` and `gastownhall/gascity-packs`
+  are filed on `gastownhall/gascity`. Available templates (use the one that
+  matches the work):
+  - `bug_report.yml` — reproducible bugs and regressions
+  - `docs_report.yml` — documentation problems
+  - `feature_request.yml` — new capabilities
+  - (`config.yml` is the chooser config, not a submission template)
+
+  Every required field in the chosen template must be filled out completely
+  before submitting.
+
+  **Step 2 — Run mol-pr-from-issue with the issue number.**
+  ```
+  gc sling <rig>/<agent> mol-pr-from-issue --formula --var issue_number=<N>
+  ```
+  This chains: plan → blast-radius mapping → scorecard self-review →
+  pre-push gate.
+
+  An upstream PR opened without a corresponding fully-completed GitHub issue,
+  or filed without going through `mol-pr-from-issue` → **fail**. No
+  scattershot exploratory diffs against someone else's pack.
 - **P3.3 Features: adoption-review bar.** README updated in the same PR, a
   `contributing/skills/review` scorecard pass, and — if it touches the
   `build-base` workflow contract — checked against
@@ -399,8 +422,12 @@ inside gascity core); this is the pack-level, plan-time analogue.*
 - No edits under any `vendor/**` tree, ever (P2.2).
 - No edits inside a materialized `.claude/skills/**` / `.codex/skills/**`
   sink (P1.3).
-- No direct push outside the owned set — PR only, MRE for bugs,
-  docs+scorecard for features (P3.1–P3.3).
+- No direct push outside the owned set — PR only (P3.1).
+- No upstream PR without a corresponding GitHub issue filed first using the
+  appropriate template (`bug_report.yml` / `docs_report.yml` /
+  `feature_request.yml`) with every required field completed (P3.2).
+- No upstream PR opened without going through `mol-pr-from-issue` (P3.2).
+- Docs+scorecard review for features (P3.3).
 - No undeclared working-tree patches feeding a build; no dirty binaries
   (`vcs.modified=false` or it doesn't ship) (P1.6).
 - No state the city depends on that exists only on this machine —
@@ -484,6 +511,17 @@ no parallel vocabulary is introduced:
 ---
 
 ## Change Log
+
+### 2026-07-20 — P3.2 expanded: upstream issue template required before pr-pipeline
+`mol-pr-from-issue` requires a GitHub issue number as input; the correct issue
+must be filed first using the upstream repo's appropriate template
+(`bug_report.yml` for bugs, `docs_report.yml` for docs) with every required
+field completed (gc version, environment, reproduction steps, expected/actual
+behavior, pre-submission checklist). Filing a PR via pr-pipeline without a
+properly completed upstream issue → **fail**. Triggered by: Track C upstream
+PRs (gt-2x8t0) pending issue filing; Taylor clarified that pr-pipeline is the
+correct mechanism (not a workaround) and that issue templates must be filled
+out in full.
 
 ### 2026-07-15 — P1.19 added: append, don't edit beads
 New information about an existing bead is recorded by appending a new linked

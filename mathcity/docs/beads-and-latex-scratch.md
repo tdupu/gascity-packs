@@ -37,7 +37,7 @@ brief-pipeline LaTeX rules or the gate charter — it composes them:
 - **he-jwmy** (hecke bead) is the canonical LaTeX-gate charter: the 7 required
   merge artifacts, the covered-file scope definition, and the author-vs-reviewer
   separation.
-- **BP-rules** (mathcity/BEADPOLICY.md) own bead typing (BP1), research-bead
+- **BP-rules** (mathcity/POLICY-beads.md) own bead typing (BP1), research-bead
   protection (BP2/BP5), the bead-side well-formedness of LaTeX beads (BP7), and
   mathematical claim beads (BP8). On conflict, LX wins for LaTeX workflow
   mechanics; BP wins for bead lifecycle.

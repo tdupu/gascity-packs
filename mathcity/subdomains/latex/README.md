@@ -13,7 +13,7 @@ Draft): what LaTeX work is a bead, stage taxonomy (labels on real bd types),
 quality-gate semantics, atomization rules, LMFDB coupling, merge discipline,
 compile-failure MREs, computation dependencies, and named anti-patterns.
 Composes brief-system L1–L4 (gate G6) and the he-jwmy gate charter; bead-side
-counterpart is BEADPOLICY.md BP7.
+counterpart is POLICY-beads.md BP7.
 
 ## Skills
 

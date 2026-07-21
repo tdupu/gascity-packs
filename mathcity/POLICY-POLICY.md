@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Date | 2026-07-12 |
-| Version | 1.2 |
+| Version | 1.5 |
 | Status | Adopted |
 | Decided | Taylor Dupuy |
 | Applies to | All policy documents inside the `mathcity` pack and its subdomains |
@@ -35,6 +35,8 @@ Governs what a policy document IS, how policy domains are structured, how rules 
 - **PP1.8 Concision.** If two phrasings of a rule produce identical pass/fail outcomes, the shorter is correct. Rule bodies state the requirement and its pass/fail criterion; rationale lives in the Change Log; examples only where the criterion is otherwise ambiguous. Applies to policy documents, not code or skills. Length justified by pass/fail sharpness is never a violation.
 - **PP1.9 Minimize bead bloat.** Bead bloat is the memory occupied by the Dolt repo. Policies must prefer designs that minimize it: beads carry identity, state, verdicts, and pointers; bulky artifacts (documents, evidence, transcripts, logs) live in the filesystem keyed by bead ID, with the bead pointing to them. Exception: content required for a bead to be adjudicable stand-alone (a verdict, a one-line rationale) belongs in the bead. A rule mandating bulky content in bead bodies without justifying why file-plus-pointer won't do is a violation.
 - **PP1.10 Derived answers are not decisions.** A question whose answer is determined by an Adopted rule is resolved by derivation — act on the rule and cite its ID; never surface it to Taylor as a decision. Surfacing a policy-derivable question is a violation (the determining rule ID is the evidence). Exception: a genuinely ambiguous derivation — two Adopted rules pulling opposite ways with no precedence clause — is a PP6.1(c) conflict and goes to Taylor.
+- **PP1.11 Policy set minimality.** Every policy document should satisfy the following property: Let X be the set of policies in the document. There does not exist a subset of policies S that can be replaced by a set of policies T such that T uses less context than S and such that the collection of policies ((X-S) union T) and X are functionally equivalent.
+- **PP1.12 Adopted policies are mandatory, not advisory.** Agents, skills, and formulas must comply with every rule in every Adopted POLICY.md within their scope. Citing a rule in output is not a substitute for following it.
 
 ---
 
@@ -66,6 +68,7 @@ Governs what a policy document IS, how policy domains are structured, how rules 
 - **PP4.2 Every gate entry in gates.toml must carry a `rules` field.** The `rules` field is a list of rule IDs that the gate enforces (e.g., `rules = ["B1.5", "B1.7"]`). A gate with no `rules` field is a PP4.2 violation (audited by the domain's check skill (e.g. `check-brief-policy` for brief-system gates)).
 - **PP4.3 Gate IDs are never deleted or reused.** A superseded gate gets `required = false` and a `superseded_by` field; its ID remains in the registry permanently.
 - **PP4.4 Reverse traceability.** Every rule in an Adopted POLICY.md that is described as "gated" must be named by at least one gate's `rules` field in `gates.toml`. An orphaned gate claim (gate `rules` lists a rule ID that no POLICY.md defines) is also a PP4.4 violation.
+- **PP4.5 check-zero required on policy documents.** Before any policy document transitions from Draft to Adopted (PP2.2), and before any new rule proposed via new-X-policy is Taylor-approved, check-zero must be run on the rule set and must pass. A policy that has not passed check-zero cannot be Adopted.
 
 ---
 
@@ -74,6 +77,7 @@ Governs what a policy document IS, how policy domains are structured, how rules 
 - **PP5.1 New domains are scaffolded via `skill-creator-plus --policy-domain <name>`.** The scaffolder creates: (a) `POLICY.md` in `Status: Draft` with zero rules and the standard header table; (b) stub `check-<name>-policy` skill with empty audit checklist; (c) stub `new-<name>-policy` skill with proposal template. No rules are pre-populated — rules only enter via the first `new-X-policy` session.
 - **PP5.2 Prefix registration is a prerequisite.** Before the scaffolder runs, the caller must have a reserved prefix in `mathcity/docs/rule-prefix-registry.md`. The scaffolder checks this and refuses without it.
 - **PP5.3 Skill placement.** `check-X-policy` and `new-X-policy` skills live in the domain's subdomain directory (e.g. `subdomains/<domain>/skills/`) and are exposed to agent sessions via the standard mathcity symlink mechanism. See the dev domain (P1.x) for the concrete filesystem layout.
+- **PP5.4 Policy document file naming.** Pack-root policy files are named `POLICY-<kebab-domain>.md` (e.g., `POLICY-beads.md`, `POLICY-POLICY.md`). Subdomain policy files are named `POLICY.md` within their subdomain directory. No other naming form is permitted for new policy documents. Files predating this rule are renamed on first touch (rename-on-touch, not bulk-migrate).
 
 ---
 
@@ -115,3 +119,6 @@ The canonical registry is at `mathcity/docs/rule-prefix-registry.md` (PP5.2). Do
 | 2026-07-12 | v1.2: add PP1.10 (derived answers are not decisions) | Taylor directive after the gate-table-authority question (answer already determined by PP1.2/PP1.7): "that is a no-brainer, because policy is the source of truth… that is a policy" |
 | 2026-07-12 | v1.2: PP6.3 parenthetical repointed from dead `ALLOW_NO_BRAINER_AUTO_EXECUTE` to the N5 `auto_merge_enabled` hierarchy | PP1.7 drift fix (F8); N5 semantics superseded 2026-07-12 |
 | 2026-07-12 | v1.2: PP1.8 concision — rationale clauses moved out of PP1.2 (rule-ID citations survive renumbering/deprecation) and PP2.4 (tombstones preserve audit trails and prevent ID reuse) into this log | PP1.8 compliance (post-as-36nz verification findings); pass/fail outcomes unchanged |
+| 2026-07-19 | v1.3: add PP1.11 (policy set minimality — no subset S replaceable by a smaller T without changing functional equivalence) | Taylor directive verbatim (Q19) |
+| 2026-07-19 | v1.4: add PP1.12 (adopted policies mandatory, not advisory — compliance required, not just citation) and PP4.5 (check-zero required before adoption and before any new-X-policy rule is approved) | Taylor directive (Q19): #67 adjudication — "policies must be enforced"; "check-zero should be run over all policies" |
+| 2026-07-19 | v1.5: add PP5.4 (POLICY-<domain>.md naming convention for pack-root policy files; rename-on-touch for pre-convention files); rename BEADPOLICY.md → POLICY-beads.md (first application); create subdomains/policies/ for policy management skills | Taylor directive (Q19): #68 adjudication — "there should be a POLICY-skills.md, all policies should follow this naming convention" |
