@@ -451,6 +451,14 @@ DEFAULT_GATE = "all"
 DEFAULT_TIMEOUT = "75m"
 DEFAULT_POLL_INTERVAL = "5s"
 BD_LIST_LIMIT = "1000"
+DEFAULT_INFERENCE_MODEL = "kimi-k2.7-code"
+INFERENCE_EXPECTED_MODEL_ENV = "GC_INFERENCE_EXPECTED_MODEL"
+INFERENCE_MODEL_ENV_KEYS = (
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "CLAUDE_CODE_SUBAGENT_MODEL",
+)
 INHERITED_ENV_KEYS = (
     "PATH",
     "TMPDIR",
@@ -470,6 +478,7 @@ INHERITED_ENV_KEYS = (
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
     "CLAUDE_CODE_EFFORT_LEVEL",
     "CLAUDE_CODE_SUBAGENT_MODEL",
+    INFERENCE_EXPECTED_MODEL_ENV,
     "OLLAMA_API_KEY",
 )
 REQUIRED_INFERENCE_ENV_KEYS = (
@@ -1022,6 +1031,7 @@ def build_gate_env(gc_bin: str, workspace: GateWorkspace, inherited: Mapping[str
         env["PYTHONPATH"] = pythonpath
     env.setdefault("CLAUDE_CODE_EFFORT_LEVEL", "auto")
     env.setdefault("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "1")
+    env.setdefault(INFERENCE_EXPECTED_MODEL_ENV, DEFAULT_INFERENCE_MODEL)
     write_dolt_global_config(workspace.gc_home)
 
     if env.get("OLLAMA_API_KEY"):
@@ -1129,7 +1139,27 @@ def save_json_object(path: Path, data: Mapping[str, Any]) -> None:
     path.chmod(0o600)
 
 
-def validate_inference_env(env: Mapping[str, str]) -> None:
+def configured_inference_model(env: Mapping[str, str]) -> str:
+    expected_model = str(env.get(INFERENCE_EXPECTED_MODEL_ENV) or "").strip()
+    if not expected_model:
+        raise GateError(f"missing required inference model variable: {INFERENCE_EXPECTED_MODEL_ENV}")
+    if expected_model != DEFAULT_INFERENCE_MODEL:
+        raise GateError(f"{INFERENCE_EXPECTED_MODEL_ENV} must be {DEFAULT_INFERENCE_MODEL}")
+
+    mismatches = [
+        f"{key}={str(env.get(key) or '').strip()}"
+        for key in INFERENCE_MODEL_ENV_KEYS
+        if str(env.get(key) or "").strip() != expected_model
+    ]
+    if mismatches:
+        raise GateError(
+            f"all Claude inference routes must use {INFERENCE_EXPECTED_MODEL_ENV}={expected_model}; "
+            + ", ".join(mismatches)
+        )
+    return expected_model
+
+
+def validate_inference_env(env: Mapping[str, str]) -> str:
     missing = [key for key in REQUIRED_INFERENCE_ENV_KEYS if not str(env.get(key) or "").strip()]
     if missing:
         raise GateError(
@@ -1137,6 +1167,7 @@ def validate_inference_env(env: Mapping[str, str]) -> None:
             + ", ".join(missing)
             + ". Configure the same Ollama-backed Claude variables used by Gas City's nightly Tier C workflow."
         )
+    return configured_inference_model(env)
 
 
 def run_checked(
@@ -1167,6 +1198,50 @@ def run_checked(
     if output:
         print(output, file=sys.stderr, end="" if output.endswith("\n") else "\n")
     raise subprocess.CalledProcessError(result.returncode, command, output=result.stdout, stderr=result.stderr)
+
+
+def claude_result_payload(output: str) -> Mapping[str, Any]:
+    for line in reversed(output.splitlines()):
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, dict) and payload.get("type") == "result":
+            return payload
+    raise GateError("Claude preflight did not return a JSON result payload")
+
+
+def normalized_model_usage_name(model_name: object) -> str:
+    return re.sub(r"\[\d+[km]\]$", "", str(model_name).strip(), flags=re.IGNORECASE)
+
+
+def preflight_inference_model(expected_model: str, *, env: Mapping[str, str]) -> None:
+    try:
+        output = run_checked(
+            ["claude", "-p", "--model", expected_model, "--output-format", "json", "Reply with exactly OK."],
+            env=env,
+            timeout=parse_duration("2m"),
+        )
+    except subprocess.CalledProcessError as exc:
+        output = (exc.output or "") + (exc.stderr or "")
+        try:
+            payload = claude_result_payload(output)
+        except GateError as parse_error:
+            raise GateError(f"inference preflight command failed before reporting model usage: {exc.returncode}") from parse_error
+    else:
+        payload = claude_result_payload(output)
+    result = str(payload.get("result") or "").replace("\n", " ").strip()
+    if payload.get("is_error"):
+        raise GateError(f"inference preflight rejected model {expected_model!r}: {result or 'unknown error'}")
+
+    model_usage = payload.get("modelUsage")
+    actual_models = tuple(model_usage) if isinstance(model_usage, Mapping) else ()
+    if expected_model not in {normalized_model_usage_name(model) for model in actual_models}:
+        reported = ", ".join(str(model) for model in actual_models) or "none"
+        raise GateError(
+            f"inference preflight reported modelUsage [{reported}], expected {expected_model!r}; refusing to run a fallback model"
+        )
+    print(f"inference model preflight passed: {expected_model}", flush=True)
 
 
 def initialize_rig_git(rig_dir: Path, *, env: Mapping[str, str]) -> None:
@@ -2738,7 +2813,8 @@ def run_gate(args: argparse.Namespace, *, pack_name: str | None = None, workdir:
     should_stop = False
     try:
         if not args.skip_inference_env_check and not args.setup_only:
-            validate_inference_env(env)
+            expected_model = validate_inference_env(env)
+            preflight_inference_model(expected_model, env=env)
         should_stop = True
         initialize_city(gc_bin, workspace, pack_spec=pack_spec, gates=gates, env=env)
         if args.setup_only:
