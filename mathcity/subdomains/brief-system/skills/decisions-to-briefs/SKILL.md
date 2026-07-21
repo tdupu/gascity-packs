@@ -27,13 +27,14 @@ Input shapes accepted:
 ## Procedure
 
 1. **CLASSIFY input type.** Inspect each input item:
-   - **`branch-artifact`** — matches `feat/*` or `he-*` branch pattern, or is a
-     commit hash (40-char hex string, or short 7–12-char hex). Route to the branch
-     pipeline ([[create-brief]] / [[brief-prep]]); skip steps 2–6.
+   - **`branch-artifact`** — matches `feat/*`, `he-*`, or `gsp-*` prefixes (with a
+     live branch), or is a commit hash (40-char hex string, or short 7–12-char hex).
+     Route to the branch pipeline ([[create-brief]] / [[brief-prep]]); skip steps 2–6.
    - **`policy-disposition`** — everything else (no git artifact). Continue with
      steps 2–6.
    - Emit one `<item-id>  <class>  pending` line to `classification.log` per
-     item immediately after classifying it (before any brief is produced).
+     item immediately after classifying it (before any brief is produced). Write to
+     `<CWD>/classification.log` unless an explicit path is provided by the caller.
 2. **CLASSIFY the decision shape** (table below). This is the load-bearing
    step: shape determines form, action-block content, and whether any
    auto-action is permitted at all.
@@ -58,6 +59,8 @@ Input shapes accepted:
 When step 1 routes an item as `branch-artifact`, execute this pipeline instead
 of steps 2–6. All git research runs here — before the adjudication session
 starts — so present-briefs never issues git calls (REQ-004).
+
+Execute in document order: TS-5 (overlap pre-computation) → TS-2 → TS-3 → TS-3.5 → TS-4 → TS-6 → TS-7.
 
 ### TS-5 — Overlap detection (batch of ≥2 branches)
 
@@ -143,13 +146,13 @@ content:
 
 ```yaml
 type: pointer
-brief_stack_ref: <NN-slug>
+brief_stack_path: ~/gt/.beads/briefs/stack/<NN-slug>-brief.md
 status: filed
 branch: <branch-name>
 ```
 
-`brief_stack_ref` is the `NN-<slug>` prefix of the brief file deposited in
-TS-3 (e.g. `07-feat-he-abc-brief` for `07-feat-he-abc-brief.md`).
+`brief_stack_path` is the full path to the brief file deposited in TS-3
+(e.g. `~/gt/.beads/briefs/stack/07-feat-he-abc-brief.md`).
 `branch` is the branch name (e.g. `feat/he-abc`).
 
 ### TS-7 — Classification log finalization
@@ -159,9 +162,9 @@ disposition:
 
 | Disposition | Meaning |
 |---|---|
-| `brief-ready` | brief in adjudication queue (normal outcome) |
+| `brief-stack` | brief in adjudication queue (normal outcome) |
 | `brief-failed` | [[create-brief]] failed; routed to policy-disposition fallback |
-| `no-brainer` | moved to `.pile/.no-brainer/` by TS-4 |
+| `auto-dispatched` | moved to `.pile/.no-brainer/` by TS-4 |
 | `filed` | decisions-track pointer written by TS-6 |
 
 One finalized line per item; overwrite the `pending` placeholder written
@@ -311,3 +314,9 @@ hygiene still apply in full.
   classification.log per-item tracking (Procedure step 1 + TS-7); TS-5
   overlap detection now uses `origin/master` as default base (F-001)
   instead of `git merge-base`.
+- **v0.5 — review fix: field name, disposition labels, execution order, patterns**
+  (2026-07-20, he-sy68y): RF-1 rename `brief_stack_ref` → `brief_stack_path` with
+  full path in TS-6; RF-2 align TS-7 disposition labels (`brief-ready` →
+  `brief-stack`, `no-brainer` → `auto-dispatched`) with REQ-005/AC-7; RF-3 add
+  execution-order sentence to branch-artifact pipeline; RR-1 add `gsp-*` classification
+  pattern; RR-2 document `classification.log` default path convention.
