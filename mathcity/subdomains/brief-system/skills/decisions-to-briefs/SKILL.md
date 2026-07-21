@@ -32,6 +32,8 @@ Input shapes accepted:
      pipeline ([[create-brief]] / [[brief-prep]]); skip steps 2–6.
    - **`policy-disposition`** — everything else (no git artifact). Continue with
      steps 2–6.
+   - Emit one `<item-id>  <class>  pending` line to `classification.log` per
+     item immediately after classifying it (before any brief is produced).
 2. **CLASSIFY the decision shape** (table below). This is the load-bearing
    step: shape determines form, action-block content, and whether any
    auto-action is permitted at all.
@@ -62,14 +64,15 @@ starts — so present-briefs never issues git calls (REQ-004).
 Before generating any brief, compute pairwise file overlap for all
 branch-artifacts in the batch:
 
-1. For each pair (A, B), find the common merge base:
-   `git merge-base A B`
-2. Compute changed files per branch vs the merge base:
-   `git diff --name-only <base>...<branch>`
-3. Exclude `*.spec` files and `CLAUDE.md` from both sets (noise-inducing;
+1. For each branch, compute its changed-file set vs `origin/master` (default
+   base — this gives files each branch changes relative to the integration
+   target; two branches modifying the same file relative to master will
+   conflict on merge):
+   `git diff --name-only origin/master..<branch>`
+2. Exclude `*.spec` files and `CLAUDE.md` from each set (noise-inducing;
    Q1 resolution).
-4. For any pair with |intersection| ≥ 1 file, prepare this §6 note for injection
-   into each affected brief:
+3. For any pair (A, B) with |intersection| ≥ 1 file, prepare this §6 note
+   for injection into each affected brief:
    `Joint evaluation required: shares [<files>] with <other-branch>.
    Regression-test requirement: [relevant test] must pass after merging either branch.`
 
@@ -100,6 +103,19 @@ After [[create-brief]] produces the brief:
    `{"n": NN, "slug": "<slug>", "source_bead": "<branch>", "form": "full", "track": "branch-disposition", "status": "ready"}`
 3. Do NOT write an inline condensed record to the decisions-track for branch-artifact
    items (see TS-6 for the pointer format written after TS-4).
+
+### TS-3.5 — Pre-compute gate (REQ-004)
+
+Before advancing to the no-brainer filter, assert that every batch item has a
+produced brief on disk:
+
+- For each item, verify a brief file `<NN>-<slug>-brief.md` exists in the
+  brief stack pile root.
+- If any brief is missing (e.g. [[create-brief]] returned a failure), mark
+  that item `brief-failed` in `classification.log` and add a note to its
+  §risks slot (or create a stub brief containing only the failure reason).
+- Do not advance to TS-4 until every item either has a brief file or an
+  explicit `brief-failed` annotation.
 
 ### TS-4 — catch-no-brainer filtering
 
@@ -135,6 +151,21 @@ branch: <branch-name>
 `brief_stack_ref` is the `NN-<slug>` prefix of the brief file deposited in
 TS-3 (e.g. `07-feat-he-abc-brief` for `07-feat-he-abc-brief.md`).
 `branch` is the branch name (e.g. `feat/he-abc`).
+
+### TS-7 — Classification log finalization
+
+After TS-6, update every `classification.log` entry with its final
+disposition:
+
+| Disposition | Meaning |
+|---|---|
+| `brief-ready` | brief in adjudication queue (normal outcome) |
+| `brief-failed` | [[create-brief]] failed; routed to policy-disposition fallback |
+| `no-brainer` | moved to `.pile/.no-brainer/` by TS-4 |
+| `filed` | decisions-track pointer written by TS-6 |
+
+One finalized line per item; overwrite the `pending` placeholder written
+in Procedure step 1. Final format: `<item-id>  <class>  <disposition>`.
 
 ## Shape classification
 
@@ -274,3 +305,9 @@ hygiene still apply in full.
 - **v0.3 — no-brainer filtering + pointer format** (2026-07-20, he-19qmt):
   TS-4 catch-no-brainer pass post-deposit; TS-6 decisions-track pointer
   format (no inline content).
+- **v0.4 — pre-compute gate + classification log + origin/master base**
+  (2026-07-20, he-3szhj, fixes he-ipwws): REQ-004 pre-compute gate
+  (TS-3.5) requiring every batch item to have a brief before advancing;
+  classification.log per-item tracking (Procedure step 1 + TS-7); TS-5
+  overlap detection now uses `origin/master` as default base (F-001)
+  instead of `git merge-base`.
