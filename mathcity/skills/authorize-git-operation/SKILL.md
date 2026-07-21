@@ -1,6 +1,6 @@
 ---
 name: authorize-git-operation
-description: Explicit Taylor-authorization gate for irreversible git operations — push, force-push, merge, PR creation, branch deletion, release tag. Reads the Mayor avatar PNG so the authorization icon appears before the approval prompt. Records the approval as a bd decision bead. Trigger phrases: "authorize git push", "authorize PR", "authorize merge", "need authorization to push", "authorize this git operation", "request git authorization", "get approval to merge", "authorize branch deletion", "authorize release". NEVER skip this gate for operations listed below — always ask, never auto-proceed.
+description: Explicit Taylor-authorization gate for irreversible git operations — push, force-push, merge, PR creation, branch deletion, release tag. Reads the Mayor avatar PNG so the authorization icon appears before the approval prompt. Before presenting, runs a commit-hygiene "collaborator test" on what the operation would land (would a collaborator pulling this repo think it's AI slop?) and checks the target repo against its POLICY.md/LAYOUT.md via check-repository-policies and warns on violations, or — if the repo has no policy document — warns to create one and does a best-effort destructiveness check against the repo's current organization. Records the approval as a bd decision bead. Trigger phrases: "authorize git push", "authorize PR", "authorize merge", "need authorization to push", "authorize this git operation", "request git authorization", "get approval to merge", "authorize branch deletion", "authorize release". NEVER skip this gate for operations listed below — always ask, never auto-proceed.
 ---
 
 # authorize-git-operation
@@ -34,6 +34,64 @@ the blue "M" badge before the authorization question. In a terminal-only
 session it is visible to the model only, but the text prompt below still
 makes the role clear.
 
+## Step 1b — Commit hygiene + repository policy check (before presenting the request)
+
+Determine the repository the operation targets
+(`git rev-parse --show-toplevel`) and vet **what the operation would land**
+BEFORE building the authorization prompt — the outgoing commits/diff for a
+push/merge/PR (`git log --stat <upstream>..HEAD`, `git diff --stat
+<upstream>..HEAD`; for a merge, a `--no-commit --no-ff` trial merge to see the
+true resulting tree), not just the committed state. Surface the result in the
+"Policy & hygiene" field of Step 2 so Taylor decides with it in view. This
+step informs the decision; it never denies on its own.
+
+**The collaborator test — the point of this step.** Before any mechanical
+rule, ask the human question about the landing diff: *if a collaborator pulled
+this repo right now, would they think someone posted AI slop into it?* This is
+a public research repo; the tree should read as the artifact, not as agent
+exhaust. Look for the tells and name any you find in the prompt under
+**"⚠️ Hygiene concerns"** (this is a judgment call — report, do not auto-deny):
+
+- **Scaffolding / agent exhaust that isn't the artifact** — one-off, diag,
+  probe, or scratch files landing in source dirs; `.beads/` workflow leakage
+  (`briefs/`, `codex-consults/`, `hooks/`, `audits/`); stale symlinks; `~HEAD`
+  merge sidecars; editor/OS cruft (`*~`, `.DS_Store`); backup bundles.
+- **Wrong home / foreign entries** — a new top-level dir not in the layout (a
+  research ledger dumped in `docs/`), a test at the repo root, a compute
+  script in `test/`, data committed into a code path.
+- **Volume without value** — dozens of near-identical generated files, or a
+  diff far larger than the change it claims to make.
+- **Conflict debris** — `<<<<<<<`/`>>>>>>>` markers, duplicated `-copy`/`.orig`
+  files, half-finished renames.
+- **Boilerplate a maintainer would be embarrassed to publish** — commit
+  messages or file content that read as machine-generated filler.
+
+Then the mechanical layer:
+
+- **If the repo has a `POLICY.md` or `LAYOUT.md` at its root:** run the
+  `check-repository-policies` skill against the repo. For a push / merge / PR,
+  point it at what the operation would land (the outgoing commits / diff), not
+  only the committed state, so about-to-land violations are caught too. If it
+  reports violations, include them in the prompt under a **"⚠️ Policy
+  violations"** heading, with the skill's work-preserving remediation, and let
+  Taylor weigh them — do not auto-deny.
+
+- **If the repo has no `POLICY.md` and no `LAYOUT.md`:** warn in the prompt
+  that the repository has no policy document and **recommend creating one**
+  (via the `new-repository-policy` skill) so the repo does not drift over time.
+  Then do a best-effort **destructiveness check**: read the actual change the
+  operation would make (`git diff --stat`, `git show --stat`, `git ls-tree`,
+  the affected refs) and reason about whether it deviates from the
+  repository's current organization — e.g. deleting or renaming tracked
+  top-level directories, introducing foreign top-level entries, or
+  restructuring the tree away from how it is laid out today. Judge this against
+  the observed layout, not a fixed file-count rule. Surface anything that looks
+  structurally disruptive under a **"⚠️ No policy — structural check"**
+  heading.
+
+If `check-repository-policies` is unavailable, say so in the prompt and fall
+back to the destructiveness check.
+
 ## Step 2 — Present the authorization request
 
 After showing the icon, output a structured prompt in the following format
@@ -48,10 +106,21 @@ Operation : <PUSH | MERGE | PR | DELETE | RELEASE>
 Target    : <remote/branch, upstream, repo:tag — be specific>
 Rig       : <rig name, e.g. hecke>
 Bead      : <bead ID if the operation closes or relates to one; else "—">
+Policy    : <POLICY.md | LAYOUT.md | none — see Policy check below>
 
 What will happen
   <One paragraph. Include: what changes, which ref is affected, reversibility.
    Name the commit SHA or branch tip if known.>
+
+Policy & hygiene check
+  <From Step 1b. Report BOTH the collaborator/hygiene read and the policy read:
+   • "clean — reads as the artifact; no policy violations" when the landing
+     diff passes the collaborator test and the policy audit;
+   • ⚠️ Hygiene concerns — <list each slop tell in the landing diff + its
+     work-preserving fix>;
+   • ⚠️ Policy violations — <list each with its remediation>;
+   • ⚠️ No policy — recommend creating one (new-repository-policy); structural
+     check: <what, if anything, deviates from the repo's current layout>.>
 
 Risk
   <One sentence on worst-case if this goes wrong and how to undo it.>
@@ -169,4 +238,6 @@ flow and sequencing (Mayor first, then Refinery → Witness → Deacon → Polec
 - `~/repos/agent-skills/docs/per-role-github-apps-plan.md` — full Phase 1/2/3 plan
 - `~/repos/agent-skills/assets/avatars/taylor-mayor-agent.png` — the Mayor icon source
 - `~/repos/agent-skills/scripts/setup-agent-github-identity.sh` — identity configuration script
+- `check-repository-policies` skill — the POLICY.md/LAYOUT.md audit run in Step 1b
+- `new-repository-policy` skill — recommended in Step 1b when a repo has no policy doc
 - `record-decision` skill — for recording adjudications outside the git-op context
