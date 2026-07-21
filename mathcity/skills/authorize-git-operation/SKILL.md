@@ -49,7 +49,16 @@ step informs the decision; it never denies on its own.
 rule, ask the human question about the landing diff: *if a collaborator pulled
 this repo right now, would they think someone posted AI slop into it?* This is
 a public research repo; the tree should read as the artifact, not as agent
-exhaust. Look for the tells and name any you find in the prompt under
+exhaust.
+
+**Run this read at Opus tier.** The slop judgment is the one genuinely hard
+call in this gate, so drive it with Opus regardless of the session model:
+dispatch the hygiene read to an Opus subagent (`Agent` tool, `model: opus`) —
+hand it the landing diff (`git diff <upstream>..HEAD`, `--stat`, and the trial-
+merge file list) and have it return the concerns list. If the session is
+already Opus, do it inline. Do not let a lighter session model make this call.
+
+Look for the tells and name any you find in the prompt under
 **"⚠️ Hygiene concerns"** (this is a judgment call — report, do not auto-deny):
 
 - **Scaffolding / agent exhaust that isn't the artifact** — one-off, diag,
