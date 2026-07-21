@@ -2,7 +2,7 @@
 
 **Single canonical cross-pack index of every skill in the mathcity pack family.**
 
-96 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+101 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
 
 **Maintenance (single source of truth — no competing updater):**
 - `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
@@ -142,9 +142,13 @@ _Regenerate/verify with `/update-README`._
 | `check-magma-hygiene` | `mathcity-magma.check-magma-hygiene` | Audit a Magma package, a diff, or a whole Magma project against the Magma Packages Policy (mathcity/subdomains/magma/POLICY.md) |
 | `new-magma-package` | `mathcity-magma.new-magma-package` | Scaffold a new Magma package compliant with the Magma Packages Policy (mathcity/subdomains/magma/POLICY.md) — the package-<topic>.mag file with header block, the spec entry in dependency order, a README section stub (Purpose/Functions/De… |
 
-### Proof assistants — `subdomains/proof-assist/skills/`  (1)
+### Proof assistants — `subdomains/proof-assist/skills/`  (5)
 
 | Skill | Alias | What it does |
 |---|---|---|
+| `install-loogle` | `mathcity-proof-assist.install-loogle` | Install and configure a Loogle / Mathlib4 search MCP server (canonical: mathlas) so Lean 4 lemma lookup works through a connected MCP tool instead of only the raw web API |
 | `search-arxiv` | `mathcity-proof-assist.search-arxiv` | Search arXiv by paper ID or keyword and return title, abstract, authors, and BibTeX |
+| `search-mathlib` | `mathcity-proof-assist.search-mathlib` | Search Lean 4 / Mathlib4 declarations via the Loogle search engine — by name, type signature, subexpression, or conclusion pattern |
+| `search-scholar` | `mathcity-proof-assist.search-scholar` | Search Google Scholar / Semantic Scholar for papers via MCP and return citations and metadata |
+| `search-stacks` | `mathcity-proof-assist.search-stacks` | Query the Stacks Project (algebraic geometry / commutative algebra) by tag or keyword via its MCP server |
 
