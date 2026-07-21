@@ -32,6 +32,18 @@ Or in a skill using WebFetch:
 **PASS test**: `add_comm` → `count > 0`, first hit `name: "add_comm"`, `type: "{G : Type u_1} [AddCommMagma G] (a b : G) : a + b = b + a"` (non-empty Lean statement).
 **FAIL test**: nonsense query → `error` field present, empty or absent `hits`.
 
+## Fail-soft (P1.14)
+
+If the WebFetch call fails (non-200 HTTP status, connection refused, or a response body that is not valid JSON or is missing both `hits` and `error` fields), **stop and report**:
+
+> I'm sorry, I can't do that — the Loogle API at loogle.lean-lang.org is not responding as expected (`<HTTP status or description>`).
+> Wait a few minutes and retry, or check https://loogle.lean-lang.org in a browser to verify the service is up.
+> (Loogle is the hosted search engine for Lean 4 / Mathlib4 declarations; without it, Mathlib lemma lookup is unavailable.)
+
+**API drift**: if the JSON shape changes (e.g., `hits` is renamed or the top-level keys differ from `{count, header, hits, error, heartbeats}`), log the actual response keys and emit the same error with `(API format drift detected)` rather than attempting to parse unknown structure.
+
+Do NOT silently return empty results when the real cause is a connectivity failure.
+
 ## Loogle query syntax
 
 Loogle supports four query modes; combine them with commas for AND-filter:
