@@ -1,9 +1,9 @@
 ---
-name: check-zfc
-description: ZFC (Zero-Framework-Cognition) compliance checker — scans a skill, formula, or pipeline artifact and flags every place a framework makes a reasoning decision that should be a model call. Use when the user says "check-zfc <artifact>", "ZFC check", "check zero-framework-cognition compliance", "is this skill ZFC-compliant", "scan for framework reasoning", "does this defer reasoning to a model". Returns per-decision verdicts (legit-mechanical or defer-to-model@tier-X plus remediation) and an overall ZFC score. Recommended model: Fable (complex multi-step judgment over long artifact context). Self-consistent: model-driven, never regex-based.
+name: check-defer
+description: check-defer — framework-cognition compliance checker — scans a skill, formula, or pipeline artifact and flags every place a framework makes a reasoning decision that should be a model call. Use when the user says "check-zfc <artifact>", "ZFC check", "check zero-framework-cognition compliance", "is this skill ZFC-compliant", "scan for framework reasoning", "does this defer reasoning to a model". Returns per-decision verdicts (legit-mechanical or defer-to-model@tier-X plus remediation) and an overall ZFC score. Recommended model: Fable (complex multi-step judgment over long artifact context). Self-consistent: model-driven, never regex-based.
 ---
 
-# check-zfc
+# check-defer
 
 **ZFC = Zero-Framework-Cognition:** shell and framework code handles only
 mechanics (IO, schema-validation, deterministic policy enforcement, state,
@@ -12,7 +12,7 @@ intent, judge semantic properties, decide what to do next — defers to a
 model call.
 
 This skill is itself model-based: you read the artifact and judge each
-decision point through reasoning. A regex-based check-zfc would
+decision point through reasoning. A regex-based check-defer would
 self-refute ZFC.
 
 ## Inputs
