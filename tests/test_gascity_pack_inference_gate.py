@@ -447,6 +447,8 @@ def test_supported_pack_nightly_workflow_uses_manifold_shape_and_pack_matrix() -
     assert '--pack "${{ matrix.pack }}"' in workflow
     assert '--gate "${{ matrix.gate }}"' in workflow
     assert "name: supported-pack-nightly-${{ matrix.pack }}-${{ matrix.gate }}" in workflow
+    assert "!${{ runner.temp }}/supported-pack-nightly/${{ matrix.pack }}/gc-home/.dolt/eventsData/**" in workflow
+    assert "!${{ runner.temp }}/supported-pack-nightly/${{ matrix.pack }}/**/.beads/eventsData/**" in workflow
     assert "include-hidden-files: true" in workflow
 
 
