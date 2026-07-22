@@ -54,13 +54,15 @@
   ```bash
   gc import status
   ```
-  Expected: shows `gc`, `gc-base`, `pr-pipeline`, `mathcity` present for defaults, plus hecke-scoped duplicates of `mathcity` and `pr-pipeline`.
+  Expected: shows `gc`, `gc-base`, `pr-pipeline`, `mathcity`, `contributing` present for defaults, plus hecke-scoped duplicates of `mathcity` and `pr-pipeline`. (P5.4 update 2026-07-21 Q23: `contributing` pack added to defaults.rig.imports per Taylor standing requirement.)
 
 ---
 
 ## Phase 1 — Binary Rebuild (conditional)
 
 > **Skip this phase** if `gc version` already shows the build you want and there are no pending source changes in `~/repos/gascity` or `~/repos/beads`.
+
+> **⚠️ SCHEMA MISMATCH GUARD (P5.4 Q23, 2026-07-21):** The gc binary embeds the beads library from go.mod (`github.com/steveyegge/beads`). If `bd version` reports a HIGHER schema than `gc`'s embedded beads knows, the city will hang at `starting_bead_store`. Check via `gc supervisor logs | grep "binary knows up to"`. Workaround: add `GC_BEADS_FORCE_FALLBACK=1` to the launchd plist (`~/Library/LaunchAgents/com.gascity.supervisor.plist`), reload, then start. Permanent fix: add `replace github.com/steveyegge/beads => /Users/tdupuy/repos/beads` to `~/repos/gascity/go.mod` and rebuild (BART lane). **NOTE: `gc supervisor install --force` / `gc start` overwrites the plist** — re-add `GC_BEADS_FORCE_FALLBACK=1` after any reinstall.
 
 - [ ] **Stop the city first** (if running)
   ```bash
