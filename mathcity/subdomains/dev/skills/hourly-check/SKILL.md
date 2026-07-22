@@ -1,6 +1,6 @@
 ---
 name: hourly-check
-description: Start a 12-hour city health watchdog that fires every hour — shows fleet, molecule step table, brief stack, and Dolt health; nudges the mayor if usage limits or stalls are detected. Use when the user says "start hourly check", "set up watchdog", "monitor city overnight", "keep an eye on the city", or "hourly-check". Also handles recurring wakeup firings (argument form: /hourly-check N where N is the firing number 1–12). Recommended model: Sonnet.
+description: Start a 12-hour city health watchdog that fires every hour — shows fleet, molecule step table, brief stack, and Dolt health; outputs a prominent reminder to the invoking session to check on the city if stalls or usage limits are detected. Use when the user says "start hourly check", "set up watchdog", "monitor city overnight", "keep an eye on the city", or "hourly-check". Also handles recurring wakeup firings (argument form: /hourly-check N where N is the firing number 1–12). Recommended model: Sonnet.
 ---
 
 # hourly-check
@@ -84,9 +84,11 @@ STACK=$(ls ~/gt/.beads/briefs/stack/*.md 2>/dev/null | wc -l | tr -d ' ')
 
 ### Step 3 — Assess nudge need
 
-Nudge the mayor if ANY of these are true:
+Raise a prominent inline alert (output to this session — whoever invoked the watchdog)
+if ANY of these are true. Do NOT send mail to the mayor; the invoking session IS the
+right place to surface this so the human can act directly.
 
-| Condition | Nudge reason |
+| Condition | Alert reason |
 |---|---|
 | `TMUX_COUNT` == 0 | City is DOWN — no tmux sessions |
 | `LATENCY` >= 3000ms (or Dolt unreachable) | Dolt critical — city may stall |
@@ -94,10 +96,10 @@ Nudge the mayor if ANY of these are true:
 | Any molecule with +1h == 0 AND running for > 3h | Molecule stalled |
 | `PILE` > 0 AND no active brief-operators | Shuffler dead with pile backlog |
 
-If nudge is warranted:
-```bash
-gc mail send mayor "[hourly-check #${FIRING}] City needs attention: <reason>" \
-  --subject "[CITY-NUDGE]"
+If a condition is met, emit prominently in the report output (Step 4):
+```
+⚠️ CITY NEEDS ATTENTION — <reason>
+Please check on the city. Suggested action: <stall diagnosis hint>
 ```
 
 ### Step 4 — Output the report
@@ -123,8 +125,8 @@ Emit a single copy-pastable block:
 5. Stale sessions: None — all sessions LAST ACTIVE < 2h. / ⚠️ <session-id> stale <N>h.
 
 ---
-[If nudge sent]: ⚠️ Mayor nudged: <reason>
-[If firing < 12]: Next check at <time+1h> HST = <UTC+1h>.
+[If alert condition met]: ⚠️ CITY NEEDS ATTENTION — <reason>. Please check on the city. <suggested action>
+[If firing < 12]: Next check at <time+1h> HST. (check <N+1>/12)
 [If firing == 12]: Final check — watchdog complete (12/12). Have a good morning, Taylor.
 ```
 
@@ -151,11 +153,11 @@ On `FIRING == 1` only:
 - **Dolt DOWN**: run `gc dolt status`; if stopped, `gc dolt start`.
 - **Shuffler lock stale**: check `gc session list` for brief-operator sessions; if none, `rm ~/gt/.beads/briefs/.shuffle.lock`.
 - **Molecule +1h == 0 for > 3h**: `gc session peek <session-id>` to confirm. If stuck, report to Taylor.
-- **Usage limit hit**: city agents pause on API rate limits. The mayor will know to wait or route around. The nudge mail text should say "usage limit suspected — agents may be paused".
+- **Usage limit hit**: city agents pause on API rate limits. Alert text: "usage limit suspected — agents may be paused. Run /city-status to confirm, then wait or re-nudge sessions."
 
 ## What this skill does NOT do
 
-- Does not restart the city (reports only; escalates to mayor via mail)
+- Does not restart the city (reports only; alerts the invoking session inline)
 - Does not close or force-release beads
 - Does not delete the shuffler lock without confirming no brief-operator holds it
 - Does not push git or run Dolt migrations
