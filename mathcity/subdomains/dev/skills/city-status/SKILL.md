@@ -1,6 +1,6 @@
 ---
 name: city-status
-description: Gas City fleet and work-queue status snapshot — checks fleet liveness, active sessions, in-progress beads, brief pipeline state, and Dolt health. Use when the user says "city status", "what's running", "fleet health", "what is the city doing", "how is the city", "are things getting done", "what beads are in progress", or "check the pipeline". Read-only: never dispatches, slingshoots, or modifies beads. Recommended model: Sonnet (mechanical read + light diagnosis).
+description: Gas City fleet and work-queue status snapshot — checks fleet liveness, active sessions, in-progress beads, molecule step tables (steps done, change in last hour, start/completion times), brief pipeline state, and Dolt health. Use when the user says "city status", "what's running", "fleet health", "what is the city doing", "how is the city", "are things getting done", "what beads are in progress", or "check the pipeline". Read-only: never dispatches, slingshoots, or modifies beads. Recommended model: Sonnet (mechanical read + light diagnosis).
 ---
 
 # city-status
@@ -59,7 +59,68 @@ gc session peek <session-id> 2>&1 | tail -10
 An active Magma process (non-zero CPU, growing cpu-time) = computing, not
 stuck.
 
-### 3 — Brief pipeline
+### 3 — Active molecules (top 10, step table)
+
+Identify all active `gc.run-operator` and `gc.implementation-worker` sessions.
+For each, extract the bead ID from the worktdir name and query step progress.
+
+```bash
+# List sessions with worktdir
+gc session list --state active 2>&1 | grep -E "gc\.run-operator|gc\.implementation-worker"
+```
+
+Extract bead ID from each worktdir: `basename <worktdir>` gives
+`<bead-id>-<formula-name>`. The bead ID is the leading `<prefix>-<6chars>`,
+e.g. `gsp-06gg` from `gsp-06gg-build-basic-briefed`.
+
+For each bead ID, determine the Dolt DB by prefix:
+- `he-*` → `hecke`
+- `gsp-*` → `gascity_packs`
+- `gt-*` → `hq`
+- `gs-*` → `gs`
+- `as-*` → `agent_skills`
+
+Query step counts via Dolt:
+```bash
+gc dolt sql -d <db> -q "
+SELECT
+  (SELECT COUNT(*) FROM issues WHERE parent_id='<bead-id>') AS total_steps,
+  (SELECT COUNT(*) FROM issues WHERE parent_id='<bead-id>' AND status='closed') AS done_steps,
+  (SELECT COUNT(*) FROM issues WHERE parent_id='<bead-id>' AND status='closed'
+    AND closed_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)) AS recent_steps,
+  (SELECT MIN(created_at) FROM issues WHERE parent_id='<bead-id>') AS first_step,
+  (SELECT closed_at FROM issues WHERE id='<bead-id>') AS completed_at
+" 2>&1
+```
+
+Render a markdown table (copy-pastable, plain ASCII):
+
+```
+| Molecule           | Steps      | +1h | Status                         | Started     | Completed   |
+|--------------------|------------|-----|--------------------------------|-------------|-------------|
+| <id> (<label>)     | <done>/<N> ✓| +N  | ✅ complete / ⏳ running / ❌   | <time>      | <time> / —  |
+```
+
+- Steps column: `<done>/<total> ✓` if done == total (complete), else `<done>/<total>`
+- +1h column: steps closed in the last hour (progress rate signal)
+- Status: ✅ complete if root bead closed; ⏳ running if root open; ❌ if stalled (no progress in 2h+)
+- Completed: root bead `closed_at` if closed, else `—`
+
+Show top 10 most recently active (by session last-active timestamp).
+If no run-operator or implementation-worker sessions exist, report "No active molecules".
+
+Also check recently completed molecules (closed within last 4h) from any rig for completeness:
+```bash
+gc dolt sql -d <db> -q "
+SELECT id, title, closed_at
+FROM issues
+WHERE issue_type = 'molecule' AND status = 'closed'
+  AND closed_at > DATE_SUB(NOW(), INTERVAL 4 HOUR)
+ORDER BY closed_at DESC LIMIT 5
+" 2>&1
+```
+
+### 4 — Brief pipeline
 
 ```bash
 ls ~/gt/.beads/briefs/.pile/*.md 2>/dev/null | wc -l
@@ -81,7 +142,12 @@ A held lock lasting > 30 min without an active brief-operator session
 processing is a stall (lock theft cascade bug gt-v3pisq). Remediation:
 `rm ~/gt/.beads/briefs/.shuffle.lock` — only if no active session holds it.
 
-### 4 — Dolt health detail
+**Top 10 recently added to stack** (for context on what's waiting):
+```bash
+ls -lt ~/gt/.beads/briefs/stack/*.md 2>/dev/null | head -10 | awk '{print $NF}' | xargs -I{} basename {}
+```
+
+### 5 — Dolt health detail
 
 ```bash
 gc dolt health 2>&1
@@ -95,7 +161,7 @@ Key metrics to surface:
 High latency during concurrent `gc sling` runs is NORMAL and transient.
 Sustained high latency with low connection count warrants `gc dolt logs`.
 
-### 5 — READY queue
+### 6 — READY queue
 
 ```bash
 cd ~/gt && bd ready 2>&1 | head -20
@@ -109,11 +175,22 @@ priority item).
 ## Output format
 
 ```
+• City Health Check — <time> HST (<UTC>)
+
+---
 FLEET — <N> live tmux sessions | <N> active agent sessions
-  Workers: <list session IDs + templates + age>
+  <N> dispatchers | <N> brief-operators | <N> run-operators | <N> impl-workers
+  Workers: <session-id> — <template> — <worktdir-bead> — age: <N> — last: <Ns ago>
+
+MOLECULES — top <N> active
+  | Molecule          | Steps    | +1h | Status       | Started     | Completed  |
+  |-------------------|----------|-----|--------------|-------------|------------|
+  | <id> (<label>)    | N/M ✓    | +N  | ✅ complete  | 03:30 HST   | 09:44 HST  |
+  | <id> (<label>)    | N/M      | +N  | ⏳ running   | 09:44 HST   | —          |
 
 BRIEF PIPELINE — pile: <N> | stack: <N> | brief-operators: <N> active
   Shuffler lock: <free|held by <session>>
+  Recent stack arrivals: <top 3 filenames>
 
 IN-PROGRESS BEADS
   <rig>: <count> in_progress
