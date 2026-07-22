@@ -2,7 +2,7 @@
 
 **Single canonical cross-pack index of every skill in the mathcity pack family.**
 
-104 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+105 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
 
 **Maintenance (single source of truth — no competing updater):**
 - `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
@@ -11,7 +11,7 @@
 
 _Regenerate/verify with `/update-README`._
 
-### Parent pack — `mathcity/skills/`  (43)
+### Parent pack — `mathcity/skills/`  (44)
 
 | Skill | Alias | What it does |
 |---|---|---|
@@ -31,6 +31,7 @@ _Regenerate/verify with `/update-README`._
 | `dolt-init` | `mathcity.dolt-init` | Initialize the bd (beads) Dolt database and set the dolt remote in BOTH ~/gt/<repo-name> and ~/repos/<repo-name> |
 | `dolt-pull` | `mathcity.dolt-pull` | Commit any pending beads changes locally, then pull from the Dolt remote |
 | `dolt-push` | `mathcity.dolt-push` | Commit any pending beads changes and push to the Dolt remote |
+| `doubt` | `mathcity.doubt` | Adversarial background fact-checker — forks a subagent told the current agent is WRONG, tasked with finding falsehoods in any claim the session makes. Non-blocking; surfaces verdict inline when fork completes. |
 | `fan-out` | `mathcity.fan-out` | Fan an epic bead out into sub-beads (convoy members) WITHOUT consuming additional WIP-dispatcher slots |
 | `file-briefs` | `mathcity.file-briefs` | Async brief-filing variant of grill-with-docs for Mayor onboarding |
 | `formula-creator` | `mathcity.formula-creator` | Create a new formula TOML in any gascity-packs pack and validate gc/bd command surface before committing |
