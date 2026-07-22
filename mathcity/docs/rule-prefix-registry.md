@@ -6,7 +6,7 @@ All rule ID prefixes for mathcity policies are reserved here. Rule IDs are globa
 | --- | --- | --- | --- | --- |
 | B, N, L, E, T, D, S | Brief system (multi-pillar) | `subdomains/brief-system/POLICY.md` | Adopted (2026-07-12) | B1.4, N5, L2, E3, T1, D2, S7 |
 | P | Dev / build hygiene | `subdomains/dev/POLICY.md` | Adopted (amended 2026-07-12) | P1.6, P5.3 |
-| SK | Agent skills | `agent-skills/POLICY.md` | Pending (file not yet written) | SK1.1 |
+| SK | Agent skills | `POLICY-skills.md` (pack root) | Draft (2026-07-21) | SK1.1 |
 | BP | Bead policy | `POLICY-beads.md` (pack root) | Draft (2026-07-12) | BP1.1, BP4.3 |
 | PP | Policy-policy (meta) | `POLICY-POLICY.md` (pack root) | Draft (2026-07-12) | PP1.1, PP3.2 |
 | LX | LaTeX subdomain (bead-side LaTeX work) | `subdomains/latex/POLICY.md` | Draft (2026-07-12) | LX1.1, LX4.6 |
