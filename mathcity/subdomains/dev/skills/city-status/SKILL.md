@@ -183,38 +183,43 @@ priority item).
 
 ## Output format
 
-```
-• City Health Check — <time> HST (<UTC>)
+Use rendered GitHub-flavored markdown. Bold section headers, real markdown tables.
+Example structure:
 
 ---
-FLEET — <N> live tmux sessions | <N> active agent sessions
-  <N> dispatchers | <N> brief-operators | <N> run-operators | <N> impl-workers
-  Workers: <session-id> — <template> — <worktdir-bead> — age: <N> — last: <Ns ago>
 
-MOLECULES — top <N> active
-  | Molecule          | Steps    | +1h | Status       | Started     | Completed  |
-  |-------------------|----------|-----|--------------|-------------|------------|
-  | <id> (<label>)    | N/M ✓    | +N  | ✅ complete  | 03:30 HST   | 09:44 HST  |
-  | <id> (<label>)    | N/M      | +N  | ⏳ running   | 09:44 HST   | —          |
+**• City Health Check — 10:41 AM HST (20:41 UTC)**
 
-BRIEF PIPELINE — pile: <N> | stack: <N> | brief-operators: <N> active
-  Shuffler lock: <free|held by <session>>
-  Recent stack arrivals: <top 3 filenames>
+---
 
-IN-PROGRESS BEADS
-  <rig>: <count> in_progress
-    <bead-id> — <title> — lease: <ok|expired|>
-    [peek: computing | stuck | unknown]
+**1. Fleet:** N tmux sessions — stable/STALLED. N dispatchers, N brief-operators, N run-operators, N impl-workers.
 
-READY QUEUE
-  <rig>: <N> ready beads (top 3: <ids>)
+**2. Dolt:** ✅ Nms — healthy. / ⚠️ Nms — WARN latency. / ❌ DOWN.
 
-DOLT — <status> | latency: <Nms> | connections: <N>
+**3. Molecules:**
 
-STALLS / BLOCKERS
-  [list any real stalls with diagnosis]
-  [if none: "no stalls detected"]
-```
+| Molecule | Steps | +1h | Status |
+|---|---|---|---|
+| `<id>` (<label>) | N/M ✓ | +N | ✅ complete |
+| `<id>` (<label>) | N/M | +0 | ⏳ running |
+
+**4. Brief stack:** N in pile, N on stack.
+
+| Time | Brief | Notes |
+|---|---|---|
+| HH:MM | filename.md | note |
+
+**5. Stale sessions:** None — all sessions LAST ACTIVE < 2h. / ⚠️ `<session-id>` stale Nh — `<diagnosis>`.
+
+---
+
+**IN-PROGRESS BEADS**
+
+- `<rig>`: `<bead-id>` — title — lease: ok/expired — [computing/stuck/unknown]
+
+**STALLS / BLOCKERS**
+
+- [list any real stalls with diagnosis, or "no stalls detected"]
 
 ## What this skill does NOT do
 
