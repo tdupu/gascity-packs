@@ -80,18 +80,27 @@ For each bead ID, determine the Dolt DB by prefix:
 - `gs-*` → `gs`
 - `as-*` → `agent_skills`
 
-Query step counts via Dolt:
+Query step counts via the `dolt` CLI directly (steps are linked via `dependencies.type='tracks'`,
+NOT via a `parent_id` column in `issues`). Dolt data lives at `~/gt/.beads/dolt/<db>/`:
+
 ```bash
-gc dolt sql -d <db> -q "
+cd ~/gt/.beads/dolt/<db> && dolt sql -q "
 SELECT
-  (SELECT COUNT(*) FROM issues WHERE parent_id='<bead-id>') AS total_steps,
-  (SELECT COUNT(*) FROM issues WHERE parent_id='<bead-id>' AND status='closed') AS done_steps,
-  (SELECT COUNT(*) FROM issues WHERE parent_id='<bead-id>' AND status='closed'
-    AND closed_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)) AS recent_steps,
-  (SELECT MIN(created_at) FROM issues WHERE parent_id='<bead-id>') AS first_step,
-  (SELECT closed_at FROM issues WHERE id='<bead-id>') AS completed_at
+  COUNT(*) AS total_steps,
+  SUM(CASE WHEN i.status='closed' THEN 1 ELSE 0 END) AS done_steps,
+  SUM(CASE WHEN i.status='closed'
+    AND i.closed_at > DATE_SUB(NOW(), INTERVAL 1 HOUR) THEN 1 ELSE 0 END) AS recent_steps,
+  MIN(i.created_at) AS first_step,
+  (SELECT closed_at FROM issues WHERE id='<bead-id>') AS completed_at,
+  (SELECT title FROM issues WHERE id='<bead-id>') AS root_title
+FROM dependencies d
+JOIN issues i ON i.id = d.issue_id
+WHERE d.depends_on_issue_id = '<bead-id>' AND d.type = 'tracks'
 " 2>&1
 ```
+
+**Note**: `gc dolt sql -d` does not support a `-d` flag; use `cd ~/gt/.beads/dolt/<db> && dolt sql`.
+For impl-worker beads (not build-basic-briefed runs), there are typically no tracked steps — report `n/a`.
 
 Render a markdown table (copy-pastable, plain ASCII):
 

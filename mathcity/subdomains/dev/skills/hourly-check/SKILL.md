@@ -66,8 +66,10 @@ LATENCY=$(gc dolt health 2>/dev/null | grep -oE '[0-9]+ms' | head -1)
 ```
 
 **Molecules** — for each active run-operator or implementation-worker session,
-extract the bead ID from the worktdir and query step counts (see city-status
-§3 for the Dolt query pattern). Build the markdown table inline.
+extract the bead ID from the worktdir and query step counts via
+`cd ~/gt/.beads/dolt/<db> && dolt sql` (steps use `dependencies.type='tracks'`,
+not a `parent_id` column — see city-status §3 for the exact query). Build the
+markdown table inline. impl-worker beads have no tracked steps; show `n/a`.
 
 **Stale sessions** — flag any session with `LAST ACTIVE` > 2h:
 ```bash
