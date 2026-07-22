@@ -404,6 +404,8 @@ def test_supported_pack_nightly_workflow_uses_manifold_shape_and_pack_matrix() -
     assert "run_gate=true" in workflow
     assert "if: steps.subset.outputs.run_gate == 'true'" in workflow
     assert "if: always() && steps.subset.outputs.run_gate == 'true'" in workflow
+    assert "model-smoke)" in workflow
+    assert "superpowers|compound-engineering|gstack|bmad)" in workflow
     assert "max-parallel: 2" in workflow
     assert "runs-on: blacksmith-2vcpu-ubuntu-2404" in workflow
     assert "runs-on: blacksmith-32vcpu-ubuntu-2404" in workflow
@@ -857,7 +859,7 @@ def test_expand_pack_selection_supports_supported_pack_groups() -> None:
     )
 
 
-def test_model_smoke_selection_is_five_packs_with_a_25_minute_global_budget() -> None:
+def test_model_smoke_selection_covers_the_five_non_canary_packs() -> None:
     assert gascity_pack_inference_gate.expand_pack_selection("model-smoke") == [
         "superpowers",
         "compound-engineering",
@@ -865,9 +867,6 @@ def test_model_smoke_selection_is_five_packs_with_a_25_minute_global_budget() ->
         "bmad",
         "gastown",
     ]
-    assert gascity_pack_inference_gate.parse_duration(
-        gascity_pack_inference_gate.MODEL_SMOKE_GLOBAL_TIMEOUT
-    ) == 25 * 60
 
 
 def test_model_smoke_skips_only_the_deep_gastown_orchestration_contract() -> None:

@@ -39,7 +39,6 @@ ALL_GATE = "all"
 GASCITY_PACK = "gascity"
 GASTOWN_PACK = "gastown"
 MODEL_SMOKE_PACKS = ("superpowers", "compound-engineering", "gstack", "bmad", GASTOWN_PACK)
-MODEL_SMOKE_GLOBAL_TIMEOUT = "25m"
 GASCITY_REMOTE_SOURCE = "https://github.com/gastownhall/gascity.git"
 BEADS_MODULE = "github.com/steveyegge/beads"
 REVIEW_SUBJECT_PATH = Path(".gc/inference-gate/review-subject.diff")

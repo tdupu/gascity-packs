@@ -27,10 +27,7 @@ on:
         type: choice
         options:
           - all
-          - review
           - build
-          - build-basic
-          - gastown-orchestration
           - smoke
         default: all
       pack:
@@ -40,6 +37,7 @@ on:
         options:
           - all-supported
           - methodology
+          - model-smoke
           - gascity
           - superpowers
           - compound-engineering
@@ -149,7 +147,17 @@ jobs:
                 pack_match=true
                 ;;
               methodology)
-                if [ "$MATRIX_PACK" != "gastown" ]; then
+                case "$MATRIX_PACK" in
+                  superpowers|compound-engineering|gstack|bmad)
+                    pack_match=true
+                    ;;
+                  *)
+                    pack_match=false
+                    ;;
+                esac
+                ;;
+              model-smoke)
+                if [ "$MATRIX_PACK" != "gascity" ]; then
                   pack_match=true
                 else
                   pack_match=false
