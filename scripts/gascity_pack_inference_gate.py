@@ -1089,7 +1089,7 @@ def require_matching_beads_modules(gc_metadata: str, bd_metadata: str) -> None:
     raise GateError(
         "incompatible gc/bd beads modules: "
         f"gc embeds {BEADS_MODULE}@{gc_version}, but bd embeds {BEADS_MODULE}@{bd_version}. "
-        "Use --bd-bin (or GC_BD_BIN) with a bd binary built from the same beads module as --gc-bin."
+        "Use --bd-bin (or GC_BEADS_BIN) with a bd binary built from the same beads module as --gc-bin."
     )
 
 
@@ -3092,7 +3092,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--gc-bin", default=os.environ.get("GC_BIN", "gc"), help="gc binary to exercise")
     parser.add_argument(
         "--bd-bin",
-        default=os.environ.get("GC_BD_BIN", "bd"),
+        default=os.environ.get("GC_BEADS_BIN", "bd"),
         help="bd binary that must be schema-compatible with --gc-bin",
     )
     parser.add_argument(
