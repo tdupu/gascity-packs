@@ -1,5 +1,12 @@
 # Hurdles Rename Plan — 2026-07-08
 
+> ⚠️ **SUPERSEDED / DO NOT ACT ON (2026-07-21).** This plan's premise — *"GC uses
+> 'gate' for `[steps.check]` blocks"* — is **factually wrong** (verified against
+> the gascity source: `[steps.check]` is canonically a **check**; "gate" is the
+> control-flow checkpoint role). The gate→"hurdle" rename is **not needed** and
+> was not executed. See **`TERMINOLOGY-check-vs-gate.md`** for the correct native
+> terminology. Kept for history only.
+
 Bead: gsp-2c0
 
 ## Context

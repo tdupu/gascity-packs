@@ -1,5 +1,10 @@
 # mathcity — Expanded Structure Working Draft (2026-07-08)
 
+> ⚠️ **Terminology correction (2026-07-21):** this draft's "gate = GC `[steps.check]`
+> primitive / hurdle = mathcity checklist entry" framing is **wrong** — `[steps.check]`
+> is natively a **check**, and "gate" is the control-flow checkpoint role. Do not adopt
+> "hurdle." See **`TERMINOLOGY-check-vs-gate.md`**.
+
 **Status:** WORKING DRAFT for Taylor's review. Do not treat as committed design.
 **Author:** expansion / planning agent.
 **Basis:** JJ's initial sketch + existing pack survey + `HURDLES-RENAME-PLAN`,
