@@ -18,7 +18,7 @@ Every message is ONE file. `agent-send.sh` writes two paths:
 
 - **Canonical** (read this): `~/gt/.claude/inbox/<name>/<YYYY-MM-DD>/<HH-MM-SS>-from-<sender>-<subject-slug>.md`
   where `<name>` is the **recipient's** human-readable role name (`bart`,
-  `quimby`, `clerk`, …) from the UUID→name map in the send script. Unknown
+  `quimby`, `clark`, …) from the UUID→name map in the send script. Unknown
   UUIDs fall back to their 8-char prefix, so routing never fails.
 - **Flat backward-compat** (legacy monitors): `~/gt/.claude/inbox/<TO-UUID>.md`
   — appended. The `to:` line still carries the raw UUID, so

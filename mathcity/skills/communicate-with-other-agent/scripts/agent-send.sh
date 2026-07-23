@@ -70,7 +70,7 @@ resolve_name() {
         80b87468-641a-4198-b873-388ab34e23e1) name="bart" ;;
         d5ed1ca1-d6df-437d-a250-5be0f6f87085) name="quimby" ;;
         a1afbf29-834e-4960-8d9a-2f0ac521a69a) name="quimby" ;;
-        dbb55e43-f6b5-47b8-8505-60b448e5ed54) name="clerk" ;;
+        dbb55e43-f6b5-47b8-8505-60b448e5ed54) name="clark" ;;
     esac
     if [[ -z "$name" && -f "$NAMES_FILE" ]]; then
         name="$(awk -v u="$uuid" '$1==u {print $2; exit}' "$NAMES_FILE")"
