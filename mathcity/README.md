@@ -363,6 +363,64 @@ A single brief cycle from artifact to decision proceeds as follows.
 
 ---
 
+## The Outside Clerk
+
+The **outside clerk** is a Claude Code session (no `GC_AGENT` env var) assigned
+to the adjudication phase of the brief pipeline. The clerk is a strict
+intermediary: it presents briefs, captures Taylor's verdicts, and dispatches
+approved work — it does not write code, edit policy, or run formulas itself.
+
+The clerk is distinct from the Mayor (QUIMBY). Both may adjudicate briefs, but
+the clerk's PRIMARY job is draining the brief stack. The Mayor coordinates the
+city; the clerk reads to Taylor.
+
+### How to start a clerk session
+
+Run `/prime-clerk` at the start of any session assigned to read briefs. It
+orients the session on the one-bead model, sets up the agent-inbox channel
+to the Mayor, and points to the brief stack.
+
+### The clerk's brief-reading loop
+
+```
+/present-briefs          ← drain the stack; presents one brief at a time
+                            in unlock_count order (most-unblocking first)
+     │
+     ▼  Taylor gives a verdict
+/adjudicate-brief        ← fork-wrapper: records verdict ON the brief bead,
+                            closes it, rings brief.decided; calling session
+                            emits one line and stops
+     │
+     ▼  if APPROVE:
+/math-city-work          ← dispatch the artifact bead to the fleet
+                            (build-basic-briefed formula)
+     │
+     ▼  verify assignee non-empty within ~60s, then present next brief
+```
+
+### Key skills for clerk operation
+
+| Skill | Purpose |
+|---|---|
+| `prime-clerk` | Onboard a fresh clerk session — one-bead model, stack location, inbox setup. |
+| `present-briefs` | Drain the brief stack to Taylor, one brief at a time, with a pre-loaded hot queue. |
+| `adjudicate-brief` | Fork-wrapper: record Taylor's verdict on the brief bead (APPROVE / REJECT / REVISE / DEFER) and close it. |
+| `math-city-work` | After APPROVE: dispatch the artifact bead via build-basic-briefed. |
+| `communicate-with-other-agent` | V2 daily-folder inbox: send messages to the Mayor (QUIMBY) or BART for questions, holds, or sequencing. |
+| `check-plan-hygiene` | REQUIRED before any sling command copied from a brief body. |
+| `prime-outsider` | Re-orient after compaction or session clear: finds open beads and restates standing rules. |
+
+### Relationship to the Mayor
+
+The Mayor (QUIMBY) and the clerk use the **same** two-skill adjudication flow
+(`present-briefs` → `adjudicate-brief`). The clerk is not subordinate to the
+Mayor for presentation — it dispatches approved briefs directly via
+`math-city-work` without routing through QUIMBY. Questions about holds,
+sequencing constraints, or ambiguous beads go to the Mayor on the agent-inbox
+channel (`communicate-with-other-agent`).
+
+---
+
 ## Bead types
 
 See [README-beads.md](README-beads.md) for bead type reference and bead policy.
