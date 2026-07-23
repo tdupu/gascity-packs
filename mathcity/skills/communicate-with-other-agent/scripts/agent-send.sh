@@ -58,7 +58,6 @@ fi
 if [[ -z "$INBOX_DIR" ]]; then
     INBOX_DIR="$(pwd)/.claude/inbox"; mkdir -p "$INBOX_DIR"
 fi
-mkdir -p "$INBOX_DIR/archive"
 
 # --- UUID -> human-readable role name ---
 # bash 3.2 compatible (macOS default has no `declare -A`): case map + optional
@@ -71,6 +70,8 @@ resolve_name() {
         d5ed1ca1-d6df-437d-a250-5be0f6f87085) name="quimby" ;;
         a1afbf29-834e-4960-8d9a-2f0ac521a69a) name="quimby" ;;
         dbb55e43-f6b5-47b8-8505-60b448e5ed54) name="clark" ;;
+        ae68b9e8-2a73-46c0-847f-d1e9e01f0b5c) name="homer" ;;
+        879d8f83-64db-4ab1-a825-c2ed9cf67632) name="cozy" ;;
     esac
     if [[ -z "$name" && -f "$NAMES_FILE" ]]; then
         name="$(awk -v u="$uuid" '$1==u {print $2; exit}' "$NAMES_FILE")"
@@ -96,10 +97,9 @@ n=1; while [[ -e "$CANON_FILE" ]]; do
     CANON_FILE="$CANON_DIR/${HMS}-from-${FROM_NAME}-${slug}-${n}.md"; n=$((n+1))
 done
 
-# --- Flat backward-compat path (appended) ---
+# --- Flat backward-compat path (appended; no rotation — V2 uses per-message files) ---
 FLAT_INBOX="$INBOX_DIR/$TO.md"
 [[ -f "$FLAT_INBOX" ]] || touch "$FLAT_INBOX"
-bash "$(dirname "$0")/agent-inbox-rotate.sh" "$INBOX_DIR" "$TO" 2>/dev/null || true
 
 TS="$(date '+%Y-%m-%d %H:%M:%S %z')"
 MSG="$(printf '\n---\nfrom: %s (%s)\nto:   %s (%s)\nat:   %s\nsubject: %s\n---\n' \
