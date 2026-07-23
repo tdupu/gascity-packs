@@ -11,7 +11,7 @@
 
 _Regenerate/verify with `/update-README`._
 
-### Parent pack — `mathcity/skills/`  (46)
+### Parent pack — `mathcity/skills/`  (47)
 
 | Skill | Alias | What it does |
 |---|---|---|
@@ -60,6 +60,7 @@ _Regenerate/verify with `/update-README`._
 | `repo-to-city` | `mathcity.repo-to-city` | Reference skill mapping repository names to their city rig (~/gt/<name>) and working copy (~/repos/<name>) |
 | `refine-bead-manifest` | `mathcity.refine-bead-manifest` | Convert a bead manifest into a partition B of work beads + one brief per b', where every bead in S is acted on by exactly one b'; approving b' triggers the corresponding dispatch action via math-city-work |
 | `revise-artifact` | `mathcity.revise-artifact` | Apply a set of action items to an artifact (SKILL.md, plan, code, LaTeX, theorem, etc.) and produce a revised version |
+| `simple-work` | `mathcity.simple-work` | Dispatch a bounded, well-scoped task via simple-work-briefed (execute → file brief → finalize) when the work is a single operation (script run, repair, verification) and does not need the full build-basic-briefed lifecycle |
 | `xkcd-927` | `mathcity.xkcd-927` | Reconcile or fix an issue that is spread across several beads / plans / PERTs / policy docs that duplicate, contradict, or prose-supersede each other — by CONSOLIDATING into the single existing source of truth, NEVER by writing a fresh a… |
 
 ### Brief-system — `subdomains/brief-system/skills/`  (2)
