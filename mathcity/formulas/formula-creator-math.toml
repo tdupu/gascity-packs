@@ -1,0 +1,271 @@
+description = """
+Create a new mathcity formula TOML, enforcing the mandatory briefed-terminal-
+step convention (all mathcity formulas must end with a step that files a
+decision brief for Taylor adjudication before any output is merged or
+published).
+
+Steps:
+  1. gather-spec   — read source bead; extract formula name, shape, and vars
+  2. draft-toml    — produce a draft formula TOML matching the detected shape
+  3. validate      — assert terminal step is file-brief/brief-finalize/workflow-finalize; hygiene gate
+  4. file-brief    — file decision brief for Taylor to review the new formula
+
+Does NOT commit the formula to git — the brief gate comes first. After Taylor
+approves, the agent executing that verdict may commit and push.
+"""
+formula = "formula-creator-math"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[catalog]
+name = "formula-creator-math"
+description = "Create a mathcity formula TOML with enforced briefed-terminal-step convention, gated by a Taylor decision brief."
+
+[vars]
+[vars.source_bead]
+description = "Bead ID describing the formula to create. The agent reads this bead for name, purpose, shape, and vars."
+required = true
+
+[vars.brief_slug]
+description = "Stable filename stem for the brief artifact (e.g. gsp-ez3x6-formula-creator-math)."
+required = true
+pattern = "^[A-Za-z0-9._-]+$"
+
+[vars.formula_name]
+description = "Proposed formula name (lowercase, hyphenated). Becomes the filename stem and the `formula = ` field."
+required = true
+pattern = "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+
+[vars.model]
+description = "Model for gather-spec and draft-toml steps. sonnet is sufficient; use opus when requirements are ambiguous."
+default = "sonnet"
+enum = ["haiku", "sonnet", "opus"]
+
+[vars.artifact_root]
+description = "Root for the brief artifact."
+default = ".beads/briefs"
+
+[vars.context]
+description = "Optional extra context for the gathering step (file paths, bead IDs, inline notes)."
+default = ""
+
+[[steps]]
+id = "gather-spec"
+title = "Read {{source_bead}} and extract formula specification"
+metadata = { "gc.run_target" = "{{model}}" }
+description = """
+Read the source bead and any provided context to extract a formula spec.
+
+```bash
+bd show {{source_bead}}
+{{#if context}}
+# Also consult: {{context}}
+{{/if}}
+```
+
+You are extracting:
+
+1. **Formula name** — use `{{formula_name}}` (already supplied).
+2. **Shape** — classify as exactly one of:
+   - `do-work`: single bounded operation; terminal step = `workflow-finalize`
+   - `non-methodology`: multi-step without Opus-class planning; terminal step = `file-brief`
+   - `methodology`: needs a plan or design step (Opus-class); terminal step = `file-brief` + `brief-finalize`
+   - `source-search`: search/survey primary deliverable; terminal step = `file-brief`
+3. **Vars** — list every runtime parameter the formula will need.
+4. **Steps** — enumerate each step (id + one-line purpose). The LAST step
+   MUST be `file-brief`, `brief-finalize`, or `workflow-finalize`.
+5. **Run targets** — which pool each step routes to (haiku/sonnet/opus or a
+   named session like `mathcity.brief-operator`). Plan steps in methodology
+   shape MUST route to opus or a `plan_target` var.
+
+Record the spec in bd notes:
+
+```bash
+bd update {{source_bead}} --notes "formula-creator-math gather-spec:
+  name: {{formula_name}}
+  shape: <do-work|non-methodology|methodology|source-search>
+  steps: <list>
+  vars: <list>
+  terminal-step: <file-brief|brief-finalize|workflow-finalize>"
+```
+
+**Stop here if the bead description is insufficient to spec the formula.**
+Record a block note explaining what is missing, then drain:
+
+```bash
+bd update {{source_bead}} --notes "BLOCKED: insufficient spec — need <what is missing>"
+gc runtime drain-ack
+```
+"""
+
+[[steps]]
+id = "draft-toml"
+needs = ["gather-spec"]
+title = "Draft formula-creator-math TOML for {{formula_name}}"
+metadata = { "gc.run_target" = "{{model}}" }
+description = """
+Using the spec from gather-spec, write a complete formula TOML draft.
+
+Target path: `mathcity/formulas/{{formula_name}}.toml`
+
+Requirements:
+- Top-level `description`, `formula`, `version = 1` fields.
+- `[requires] formula_compiler = ">=2.0.0"` (needed for metadata/check blocks).
+- `[catalog]` block with `name` and `description` (one-line; shown in gc formula list).
+- `[vars]` block for every runtime parameter.
+- `[[steps]]` blocks — every step after the first MUST have `needs`.
+- Last step id MUST be `file-brief`, `brief-finalize`, or `workflow-finalize`.
+- For methodology shape: include `[vars.plan_target]` (default = opus or a
+  named Opus session) and set `metadata = { "gc.run_target" = "{{plan_target}}" }`
+  on the planning step.
+- For do-work shape: last step should combine brief-filing + drain:
+  ```toml
+  [[steps]]
+  id = "workflow-finalize"
+  needs = ["execute-task"]
+  title = "File brief and finalize"
+  metadata = { "gc.run_target" = "mathcity.brief-operator" }
+  ```
+
+Write the draft to a temp path:
+```bash
+cat > /tmp/{{formula_name}}.toml << 'TOML_EOF'
+<TOML content here>
+TOML_EOF
+```
+
+Record the draft path in bd notes:
+```bash
+bd update {{source_bead}} --notes "formula-creator-math draft-toml: written to /tmp/{{formula_name}}.toml"
+```
+"""
+
+[[steps]]
+id = "validate"
+needs = ["draft-toml"]
+title = "Validate {{formula_name}}.toml — briefed terminal step + hygiene gate"
+metadata = { "gc.run_target" = "{{model}}" }
+description = """
+Run three checks against the draft TOML. All three must pass before filing the brief.
+
+## Check 1 — TOML parses
+
+```bash
+python3 -c "import tomllib; tomllib.load(open('/tmp/{{formula_name}}.toml','rb'))" \
+  && echo "TOML: valid"
+```
+
+## Check 2 — Briefed terminal step
+
+```bash
+python3 << 'PY'
+import tomllib
+with open('/tmp/{{formula_name}}.toml', 'rb') as f:
+    d = tomllib.load(f)
+steps = d.get('steps', [])
+assert steps, 'No steps defined'
+last_id = steps[-1]['id']
+allowed = {'file-brief', 'brief-finalize', 'workflow-finalize'}
+assert last_id in allowed, (
+    f'FAIL: terminal step is "{last_id}" — must be one of {allowed}. '
+    f'Mathcity formulas must end with a briefed step.'
+)
+print(f'Terminal step: {last_id} ✓')
+PY
+```
+
+## Check 3 — Required catalog fields
+
+```bash
+python3 << 'PY'
+import tomllib
+with open('/tmp/{{formula_name}}.toml', 'rb') as f:
+    d = tomllib.load(f)
+cat = d.get('catalog', {})
+assert cat.get('name'), 'Missing [catalog] name'
+assert cat.get('description'), 'Missing [catalog] description'
+assert d.get('formula'), 'Missing top-level formula field'
+assert d.get('version'), 'Missing top-level version field'
+print('Catalog fields: valid ✓')
+PY
+```
+
+If any check fails, fix the draft in-place and re-run before proceeding.
+Record the validation outcome:
+
+```bash
+bd update {{source_bead}} --notes "formula-creator-math validate: all checks passed. terminal-step=<id>"
+```
+"""
+
+[[steps]]
+id = "file-brief"
+needs = ["validate"]
+title = "File decision brief for {{formula_name}} formula review"
+metadata = { "gc.run_target" = "mathcity.brief-operator" }
+description = """
+File a decision brief asking Taylor to approve the new formula TOML.
+
+Read the draft from `/tmp/{{formula_name}}.toml`, then write the brief:
+
+```bash
+BRIEF_PATH="{{artifact_root}}/stack/{{brief_slug}}.md"
+mkdir -p "{{artifact_root}}/stack"
+```
+
+The brief MUST contain:
+- `status: approved` frontmatter
+- `brief_bead: {{source_bead}}`
+- A summary of what the formula does and which shape it uses
+- The full draft TOML (fenced as `toml`) for Taylor to review inline
+- A recommended verdict (A=approve and commit / C=defer if more design needed)
+- The three validation check results (all-pass confirmation)
+
+Template:
+
+```markdown
+---
+status: approved
+brief_bead: {{source_bead}}
+brief_slug: {{brief_slug}}
+recommended_verdict: A
+---
+
+# Formula Review: `{{formula_name}}`
+
+## What this formula does
+
+<One paragraph from the gather-spec step.>
+
+## Shape
+
+<do-work | non-methodology | methodology | source-search>
+
+## Validation
+
+- [x] TOML parses without error
+- [x] Terminal step is `<id>` (one of: file-brief, brief-finalize, workflow-finalize)
+- [x] Catalog fields present
+
+## Draft TOML
+
+```toml
+<full content of /tmp/{{formula_name}}.toml>
+```
+
+## Recommended verdict
+
+**A** — approve and commit to `mathcity/formulas/{{formula_name}}.toml`, push to fork, message BART to pull.
+
+If you prefer adjustments, defer (C) with notes and I will revise.
+```
+
+After writing:
+
+```bash
+bd update {{source_bead}} --notes "formula-creator-math file-brief: brief filed at {{brief_slug}}.md — awaiting Taylor verdict"
+gc runtime drain-ack
+```
+"""
