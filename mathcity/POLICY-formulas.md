@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.0 |
+| Version | 1.1 |
 | Status | Draft |
 | Date | 2026-07-23 |
 | Prefix | F |
@@ -137,8 +137,36 @@ Fail: enum or default contains `"fable"`, `"opus"`, `"sonnet"`, or `"haiku"`.
 
 ---
 
+## Pillar 4 — Pre-brief quality gates
+
+*Every formula must confirm the work is genuinely new and passes basic
+correctness gates before Taylor sees it. Reinventions and zero-state failures
+must not reach the brief stack.*
+
+**F4.1 — `/check-zero` and `/check-wheel` required before terminal brief.**
+Before filing the terminal brief (`file-brief`, `brief-finalize`, or
+`workflow-finalize`), every formula must include a step that runs `/check-zero`
+(resource survey across all layers) and `/check-wheel` (wheel-reinvention
+gate) against the formula's deliverable. The terminal brief step is
+conditioned on both returning `NO REINVENTION`, or on a documented exception
+recorded in the brief body.
+
+Pass: the validate step or a dedicated pre-brief step explicitly invokes
+`/check-zero` and `/check-wheel` against the deliverable; the brief artifact
+includes their verdicts.
+Fail: the terminal brief step fires without a prior `/check-zero` +
+`/check-wheel` run, or their verdicts do not appear in the brief.
+
+Rationale: prevents work that reinvents an existing resource from reaching
+Taylor's review queue. Taylor should adjudicate genuinely new work, not
+duplicates of what already exists. `check-zero` + `check-wheel` is the single
+"is this genuinely new?" gate before the human sees the result.
+
+---
+
 ## Change Log
 
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-07-23 | Initial draft — three pillars (F1–F3), six rules (F1.1–F1.3, F2.1–F2.3, F3.1–F3.3). Prefix F registered. Taylor directive (QUIMBY Q27). |
+| 1.1 | 2026-07-23 | Add F4.1 — /check-zero + /check-wheel required before terminal brief (Pillar 4: Pre-brief quality gates). Taylor directive (QUIMBY Q27). |
