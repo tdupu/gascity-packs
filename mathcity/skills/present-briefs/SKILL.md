@@ -1,6 +1,6 @@
 ---
 name: present-briefs
-description: Present briefs one at a time in full form, maintaining a pre-loaded hot queue so the next brief is always ready the moment a decision is made. Use when the user wants to process briefs, says "present my next brief", "next from queue", "show me the queue", "I'm ready for the next one", "keep the queue warm", or wants to churn through a backlog of briefs. Always presents one brief at a time in full — no summarizing, no batching multiple briefs in one response.
+description: Present briefs one at a time in full form, maintaining a pre-loaded hot queue so the next brief is always ready the moment a decision is made. Use when the user wants to process briefs, says "next", "next brief", "Next", "continue", "what's next", "present my next brief", "next from queue", "show me the queue", "I'm ready for the next one", "keep the queue warm", or wants to churn through a backlog of briefs. Always presents one brief at a time in full — no summarizing, no batching multiple briefs in one response.
 ---
 
 # present-briefs

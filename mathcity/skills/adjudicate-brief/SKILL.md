@@ -7,27 +7,89 @@ description: Use whenever a STANDALONE decision needs to be recorded persistentl
 
 # adjudicate-brief
 
-The canonical way to record a decision in the gascity / beads substrate. **Don't roll your own** — `bd decision` already exists with a structured template and queryability; this skill enforces using it.
+## FORK WRAPPER — calling agent's only job
 
-## When to use
+**adjudicate-brief is a fork-composition.** The calling agent MUST immediately fork a subagent to do all recording/dispatch work, then report one line and stop. The calling agent executes NO bd commands itself — it only launches the fork.
 
-> **Note for brief verdicts:** use this skill to RECORD the verdict (one-bead model), then IMMEDIATELY invoke `/math-city-work` to dispatch on approve — see §After recording an approve verdict.
+### Step 1 — collect from invocation args + context
 
-A "decision" is **a verdict that closes deliberation**, with a recorded rationale and alternatives. Examples:
+- `BRIEF_BEAD` — the brief's bead ID (from frontmatter `brief_bead:` or brief file, e.g. `he-dvwa`)
+- `ARTIFACT` — the `artifact:` frontmatter field (e.g. `hecke#233`, `he-p4x5`)
+- `VERDICT` — one of: `approve` / `reject` / `defer` / `revise`
+- `RATIONALE` — Taylor's stated reason (from invocation args, one line)
+- `DEFER_UNTIL` — date string if verdict=defer (e.g. `2026-08-05`), else omit
+- `RIG_DIR` — local rig directory (e.g. `~/repos/hecke` for `he-*` beads)
 
-- A worker reaches a verdict on an architecture choice: "math-pack is the canonical home for our custom substrate"
-- A policy lock: "all hard gates → TOML formalized"
-- A gate-criterion addition: "add DEFER-ratify-existing-HELD to no-brainer classifier"
-- A push / kill-switch / server-touching authorization (these stay standalone decision beads)
+### Step 2 — launch fork
 
-A "decision" is **NOT**:
-- An ephemeral observation → use a comment or chat
-- A cross-session **fact** that isn't a chosen-alternative → use `bd remember` (memories) instead
-- A TODO / task / work item → use `bd create` with `--type task`/`feature`/`bug`/etc.
-- A judgment that needs human review before recording → that's a brief; use the brief-pipeline (see `[[brief-prep]]`)
-- **A brief verdict** → one-bead model (brief-system POLICY.md B2.2): the brief bead is already `type=decision`; record the verdict fields ON the brief bead and close it — creating a second decision bead for a brief is a policy violation
+```
+Agent(
+  subagent_type: "fork",
+  name: "adj-<BRIEF_BEAD>-<VERDICT>",
+  description: "Adjudicate <BRIEF_BEAD> → <VERDICT>",
+  prompt: "You are a fork executing adjudicate-brief. Record Taylor's verdict on brief bead <BRIEF_BEAD> (artifact: <ARTIFACT>): verdict=<VERDICT>, rationale='<RATIONALE>'[, defer_until=<DEFER_UNTIL>], rig=<RIG_DIR>. Execute the FORK BODY section of the adjudicate-brief skill now in your inherited context. Run all bd commands. If verdict=approve, dispatch via math-city-work. Report one summary line when done."
+)
+```
 
-## How (canonical command)
+### Step 3 — report and stop
+
+Emit exactly: `"Fork launched: <BRIEF_BEAD> → <VERDICT>. Session free."`
+
+Do NOT wait for the fork. Do NOT run any bd commands. Stop here.
+
+---
+
+## FORK BODY — recording and dispatch
+
+*You are a fork. Execute the following:*
+
+### 1. Add verdict comment to the brief bead
+
+```bash
+cd <RIG_DIR> && bd comments add <BRIEF_BEAD> \
+  "<VERDICT> (Taylor $(date +%Y-%m-%d) via clerk). Rationale: <RATIONALE>"
+```
+
+### 2. Close or defer the bead
+
+```bash
+# verdict = approve / reject / revise → close:
+bd close <BRIEF_BEAD> --reason "<VERDICT>: <RATIONALE>"
+
+# verdict = defer → defer with date, leave open:
+bd defer <BRIEF_BEAD> --until=<DEFER_UNTIL> \
+  --reason="<RATIONALE>"
+```
+
+### 3. If verdict = approve → dispatch via math-city-work (MANDATORY)
+
+```bash
+gc sling hecke/gc.run-operator <ARTIFACT> --on build-basic-briefed \
+  --var interaction_mode=autonomous --var review_mode=agent \
+  --var drain_policy=separate --var push=false --var open_pr=false
+```
+
+Verify assignee within ~60s:
+
+```bash
+bd show <ARTIFACT> | grep -i assignee   # must be non-empty
+```
+
+If assignee is empty after 60s, escalate to mayor.
+
+### 4. Report
+
+Emit one line: `"Adjudicated <BRIEF_BEAD>: <VERDICT>. [closed/deferred] [<ARTIFACT> dispatched if approve]"`
+
+---
+
+## For STANDALONE decisions (not brief verdicts)
+
+When to use: a verdict that closes deliberation with recorded rationale — architecture choices, policy locks, gate-criterion additions, push/kill-switch authorizations.
+
+**NOT for brief verdicts** (those go through the fork body above). NOT for ephemeral observations, cross-session facts (`bd remember`), or work items (`bd create --type task`).
+
+### Canonical command
 
 ```bash
 bd create "<title>" --type decision \
@@ -53,100 +115,41 @@ EOF
 )"
 ```
 
-`--type decision` is a first-class beads type with aliases `dec` and `adr`. After creation, link to any beads the decision affects:
+After creation, link affected beads:
 
 ```bash
 bd dep add <decision-id> <affected-bead-id> --type related
 ```
 
-## After recording an approve verdict — dispatch via math-city-work (MANDATORY)
-
-When recording an **APPROVE** verdict on a brief, the clerk MUST immediately dispatch the artifact bead via `/math-city-work` after closing the brief bead. This is not optional — the skill pipeline is:
-
-```
-adjudicate-brief (record + close) → math-city-work (dispatch)
-```
-
-The dispatch step:
-1. Read the brief's `artifact:` field from the brief frontmatter (e.g., `artifact: he-p4x5`)
-2. Invoke `/math-city-work` with that artifact bead ID
-3. The math-city-work skill handles the `gc sling` command and verify-assignee gate
-
-For non-approve verdicts (reject, defer, revise): no dispatch. Record and stop.
-
-## What this skill does NOT do
-
-- ❌ Write decisions to a markdown file (e.g., `~/gt/.claude/decision-*.md` files in the triage session are a historical session-artifact pattern, NOT the canonical going-forward path)
-- ❌ Write to `~/gt/<rig>/.beads/decisions.jsonl` directly (those 3 legacy ledgers stay as historical archives per LD #10; new decisions go through `bd decision`)
-- ❌ Use `bd remember "<decision text>"` (`bd remember` is for cross-session facts, NOT decisions; the bd-CLI canonical distinction is: STORE-persistent-knowledge vs RECORD-adjudicated-verdict)
-- ❌ Create a "decision" bead with `--type task` and a `[DECISION]` title-marker (use the real `bd decision` type; title-markers are pre-bd-decision-era pattern)
-- ❌ Skip the Decision / Rationale / Alternatives / Affects template (the structured form is what makes decisions queryable + supersede-able)
-
-## Refuse-and-explain
-
-If an agent or user asks to record a decision via any non-canonical path, refuse and explain:
-
-> "Per the bd-decision-canonical architecture principle (gascity triage 2026-06-26), all decisions go through `bd create -t decision` with the canonical template. The path you proposed (`<their path>`) would create a parallel decision store, which the principle explicitly forbids. Let me reformulate this as `bd decision`:
->
-> ```bash
-> bd create '<title>' --type decision --description ...
-> ```
->
-> Sound good?"
-
-Then proceed to the canonical command.
-
-## Supersede pattern (when a decision is replaced)
-
-When a new decision replaces an old one:
+### Supersede pattern
 
 ```bash
-# 1. Record the new decision (as above)
 NEW_ID=$(bd create "<title>" --type decision --description "..." --silent)
-
-# 2. Link new → old via 'related' dependency
 bd dep add $NEW_ID <old-decision-id> --type related
-
-# 3. Note the supersession on the old decision
 bd comments add <old-decision-id> "Superseded by $NEW_ID: <brief reason>"
-
-# 4. Close the old decision
 bd close <old-decision-id> --reason "Superseded by $NEW_ID"
 ```
 
-## List / search existing decisions
+### Refuse-and-explain
 
-```bash
-bd list --type decision               # all open decisions in this rig
-bd list --type decision --all         # incl. closed/superseded
-bd show <decision-id>                 # single decision detail
-bd comments <decision-id>             # discussion / supersession history
-bd search "<keyword>"                 # find by title or body content
-```
+If asked to record a decision via non-canonical path:
 
-For cross-rig query (per beads-topology canonical: prefix-scoped isolation, requires Dolt-direct):
+> "Per the bd-decision-canonical architecture principle (gascity triage 2026-06-26), all decisions go through `bd create -t decision`. Let me reformulate: `bd create '<title>' --type decision --description ...`"
 
-```bash
-# Direct Dolt query across the shared store
-dolt sql -q "SELECT id, title, status FROM issues WHERE issue_type = 'decision' AND status = 'open'"
-```
+---
 
-(Or use the future `mathcity/formulas/cross-rig-decision-query.toml` math-pack tooling once it's built.)
+## What this skill does NOT do
 
-## Cross-references
-
-- **bd-decision canonical doc:** `~/repos/beads/plugins/beads/skills/beads/commands/decision.md`
-- **Architecture principle (this session):** `~/gt/.claude/details-2026-06-26/decision-2026-06-26-grill2-architecture-bd-decision-is-canonical.md`
-- **Beads-topology canonical:** `https://docs.gascity.com/reference/internal/beads-topology.md` (prefix-scoped per rig; cross-rig requires Dolt-direct)
-- **Golden rule:** `~/gt/.claude/details-2026-06-26/decision-2026-06-26-grill2-PRINCIPLE-golden-rule-dont-violate-docs.md` ("don't violate the docs" — bd canonical wins over local convention)
-- **CONTEXT.md** at `~/gt/CONTEXT.md` §Gas City has the canonical primitive ordering
+- ❌ Write decisions to a markdown file
+- ❌ Write to `~/gt/<rig>/.beads/decisions.jsonl` directly (legacy — do not extend)
+- ❌ Use `bd remember "<decision text>"` (that's for facts, not verdicts)
+- ❌ Create a "decision" bead with `--type task` + title-marker (use `--type decision`)
+- ❌ Skip the Decision / Rationale / Alternatives / Affects template
 
 ## Why this skill exists
 
-History: prior to grill-2 (2026-06-26 ~13:00 -1000), decisions were scattered across 3 different `.jsonl` files (bd-side, brief-pipeline, mayor-side) + bd memories + title-marker beads + markdown files. The session locked `bd decision` as canonical (LD #10 + AP2). This skill is the **enforcement mechanism** that future agents read before recording a decision — they see the canonical command + the refuse-and-explain pattern + the structured template.
-
-Per Taylor's verbatim 2026-06-26 13:58: *"We need this to work around the bd decision framework"* and *"That should impose what happens"* (the principle drives downstream behavior). This skill operationalizes that.
+Prior to grill-2 (2026-06-26), decisions were scattered across 3 `.jsonl` files + bd memories + title-marker beads + markdown files. The session locked `bd decision` as canonical (LD #10 + AP2). The fork-wrapper pattern (added 2026-07-22) keeps the calling session's context free during recording + dispatch — heavy bd + sling work runs in a background fork.
 
 ## What stays in the legacy stores (do NOT migrate)
 
-The 3 historical `decisions.jsonl` files (`~/gt/hecke/.beads/decisions.jsonl` — 29 records; `~/gt/hecke/.beads/briefs/decisions.jsonl` — 301 records; `~/gt/.gc/agents/mayor/decisions.jsonl` — 23 records) stay as LEGACY artifacts. They are preserved via off-machine backup (iCloud Drive per session decision). **DO NOT extend them.** New decisions go through `bd decision` only. Opportunistic backfill: when a historical decision surfaces in work, promote it to `bd decision` at that time (don't bulk-migrate).
+`~/gt/hecke/.beads/decisions.jsonl` (29 records), `~/gt/hecke/.beads/briefs/decisions.jsonl` (301 records), `~/gt/.gc/agents/mayor/decisions.jsonl` (23 records) — LEGACY, preserved via off-machine backup. Do not extend. Opportunistic backfill only when a historical decision surfaces in work.
