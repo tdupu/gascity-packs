@@ -1,0 +1,171 @@
+description = """
+Routing wrapper: auto-selects between simple-work-briefed and build-basic-briefed.
+
+A single `route` step reads the source bead, assesses complexity, and
+re-dispatches it to the right formula:
+
+  - SIMPLE  → simple-work-briefed (execute-task + file-brief, 2 steps)
+  - FULL    → build-basic-briefed (full 37-step factory)
+
+Use this formula instead of choosing between simple-work-briefed and
+build-basic-briefed by hand. The router decides. The source bead is dispatched
+once and only once — the routing step dispatches the child molecule and exits.
+
+## Routing heuristic (applied by the worker in the `route` step)
+
+SIMPLE when ALL of the following hold:
+  - The task is a single bounded operation with a clear, unambiguous output.
+  - No planning, decomposition, or multi-step implementation is needed.
+  - Examples: run a script, apply a one-file patch, verify a condition,
+    generate a text artifact from a known template, record a result.
+
+FULL when ANY of the following hold:
+  - The task requires understanding requirements, planning, or design.
+  - The task decomposes into sub-tasks that need independent implementation.
+  - The task touches multiple files/systems with interdependencies.
+  - The output will need starter review (acceptance, test-evidence, simplicity).
+
+When in doubt, route FULL. SIMPLE is only for tasks where the bead description
+already contains every input needed for a single-shot subagent execution.
+"""
+formula = "work-briefed"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[catalog]
+name = "work-briefed"
+description = "Auto-routes to simple-work-briefed (bounded tasks) or build-basic-briefed (full cycle) based on bead complexity assessment."
+
+[vars]
+[vars.source_bead]
+description = "The work bead ID to route. The router reads this bead's description to assess complexity."
+required = true
+
+[vars.artifact_root]
+description = "Build artifact root (passed to build-basic-briefed for full-path; brief pipeline root for simple-path)."
+required = true
+
+[vars.brief_slug]
+description = "Stable slug for the brief artifact (used by simple-path via simple-work-briefed)."
+required = true
+pattern = "^[A-Za-z0-9._-]+$"
+
+[vars.model]
+description = "Model for simple-path task execution. Ignored on full-path. Default haiku: sufficient for bounded work."
+default = "haiku"
+enum = ["haiku", "sonnet", "opus"]
+
+[vars.brief_type]
+description = "Brief type for simple-path filing. Ignored on full-path (build-basic-briefed always files a decision brief)."
+default = "standard"
+enum = ["standard", "decision", "no-brainer"]
+
+[vars.interaction_mode]
+description = "Interaction posture passed to build-basic-briefed on full-path."
+default = "autonomous"
+
+[vars.review_mode]
+description = "Review authority passed to build-basic-briefed on full-path."
+default = "agent"
+
+[vars.drain_policy]
+description = "Implementation drain policy passed to build-basic-briefed on full-path."
+default = "separate"
+
+[vars.push]
+description = "Whether to allow final push. Passed to build-basic-briefed on full-path."
+default = "false"
+
+[vars.open_pr]
+description = "Whether to open a PR. Passed to build-basic-briefed on full-path."
+default = "false"
+
+[[steps]]
+id = "route"
+title = "Route {{source_bead}}: assess complexity and dispatch to the right formula"
+metadata = { "gc.run_target" = "mathcity.brief-operator" }
+description = """
+You are the routing gate for `work-briefed`. Your job: read the source bead,
+assess its complexity, and dispatch it to the appropriate formula by re-slinging.
+You do NOT perform the work yourself — you choose the path and hand off.
+
+## Step 1 — Read the bead
+
+```bash
+bd show {{source_bead}}
+```
+
+Read the full description, title, and any existing notes.
+
+## Step 2 — Apply the routing heuristic
+
+**SIMPLE** when ALL of:
+  - Single bounded operation, clear unambiguous output
+  - No planning, decomposition, or multi-step implementation needed
+  - Bead description already contains every input for a single-shot execution
+
+**FULL** when ANY of:
+  - Requires requirements gathering, planning, or design
+  - Decomposes into sub-tasks needing independent implementation
+  - Touches multiple files/systems with interdependencies
+  - Needs starter review (acceptance, test-evidence, simplicity)
+
+When in doubt: FULL.
+
+## Step 3 — Record verdict
+
+```bash
+bd update {{source_bead}} --notes "work-briefed route: SIMPLE|FULL — <one-line reason>"
+```
+
+## Step 4 — Dispatch to the right formula
+
+**If SIMPLE** — dispatch via simple-work-briefed:
+
+```bash
+# Extract the rig prefix from the current working directory
+RIG=$(basename $(git rev-parse --show-toplevel 2>/dev/null || echo "gascity-packs"))
+
+gc sling ${RIG}/gc.run-operator {{source_bead}} --on simple-work-briefed \
+  --var source_bead={{source_bead}} \
+  --var brief_slug={{brief_slug}} \
+  --var model={{model}} \
+  --var brief_type={{brief_type}} \
+  --var artifact_root={{artifact_root}} \
+  --var task="$(bd show {{source_bead}} | head -5)"
+```
+
+Note: `task` is populated from the bead title + first lines. If the bead
+description is richer, adjust the extraction command accordingly.
+
+**If FULL** — dispatch via build-basic-briefed:
+
+```bash
+RIG=$(basename $(git rev-parse --show-toplevel 2>/dev/null || echo "gascity-packs"))
+
+gc sling ${RIG}/gc.run-operator {{source_bead}} --on build-basic-briefed \
+  --var artifact_root={{artifact_root}} \
+  --var interaction_mode={{interaction_mode}} \
+  --var review_mode={{review_mode}} \
+  --var drain_policy={{drain_policy}} \
+  --var push={{push}} \
+  --var open_pr={{open_pr}}
+```
+
+## Step 5 — Close this routing step
+
+```bash
+bd update <this-step-bead-id> --notes "Dispatched {{source_bead}} via <simple-work-briefed|build-basic-briefed>. Route molecule started."
+gc runtime drain-ack
+```
+
+If `gc sling` fails, escalate before exiting:
+
+```bash
+.gc/scripts/escalate.sh \
+  --title "work-briefed routing failed for {{source_bead}}" \
+  --priority 2
+```
+"""
