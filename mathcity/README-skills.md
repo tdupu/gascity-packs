@@ -2,7 +2,7 @@
 
 **Single canonical cross-pack index of every skill in the mathcity pack family.**
 
-105 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+106 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
 
 **Maintenance (single source of truth — no competing updater):**
 - `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
@@ -81,7 +81,7 @@ _Regenerate/verify with `/update-README`._
 | `profile-magma` | `mathcity-computing.profile-magma` | Wrap the Magma code the user is working on in a profiling harness to find bottlenecks (slow intrinsics, memory hogs) |
 | `update-issue` | `mathcity-computing.update-issue` | Replace a GitHub issue's body with a single up-to-date canonical statement, consolidating all prior body versions into ONE archive comment per issue (folded via HTML <details> blocks) |
 
-### Pack development / hygiene — `subdomains/dev/skills/`  (10)
+### Pack development / hygiene — `subdomains/dev/skills/`  (11)
 
 | Skill | Alias | What it does |
 |---|---|---|
@@ -89,6 +89,7 @@ _Regenerate/verify with `/update-README`._
 | `city-status` | `mathcity-dev.city-status` | Read-only Gas City fleet and work-queue snapshot — checks tmux liveness, active sessions, in-progress beads (with lease/heartbeat status), molecule step tables (steps done, +1h change, start/completion times), brief pipeline state (.pile/.stack counts, shuffler lock), and Dolt health. |
 | `check-build-hygiene` | `mathcity-dev.check-build-hygiene` | Audit the CURRENT live install — gc/bd binaries, the three source repos, pack imports, and skill sinks — against the Pack Portability & Boundary Policy (mathcity/subdomains/dev/POLICY.md) |
 | `check-plan-hygiene` | `mathcity-dev.check-plan-hygiene` | Gate a plan doc or beads convoy against the Pack Portability & Boundary Policy (mathcity/subdomains/dev/POLICY.md) BEFORE any build starts |
+| `check-wheel` | `mathcity-dev.check-wheel` | Gate a plan, implementation, or data artifact against the "no reinventing the wheel" invariant — detects existing resources that cover the proposed work, then produces a hygienic import recommendation via check-plan-hygiene when reinvention is found. |
 | `check-zero` | `mathcity-dev.check-zero` | Wheel-check — survey existing gascity formulas/skills/orders, prior beads, code, Magma intrinsics, math databases (LMFDB, Stacks), Python packages, and known theorems before building anything from scratch. |
 | `check-defer` | `mathcity-dev.check-defer` | Framework-cognition compliance checker — scans a skill, formula, or pipeline artifact and flags every place a framework makes a reasoning decision that should be a model call. |
 | `hourly-check` | `mathcity-dev.hourly-check` | 12-hour city health watchdog — fires every hour, shows fleet/molecule/brief/Dolt snapshot, raises a prominent inline alert to the invoking session if stalls or usage limits are detected. |
