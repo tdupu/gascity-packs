@@ -35,6 +35,25 @@ trust `tmux -L gt ls` + rising step-counts (`gs-0cy2`).
 
 The `build-basic` / `interaction_mode=interactive` pattern below is retained for reference.
 
+## Rule 0 — Fork-vs-sling (gsp-mnfj, supersedes gsp-geuo "always fork")
+
+The Mayor must ALWAYS be available to the next task.
+
+| Situation | Decision |
+|---|---|
+| Adjudication required | SLING |
+| Long-running task | SLING |
+| Fast in-session task, no adjudication | FORK acceptable |
+| DEFAULT | SLING |
+
+Example sling command:
+
+```
+gc sling <rig>/gc.run-operator <convoy-id> --on <formula>
+```
+
+Authority: gsp-mnfj (2026-07-16). The earlier "always fork" rule (gsp-geuo) is superseded by gsp-mnfj.
+
 ## Rule 1 — Always use the rig-scoped coordinator
 
 The bare `gc.run-operator` does NOT resolve at HQ level. Always use:
