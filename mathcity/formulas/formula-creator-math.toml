@@ -39,9 +39,14 @@ required = true
 pattern = "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
 
 [vars.model]
-description = "Model for gather-spec and draft-toml steps. sonnet is sufficient; use opus when requirements are ambiguous."
+description = "Model for draft-toml and validate steps. sonnet is sufficient; use opus when requirements are ambiguous."
 default = "sonnet"
 enum = ["haiku", "sonnet", "opus"]
+
+[vars.plan_target]
+description = "Model for the gather-spec planning step. Default fable — Fable plans, Haiku/Sonnet execute (policy: fable-plans-haiku-executes)."
+default = "fable"
+enum = ["fable", "opus", "sonnet"]
 
 [vars.artifact_root]
 description = "Root for the brief artifact."
@@ -54,7 +59,7 @@ default = ""
 [[steps]]
 id = "gather-spec"
 title = "Read {{source_bead}} and extract formula specification"
-metadata = { "gc.run_target" = "{{model}}" }
+metadata = { "gc.run_target" = "{{plan_target}}" }
 description = """
 Read the source bead and any provided context to extract a formula spec.
 
@@ -76,9 +81,10 @@ You are extracting:
 3. **Vars** — list every runtime parameter the formula will need.
 4. **Steps** — enumerate each step (id + one-line purpose). The LAST step
    MUST be `file-brief`, `brief-finalize`, or `workflow-finalize`.
-5. **Run targets** — which pool each step routes to (haiku/sonnet/opus or a
-   named session like `mathcity.brief-operator`). Plan steps in methodology
-   shape MUST route to opus or a `plan_target` var.
+5. **Run targets** — which pool each step routes to (haiku/sonnet/opus/fable or a
+   named session like `mathcity.brief-operator`). The gather-spec step routes to
+   `{{plan_target}}` (default: fable). Plan steps in methodology shape MUST route
+   to fable or opus; execution steps use haiku/sonnet.
 
 Record the spec in bd notes:
 
