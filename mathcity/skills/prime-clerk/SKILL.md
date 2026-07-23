@@ -76,6 +76,11 @@ presentation, recording, or dispatch channel.
   `type=decision` bead, **closes** that bead, and **rings the
   `brief.decided` event**. Use this directly when you are NOT going through
   `present-briefs` (e.g., a single-brief session or a re-adjudication).
+  **Fork-wrapper (added 2026-07-22):** invoking `/adjudicate-brief`
+  causes the calling session to launch a fork and emit exactly one line
+  (`"Fork launched: <bead> → <verdict>. Session free."`), then stop.
+  All bd commands and sling dispatch run inside the fork — the calling
+  session does not wait and does not run bd commands itself.
 - **DISPATCH — `math-city-work`.** After an **approve** verdict, the clerk
   dispatches the artifact directly — no mayor routing required. Run
   `/math-city-work` with the artifact bead ID immediately after recording.
@@ -116,6 +121,13 @@ gc sling <rig>/gc.run-operator <artifact-bead> --on build-basic-briefed \
   --var interaction_mode=autonomous --var review_mode=agent \
   --var drain_policy=separate --var push=false --var open_pr=false
 ```
+
+**Rig detection by artifact prefix:** `he-*` → `hecke`; `gsp-*` →
+`gascity-packs`; `gt-*` → check the bead's home rig. For
+`gascity-packs` publish-path artifacts the role may be `gc.publisher`
+rather than `gc.run-operator` — check the brief's §7 for the
+expected publisher role. When in doubt let `/math-city-work` build
+the command.
 
 **Never copy a sling command from inside a brief body.** Q16-era briefs
 often contain `gc sling <rig>/gastown.polecat` — `gastown.polecat` is
