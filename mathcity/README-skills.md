@@ -2,7 +2,7 @@
 
 **Single canonical cross-pack index of every skill in the mathcity pack family.**
 
-106 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+108 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
 
 **Maintenance (single source of truth — no competing updater):**
 - `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
@@ -11,7 +11,7 @@
 
 _Regenerate/verify with `/update-README`._
 
-### Parent pack — `mathcity/skills/`  (44)
+### Parent pack — `mathcity/skills/`  (46)
 
 | Skill | Alias | What it does |
 |---|---|---|
@@ -19,6 +19,8 @@ _Regenerate/verify with `/update-README`._
 | `authorize-git-operation` | `mathcity.authorize-git-operation` | Explicit Taylor-authorization gate for irreversible git operations — push, force-push, merge, PR creation, branch deletion, release tag |
 | `bead-check` | `mathcity.bead-check` | Use when the disposition of a specific bead is in question — stale, possibly superseded, mis-filed, orphaned, or in the wrong rig — and a recommendation is needed before anyone acts on it |
 | `brief-prep` | `mathcity.brief-prep` | Specialized worker that owns the brief-prep pipeline end-to-end |
+| `check-briefs` | `mathcity.check-briefs` | Report the current brief stack — compact table (Rig, Artifact, unlock_count, Age, Epic/linked) sorted by unlock_count descending |
+| `check-stack` | `mathcity.check-stack` | Report the current brief stack status — count and table of actionable briefs (approved, bead not yet closed) sorted by unlock_count descending |
 | `catch-no-brainer` | `mathcity.catch-no-brainer` | PRELIMINARY v0.2 — classify a brief against the he-lele 5-criterion no-brainer test, plus recognize the capability-blocker shape (would-be no-brainer stalled by a permission/capability gap) and signal compact-form eligibility to downstre… |
 | `communicate-with-other-agent` | `mathcity.communicate-with-other-agent` | Send and read messages between concurrent Claude Code agents via the shared inbox ~/gt/.claude/.agent-inbox.md |
 | `compare-artifacts` | `mathcity.compare-artifacts` | Semantic-diff between two text artifacts |
