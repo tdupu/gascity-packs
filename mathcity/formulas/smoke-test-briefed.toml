@@ -1,0 +1,267 @@
+description = """
+Run a basic smoke test against a mathcity artifact (formula TOML, skill SKILL.md,
+Magma intrinsic, Magma function, Python script, or shell script) and file a
+decision brief containing the test evidence and a reproducibility guide.
+
+Satisfies F6.1 (POLICY-formulas.md): every new formula or artifact must have
+a smoke test run and passing before its deploy brief is filed.
+
+Steps:
+  1. classify-artifact   — identify the artifact type and select the minimal
+                           test strategy for that type
+  2. generate-test       — write the smoke test script to mathcity/tests/<slug>/
+  3. run-test            — execute the smoke test; record stdout/stderr/exit code
+  4. record-results      — write a human-readable results + reproducibility .md
+  5. file-brief          — file a Taylor decision brief with the test evidence
+                           and a recommended disposition (pass / conditional / fail)
+
+Does NOT modify the artifact under test — read-only audit only.
+Does NOT gate on Taylor adjudication of the artifact itself; that is separate.
+"""
+formula = "smoke-test-briefed"
+version = 1
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[catalog]
+name = "smoke-test-briefed"
+description = "Smoke-test a mathcity artifact (formula, skill, Magma, Python, script) and file a brief with test evidence and reproducibility guide (F6.1)."
+
+[vars]
+
+[vars.artifact_path]
+description = "Path to the artifact under test (formula TOML, SKILL.md, .mag file, .py file, .sh script, etc.)."
+required = true
+
+[vars.artifact_type]
+description = "Type of artifact. Used to select the correct smoke-test strategy."
+required = true
+enum = ["formula", "skill", "magma-intrinsic", "magma-function", "python", "script"]
+
+[vars.test_slug]
+description = "Stable slug for the test run. Used as the test directory name and brief artifact stem."
+required = true
+pattern = "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+
+[vars.source_bead]
+description = "Optional: bead ID that tracks the artifact. Used to record test results as bead notes."
+default = ""
+
+[vars.brief_slug]
+description = "Stable filename stem for the brief artifact. Defaults to test_slug."
+default = "{{test_slug}}-smoke-test"
+
+[vars.artifact_root]
+description = "Root for the brief artifact."
+default = ".beads/briefs"
+
+[vars.test_root]
+description = "Root directory for test scripts and results."
+default = "mathcity/tests"
+
+[vars.operator_target]
+description = "Fleet agent for deterministic steps (classify, generate, record)."
+default = "gc.run-operator"
+
+[vars.review_target]
+description = "Fleet agent for reviewing test results and drafting the brief."
+default = "gc.review-synthesizer"
+
+[[steps]]
+id = "classify-artifact"
+title = "Classify {{artifact_type}} artifact and select smoke-test strategy"
+metadata = { "gc.run_target" = "{{operator_target}}" }
+description = """
+Read the artifact at `{{artifact_path}}` and determine the minimal smoke-test
+strategy for its type.
+
+```bash
+# Confirm file exists and is readable
+test -r "{{artifact_path}}" || { echo "ARTIFACT NOT FOUND: {{artifact_path}}"; exit 1; }
+```
+
+**Strategy by type:**
+
+- **formula**: Parse the TOML with Python `tomllib`; check catalog fields, terminal
+  step id, and that all required `[vars]` have `description` fields. Then attempt
+  a dry-run via `gc formula show {{formula_name}}` to verify the formula is
+  registered and parseable by gc. Smoke test = parse + catalog check + gc show.
+
+- **skill**: Confirm `SKILL.md` exists, has `name:` and `description:` frontmatter,
+  and that any referenced scripts exist. Smoke test = frontmatter parse + script
+  existence check.
+
+- **magma-intrinsic**: Run `magma -b -e 'print IsIntrinsic("<name>"); quit;'` and
+  confirm it returns `true`. Smoke test = intrinsic existence check.
+
+- **magma-function**: Run `magma -b -e 'load "{{artifact_path}}"; print "ok"; quit;'`
+  and confirm it exits 0. Smoke test = load without error.
+
+- **python**: Run `python3 -m py_compile {{artifact_path}}` (syntax check) and
+  then `python3 {{artifact_path}} --help 2>&1 || python3 -c "import importlib.util; s=importlib.util.spec_from_file_location('m','{{artifact_path}}'); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); print('import ok')"`.
+  Smoke test = compile + import or help.
+
+- **script**: Run `bash -n {{artifact_path}}` (syntax check) and then
+  `bash {{artifact_path}} --help 2>&1; echo "exit: $?"` if `--help` is safe.
+  Smoke test = syntax check + help invocation.
+
+Record the selected strategy:
+```bash
+bd update {{source_bead}} --notes "smoke-test-briefed classify-artifact: type={{artifact_type}}, strategy=<one-line description>"
+```
+(Skip bd update if `source_bead` is empty.)
+"""
+
+[[steps]]
+id = "generate-test"
+title = "Write smoke test to {{test_root}}/{{test_slug}}/"
+needs = ["classify-artifact"]
+metadata = { "gc.run_target" = "{{operator_target}}" }
+description = """
+Write a self-contained, idempotent smoke-test script at:
+`{{test_root}}/{{test_slug}}/smoke_test.sh`
+
+The script must:
+- Exit 0 on success, non-zero on failure
+- Print a one-line PASS or FAIL summary at the end
+- Be runnable without arguments: `bash {{test_root}}/{{test_slug}}/smoke_test.sh`
+- Clean up any files it creates (F2.1)
+- Not modify the artifact under test
+
+Also write `{{test_root}}/{{test_slug}}/README.md` with:
+- What is being tested and why
+- How to run the test (`bash <path>`)
+- What a passing result looks like (expected stdout snippet)
+- Known limitations / what is NOT tested
+
+```bash
+mkdir -p "{{test_root}}/{{test_slug}}"
+```
+
+Record the test path:
+```bash
+bd update {{source_bead}} --notes "smoke-test-briefed generate-test: written to {{test_root}}/{{test_slug}}/smoke_test.sh"
+```
+(Skip if source_bead is empty.)
+"""
+
+[[steps]]
+id = "run-test"
+title = "Run smoke test and record results"
+needs = ["generate-test"]
+metadata = { "gc.run_target" = "{{operator_target}}" }
+description = """
+Execute the smoke test and capture all output:
+
+```bash
+cd <rig-root>
+bash "{{test_root}}/{{test_slug}}/smoke_test.sh" \
+  2>&1 | tee "{{test_root}}/{{test_slug}}/results.txt"
+EXIT_CODE=${PIPESTATUS[0]}
+echo "exit_code: $EXIT_CODE" >> "{{test_root}}/{{test_slug}}/results.txt"
+```
+
+Record outcome:
+```bash
+bd update {{source_bead}} --notes "smoke-test-briefed run-test: exit_code=$EXIT_CODE, output at {{test_root}}/{{test_slug}}/results.txt"
+```
+(Skip bd update if source_bead is empty.)
+
+If exit_code != 0, do NOT stop — continue to record-results and file-brief
+so Taylor sees the failure evidence. The brief will recommend a FAIL disposition.
+"""
+
+[[steps]]
+id = "record-results"
+title = "Write test results and reproducibility guide"
+needs = ["run-test"]
+metadata = { "gc.run_target" = "{{review_target}}" }
+description = """
+Write `{{test_root}}/{{test_slug}}/TESTING.md` — the canonical human-readable
+test record and reproducibility guide for this artifact.
+
+The document MUST contain:
+
+## 1. Artifact under test
+  - Path, type, git SHA at time of test
+
+## 2. Test summary
+  - Date, tester (this formula run), outcome (PASS / FAIL / CONDITIONAL)
+  - One-sentence summary of what passed and what did not
+
+## 3. How to reproduce
+  - Exact commands to re-run the smoke test, copy-pastable
+  - Any environment requirements (Magma version, Python version, etc.)
+  - Expected output (copy of the passing stdout from results.txt)
+
+## 4. What this test does NOT cover
+  - Mathematical correctness (if applicable)
+  - Edge cases not in the smoke-test scope
+  - Performance or resource limits
+
+## 5. Recommended next tests
+  - One or two concrete suggestions for what to test next
+  - This is the "tests grow over time" hook (F6.1)
+
+Read `results.txt` to populate sections 2 and 3. If the test failed, section 2
+must state that clearly and section 3 must explain how to debug the failure.
+"""
+
+[[steps]]
+id = "file-brief"
+title = "File test-evidence brief for {{test_slug}}"
+needs = ["record-results"]
+metadata = { "gc.run_target" = "mathcity.brief-operator" }
+description = """
+File a decision brief with the test evidence so Taylor can review.
+
+```bash
+BRIEF_PATH="{{artifact_root}}/stack/{{brief_slug}}.md"
+mkdir -p "{{artifact_root}}/stack"
+```
+
+The brief MUST contain:
+- `status: approved` frontmatter
+- `brief_bead: {{source_bead}}` (if non-empty)
+- `brief_slug: {{brief_slug}}`
+- `recommended_verdict: A` (pass), `C` (conditional — minor issues), or `R` (fail)
+- Full contents of `{{test_root}}/{{test_slug}}/TESTING.md` embedded inline
+- Pass/fail status of each smoke-test step
+
+Template:
+
+```markdown
+---
+status: approved
+brief_bead: {{source_bead}}
+brief_slug: {{brief_slug}}
+recommended_verdict: <A|C|R>
+---
+
+# Smoke Test Brief: `{{test_slug}}`
+
+## Artifact
+- Path: `{{artifact_path}}`
+- Type: `{{artifact_type}}`
+
+## Result: <PASS | CONDITIONAL | FAIL>
+
+<One-paragraph summary of what was tested and what the outcome was.>
+
+## TESTING.md
+
+<Full contents of {{test_root}}/{{test_slug}}/TESTING.md>
+
+## Recommended verdict
+
+**<A|C|R>** — <one sentence justification>
+```
+
+After writing:
+```bash
+bd update {{source_bead}} --notes "smoke-test-briefed file-brief: brief filed at {{brief_slug}}.md — awaiting Taylor verdict"
+gc runtime drain-ack
+```
+(Skip bd update if source_bead is empty; still run drain-ack.)
+"""
