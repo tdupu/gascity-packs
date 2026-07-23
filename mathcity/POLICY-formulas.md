@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.1 |
+| Version | 1.2 |
 | Status | Draft |
 | Date | 2026-07-23 |
 | Prefix | F |
@@ -164,9 +164,53 @@ duplicates of what already exists. `check-zero` + `check-wheel` is the single
 
 ---
 
+## Pillar 5 — Pre-dispatch review gates
+
+*Coordination and adversarial review happen before dispatch, not after.
+A formula whose plan or design has not passed critical review must not
+be slung to the fleet.*
+
+**F5.1 — Coordinated review and critical review required before dispatch.**
+Before a formula is dispatched (`gc sling` or equivalent), it must pass
+a coordinated review via `/fp-finder` (or `/coordinate-review`) AND
+`/critical-review`. Both gates must return a passing verdict. A formula
+that has not cleared both gates, or that received a FAIL verdict, must not
+be slung.
+
+Pass: the dispatch decision brief includes passing verdicts from
+`/fp-finder` (or `/coordinate-review`) and `/critical-review`.
+Fail: formula is slung without documented passing verdicts from both gates,
+or a FAIL verdict was overridden without a Taylor APPROVE exception recorded
+in the brief.
+
+Rationale: coordination and adversarial review before dispatch catch
+false-positive designs, integration conflicts, and critical flaws before
+they consume fleet resources. Reviews after the sling are too late to
+prevent wasted work.
+
+**F5.2 — Formula plan must pass critical review before execution begins.**
+The plan produced within a formula's planning step must pass `/critical-review`
+before any execution steps begin. A formula whose plan has not been critically
+reviewed must not proceed past the planning step into implementation or
+execution steps.
+
+Pass: a `/critical-review` step explicitly follows the planning step (or is
+embedded as a sub-task within it); execution steps declare
+`needs = ["critical-review"]` or equivalent ordering.
+Fail: execution steps begin without a `/critical-review` of the plan, or
+the planning step has no downstream critical-review gate before the first
+execution step.
+
+Rationale: a plan that has not been adversarially reviewed can silently
+embed wrong assumptions. Catching plan errors before execution prevents
+expensive downstream rework.
+
+---
+
 ## Change Log
 
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-07-23 | Initial draft — three pillars (F1–F3), six rules (F1.1–F1.3, F2.1–F2.3, F3.1–F3.3). Prefix F registered. Taylor directive (QUIMBY Q27). |
 | 1.1 | 2026-07-23 | Add F4.1 — /check-zero + /check-wheel required before terminal brief (Pillar 4: Pre-brief quality gates). Taylor directive (QUIMBY Q27). |
+| 1.2 | 2026-07-23 | Add F5.1 + F5.2 — Pillar 5 pre-dispatch review gates (/fp-finder or /coordinate-review + /critical-review before sling; /critical-review on plan before execution). Taylor directive (QUIMBY Q27). |
