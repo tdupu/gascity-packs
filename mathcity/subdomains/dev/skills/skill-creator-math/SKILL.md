@@ -137,10 +137,33 @@ Pack-dev skills (anything derived from
      `update-README` full-syncs this same file on any pack change — if
      unsure about drift, run `/update-README` rather than hand-patching.
    - Commit it with the pack changes (same fork `tdupu/gascity-packs`).
-8. **Final verification.** Both `ls -la ~/.claude/skills/<name>/SKILL.md`
-   and `ls -la ~/gt/.claude/skills/<sink-name>/SKILL.md` must resolve (the
-   Step 5 gate already asserted this; re-confirm after the commit). New
-   Claude Code sessions see the skill at startup; running sessions pick it
+8. **Final verification — three gates, all required.** A skill is not
+   shipped until all three pass:
+
+   **Gate A — sink resolve** (Step 5 already ran this; re-confirm after commit):
+   ```bash
+   test -r ~/.claude/skills/<name>/SKILL.md \
+     && echo "Sink A OK" || echo "FAIL Sink A — fix symlink"
+   test -r ~/gt/.claude/skills/<sink-name>/SKILL.md \
+     && echo "Sink B OK" || echo "FAIL Sink B — fix symlink"
+   ```
+
+   **Gate B — README-skills.md entry (REQUIRED — no exceptions):**
+   ```bash
+   grep -q '<name>' ~/repos/gascity-packs/mathcity/README-skills.md \
+     && echo "README-skills.md OK" \
+     || echo "FAIL README-skills.md — add row per step 7 before marking done"
+   ```
+   A skill with no README-skills.md entry is invisible to future agents
+   auditing the index. This is a hard stop — do not report success until
+   the grep passes.
+
+   **Gate C — symlink health:**
+   ```bash
+   sh ~/repos/agent-skills/scripts/check-skill-symlinks.sh 2>&1 | grep -E "BROKEN|MISSING|OK"
+   ```
+
+   New Claude Code sessions see the skill at startup; running sessions pick it
    up on their next skill-list reload; city agents and the
    `gascity:mathcity.*` registry see it via Sink B.
 
