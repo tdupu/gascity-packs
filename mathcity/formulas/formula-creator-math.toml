@@ -157,7 +157,16 @@ needs = ["draft-toml"]
 title = "Validate {{formula_name}}.toml — briefed terminal step + hygiene gate"
 metadata = { "gc.run_target" = "{{model}}" }
 description = """
-Run three checks against the draft TOML. All three must pass before filing the brief.
+Run four checks against the draft TOML. All four must pass before filing the brief.
+
+**Before running any check, read POLICY-formulas.md:**
+
+```bash
+cat ~/gt/gascity-packs/mathcity/POLICY-formulas.md
+```
+
+This is required by F3.1 — formula-creation formulas must check the draft against
+all applicable policies before briefing.
 
 ## Check 1 — TOML parses
 
@@ -201,11 +210,72 @@ print('Catalog fields: valid ✓')
 PY
 ```
 
+## Check 4 — POLICY-formulas.md conformance (F-rules)
+
+Audit the draft against all F-rules in POLICY-formulas.md:
+
+```python
+python3 << 'PY'
+import tomllib, re, sys
+
+with open('/tmp/{{formula_name}}.toml', 'rb') as f:
+    d = tomllib.load(f)
+
+MODEL_NAMES = {'fable', 'opus', 'sonnet', 'haiku'}
+HIGH_TIER = {'gc.design-author', 'gc.review-synthesizer', 'gc.requirements-planner'}
+LOW_TIER = {'gc.run-operator', 'gc.implementation-worker', 'mathcity.brief-operator'}
+PLANNING_VERBS = re.compile(r'plan|design|gather.spec|requirements|architect|brainstorm', re.I)
+EXEC_VERBS = re.compile(r'execute|^run|implement|write|commit|validate|file.brief', re.I)
+TMP_PAT = re.compile(r'/tmp/')
+CLONE_PAT = re.compile(r'git clone|git checkout')
+
+fails = []
+
+for step in d.get('steps', []):
+    sid = step.get('id', '')
+    stitle = step.get('title', '')
+    sdesc = step.get('description', '')
+    target = (step.get('metadata') or {}).get('gc.run_target', '')
+
+    # F1.3 — no model names as run_target
+    if target in MODEL_NAMES:
+        fails.append(f'F1.3 FAIL: step "{sid}" gc.run_target="{target}" is a model name, not a fleet address')
+
+    # F1.1 — planning steps to high tier
+    if PLANNING_VERBS.search(sid) or PLANNING_VERBS.search(stitle):
+        if target and target not in HIGH_TIER and target not in ('{' + '{plan_target}}',):
+            fails.append(f'F1.1 WARN: step "{sid}" looks like a planning step but routes to "{target}" (expected high-tier address)')
+
+    # F2.1 — tmp files
+    if TMP_PAT.search(sdesc):
+        term = d.get('steps', [])[-1]
+        if TMP_PAT.search(sdesc) and 'rm' not in (term.get('description') or ''):
+            fails.append(f'F2.1 WARN: step "{sid}" writes to /tmp but terminal step has no rm cleanup')
+
+# F3.3 — vars with run_target-bound defaults
+for vname, vdef in (d.get('vars') or {}).items():
+    for field in ('default', 'enum'):
+        val = vdef.get(field, [])
+        if isinstance(val, str):
+            val = [val]
+        for v in val:
+            if v in MODEL_NAMES:
+                fails.append(f'F3.3 FAIL: [vars.{vname}] {field}="{v}" is a model name (F1.3/F3.3)')
+
+if fails:
+    for f in fails:
+        print(f)
+    sys.exit(1)
+else:
+    print('POLICY-formulas.md (F1.1, F1.3, F2.1, F3.3): all checks PASS ✓')
+PY
+```
+
 If any check fails, fix the draft in-place and re-run before proceeding.
 Record the validation outcome:
 
 ```bash
-bd update {{source_bead}} --notes "formula-creator-math validate: all checks passed. terminal-step=<id>"
+bd update {{source_bead}} --notes "formula-creator-math validate: all checks passed (TOML, terminal-step, catalog, POLICY-formulas F-rules). terminal-step=<id>"
 ```
 """
 

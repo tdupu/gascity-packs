@@ -22,6 +22,12 @@ Think of it as: **`simple-work` is to `simple-work-briefed`** as
 
 ## Pre-flight (fleet must be up)
 
+Before dispatching, read **[POLICY-formulas.md](../../../../POLICY-formulas.md)**
+to ensure the formula spec you are about to create will pass the F-rule checks
+(F1.x agent-tier separation, F2.x clean-up discipline, F3.x policy conformance).
+The fleet agent that runs `formula-creator-math` will check F-rules in its
+`validate` step — but reviewing them here prevents a round-trip brief rejection.
+
 ```bash
 tmux -L gt ls >/dev/null 2>&1 || {
   echo "I'm sorry, I can't do that — no tmux fleet server."

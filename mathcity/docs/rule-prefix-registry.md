@@ -14,6 +14,7 @@ All rule ID prefixes for mathcity policies are reserved here. Rule IDs are globa
 | LM | LMFDB subdomain (labels, experiments, server usage, type creation) | `subdomains/lmfdb/POLICY.md` | Draft (2026-07-12) | LM1.3, LM3.4 |
 | C | Computing (caching/memoization, DRY/code-factoring, intrinsic testing, regression testing) | `subdomains/computing/POLICY.md` | Draft (2026-07-12) | C1.1, C3.2, C4.1 |
 | PD | Policies subdomain (meta-policy tooling, skill lifecycle for policy management skills) | `subdomains/policies/POLICY.md` | Draft (2026-07-19) | PD1.1 |
+| F | Formula policy (agent-tier separation, clean-up discipline, policy conformance for formula TOMLs) | `POLICY-formulas.md` (pack root) | Draft (2026-07-23) | F1.1, F2.1, F3.1 |
 
 ## Rules
 
