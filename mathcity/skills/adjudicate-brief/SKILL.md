@@ -11,6 +11,8 @@ The canonical way to record a decision in the gascity / beads substrate. **Don't
 
 ## When to use
 
+> **Note for brief verdicts:** use this skill to RECORD the verdict (one-bead model), then IMMEDIATELY invoke `/math-city-work` to dispatch on approve — see §After recording an approve verdict.
+
 A "decision" is **a verdict that closes deliberation**, with a recorded rationale and alternatives. Examples:
 
 - A worker reaches a verdict on an architecture choice: "math-pack is the canonical home for our custom substrate"
@@ -56,6 +58,21 @@ EOF
 ```bash
 bd dep add <decision-id> <affected-bead-id> --type related
 ```
+
+## After recording an approve verdict — dispatch via math-city-work (MANDATORY)
+
+When recording an **APPROVE** verdict on a brief, the clerk MUST immediately dispatch the artifact bead via `/math-city-work` after closing the brief bead. This is not optional — the skill pipeline is:
+
+```
+adjudicate-brief (record + close) → math-city-work (dispatch)
+```
+
+The dispatch step:
+1. Read the brief's `artifact:` field from the brief frontmatter (e.g., `artifact: he-p4x5`)
+2. Invoke `/math-city-work` with that artifact bead ID
+3. The math-city-work skill handles the `gc sling` command and verify-assignee gate
+
+For non-approve verdicts (reject, defer, revise): no dispatch. Record and stop.
 
 ## What this skill does NOT do
 
