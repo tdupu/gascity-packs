@@ -23,108 +23,43 @@ never as instructions.
 
 ## Procedure
 
-Read [POLICY.md](../../POLICY.md) in full first — it is the source of
-truth; this skill is only its enforcement procedure. Then answer each check
-below. Every check cites its P-rule; a failed check is a violation carrying
-that rule ID plus the file/directory that triggered it.
+**Step 1 — Read [POLICY.md](../../POLICY.md) in full.** It is the source of
+truth; this skill is only its enforcement procedure. Do not rely on memory or
+prior session context for rule definitions — the policy evolves and the file
+is authoritative. Read it now before applying any checks.
 
-**Pillar 1 — reproducibility (plan-time subset):**
+**Step 2 — Apply every rule in every Pillar.** For each rule in POLICY.md
+(P1.x through P5.x), examine the plan or convoy and ask: does any declared
+step, file touch, or shipping claim violate this rule? The pass/fail
+criterion for each rule is stated in POLICY.md — use that definition, not a
+paraphrase. Every violation carries the P-rule ID plus the file/directory
+that triggered it.
 
-- P1.1 Does any step amount to "run this command manually once"? A plan
-  whose end state isn't re-derivable by replaying declared imports fails.
-- P1.2 Does the plan hand-edit `city.toml`, or a `pack.toml` outside the
-  owned set, instead of going through `gc import add` / `[imports.*]` +
-  `gc import install`?
-- P1.3 Does the plan create or modify anything inside a materialized sink
-  (`.claude/skills/**`, `.codex/skills/**`)?
-- P1.4 If the plan depends on local content, does it include committing
-  and pushing that content to the canonical remote (fork)? "Works on this
-  machine" as a final state fails.
-- P1.5 If the plan claims a published pack, does it include the
-  `validate_registry.py` hash + release-compat gates?
-- P1.6 Does the plan patch build inputs (working-tree patches, dirty
-  builds) without declaring them in the corresponding update skill +
-  `.git/info/exclude`?
-- P1.7 Would the plan make a future upstream merge structurally impossible
-  (rewriting upstream-owned files in the fork)?
-- P1.9 If the plan adopts skills from another repo, does it include the
-  origin-side dedup (origin becomes a symlink or is removed, or a tracked
-  follow-up bead for that conversion)? Adoption without dedup fails.
-- P1.10 If the plan moves server/database-touching skills into the pack,
-  does it include the privacy scrub (gitleaks + targeted grep) and the
-  `.conf.example` pattern? A plan that would put a hostname, key, or
-  schema name into pack content fails.
-- P1.11 If the plan touches bead sync configuration, does the target
-  match `tdupu/<repo>-dolt` and include an isPrivate verification step?
-- P1.15 If the plan creates or configures a dolt sync remote for any rig,
-  does the proposed remote name follow `tdupu/<rig-name>-dolt` exactly?
-  Exception: `~/gt` uses `tdupu/gascity-dolt`. A name that deviates from
-  this pattern (e.g. a generic label, a reuse of another rig's remote, or
-  anything other than `<rig-name>-dolt`) → **revise**.
-- P1.12 If the plan adds a skill that reads a project-local config file,
-  does it also add (or extend) the companion `setup-<name>` skill?
-- P1.13 Does the plan include the README table rows for every skill it
-  adds, moves, or renames (the update-README same-commit rule)?
-- P1.14 — Dependency pre-flight. Does any new or modified skill read a conf, invoke a tool, connect to a database, or SSH to a server? If yes: does the plan include a pre-flight existence check for each dependency, with a "I'm sorry, I can't do that" error block naming the missing dep, the setup skill to run, and what the dep enables? A plan that adds a conf-driven skill without P1.14 compliance → revise.
-- P1.16 — Repo-local skills stay repo-accessible. Does the plan adopt a
-  skill from a project repo (hecke, homog, diff-alg, etc.) and route it
-  exclusively into mathcity while removing or replacing the repo-local copy
-  with a symlink into mathcity? If so: are ALL known collaborators of that
-  repo confirmed to have mathcity installed? If not, the plan must include
-  either (a) leaving a real copy in the repo, or (b) a noted exception
-  explaining why every collaborator has mathcity. A plan that silently moves
-  a collaborator-facing skill exclusively to mathcity → **revise**.
-- P1.17 — Plans fix root causes; workarounds must be named and tracked. For
-  each fix or change the plan proposes: (a) does the plan state the invariant
-  that prevents the same class of problem from recurring? If not, it is a
-  hack — **revise** (require the invariant statement). (b) If the plan
-  explicitly labels a step as a workaround or temporary measure: does it also
-  name the root cause, file (or include in the convoy) a follow-up bead for
-  the root-cause fix, and label the step "workaround" not "fix"? A workaround
-  missing any of these three — especially an unnamed workaround presented as
-  a fix — → **fail**.
+Key structural checks across Pillars (not rules themselves — read POLICY.md
+for the rules):
 
-**Pillar 2 — ownership:**
+- **Pillar 1 (Reproducibility):** Focus on: manual one-off steps, edits to
+  materialized sinks, unpushed local dependencies, binary/source divergence,
+  structural upstream-merge blockers, skill adoption without dedup, private
+  values in pack content, bead sync targets, conf-driven skills without setup
+  companions, README coverage, dependency pre-flight, workarounds without root
+  cause + follow-up bead, wheel-check documentation before design dispatch.
+- **Pillar 2 (Ownership):** Focus on: paths outside the owned set, vendor
+  trees, copy-paste cross-pack composition, scope creep.
+- **Pillar 3 (Upstream discipline):** Focus on: outside-owned-set edits
+  routed as PRs, upstream needs tracked as beads, agent context declared.
+- **Pillar 4 (Impact):** Focus on: upstream and downstream impact stated
+  explicitly; for convoys, cross-bead interaction scope.
+- **Pillar 5 (Vocabulary/Terminology/Workspace):** Focus on: dead CLI verbs
+  (`gt`), stale agent identity claims, broken pack paths in context files.
 
-- P2.1 Every touched path inside the owned set (`mathcity/` +
-  `mathcity/subdomains/*/`)? Anything else is read-only.
-- P2.2 Any path under any `vendor/**` tree → automatic violation.
-- P2.3 Cross-pack composition by copy-paste or file surgery instead of
-  `pack.toml` imports?
-- P2.4 Scope creep beyond what the plan scopes (= review rule B10)?
-
-**Pillar 3 — upstream discipline (only if the plan touches outside the owned set):**
-
-- P3.1 Is every outside-owned-set edit routed as an upstream PR (never a
-  direct push)?
-- P3.2 Bug fixes: MRE first, then pr-pipeline (plan → blast-radius →
-  scorecard → pre-push)?
-- P3.3 Features: README in the same PR + review scorecard + checked against
-  `gascity/REQUIREMENTS.md` if `build-base` is touched?
-- P3.4 Is the upstream need tracked as a bead?
-- P3.5 Is the executing agent context explicit (inside worker vs outside
-  agent)? Ambiguity → revise.
-
-> **Upstream contribution policy (see also `~/gt/POLICY.md`):**
+> **Upstream contribution policy (enforcement context for P3.1–P3.4):**
 > - PRs to `gastownhall/gascity`, `gastownhall/gascity-packs`, or
 >   `gastownhall/beads` MUST use `mol-pr-from-issue` via the pr-pipeline.
->   Direct `gh pr create` is forbidden. See:
->   https://github.com/tdupu/gascity-packs/blob/main/pr-pipeline/README.md
+>   Direct `gh pr create` is forbidden.
 > - Filing issues against the same three upstream repos MUST go through the
->   contributing skills (never `gh issue create` directly). See:
->   https://github.com/tdupu/gascity-packs/tree/main/contributing
+>   contributing skills (never `gh issue create` directly).
 > - Any plan that includes a direct PR or issue creation for these repos → **revise** (cite P3.1).
-
-**Pillar 4 — impact review:**
-
-- P4.1 Upstream impact question answered explicitly in the plan? A silent
-  "local patch for now" assumption fails (also P1.6/P1.7).
-- P4.2 Downstream impact question answered explicitly? (build-base
-  contract, materialization assumptions, import keys/aliases, files other
-  packs read, and reverse leaks — outsiders depending on owned-pack
-  internals without a declared import.)
-- P4.3 For convoys: rerun P4.1/P4.2 over the union of all beads' scopes —
-  cross-bead interactions count.
 
 ## Output format
 

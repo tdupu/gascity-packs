@@ -7,9 +7,15 @@ description: Audit the CURRENT live install — gc/bd binaries, the three source
 
 Audit the live install against [POLICY.md](../../POLICY.md): could Taylor
 (or a collaborator) recreate what is running on this machine from pushed
-source, and can upstream still be pulled? Read POLICY.md first — it is the
-source of truth; this skill is its audit procedure. Every finding cites a
-P-rule and comes with a remediation.
+source, and can upstream still be pulled?
+
+**Read [POLICY.md](../../POLICY.md) in full first.** It is the source of
+truth; this skill is its audit procedure. Rule definitions live there — do
+not rely on memory or cached context. The numbered checks below provide the
+*executable mechanisms* for audit areas that have shell-level verification
+steps; they do NOT reproduce rule prose. For P-rules not covered by a
+numbered check, apply them as judgment-call observations at the end of the
+audit. Every finding cites the P-rule and comes with a remediation.
 
 Read-only by default: this skill **reports** drift; it repairs only when
 the user explicitly asks.
@@ -232,7 +238,7 @@ the skill name, and the collaborators who would lose access).
 
 **10. Replay litmus (P1.1) — judgment call.**
 
-Given checks 1–8, answer: "if I `gc init` a scratch city and replay only
+Given checks 1–9, answer: "if I `gc init` a scratch city and replay only
 the declared imports on a fresh machine, do I get this city?" List every
 piece of load-bearing state that would be missing (hand-placed sink
 symlinks are fine — they're encoded in `skill-creator-math`; an
@@ -282,6 +288,15 @@ grep -q 'outside agent\|inside agent\|GC agent\|GASCITY AGENT' ~/gt/AGENTS.md \
 
 Findings → revise. Add to the Non-negotiable checklist: "No dead CLI verbs
 (gt) or broken pack paths in workspace context files — P5.2."
+
+**12. Catch-all — remaining P-rules (POLICY.md §Pillars 1–5).**
+
+After running checks 1–11, re-read POLICY.md and enumerate any P-rule not
+yet covered by a numbered check above. Apply each as a judgment-call
+observation: does the live install state violate that rule? Flag violations
+with the P-rule ID and a one-line remediation. This step is how new rules
+added to POLICY.md automatically enter the audit without requiring a skill
+update.
 
 ## Output format
 

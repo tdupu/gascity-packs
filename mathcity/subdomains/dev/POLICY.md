@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Adopted |
-| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only; amended 2026-07-14: P5.4 truth-is-in-the-code; amended 2026-07-15: P1.19 append-don't-edit beads; amended 2026-07-20: P3.2 upstream issue template required before pr-pipeline) |
+| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only; amended 2026-07-14: P5.4 truth-is-in-the-code; amended 2026-07-15: P1.19 append-don't-edit beads; amended 2026-07-20: P3.2 upstream issue template required before pr-pipeline; amended 2026-07-22: P1.20 check-wheel before design/skill dispatch; P5.5 Claude not a co-author) |
 | Decided | Taylor Dupuy, via grilling session (three open questions resolved; record at bottom) |
 | Applies to | All packs Taylor owns in this repo — the **owned pack set** (§ Scope) |
 | Consumers | `check-hygiene` skill (to be built via skill-creator); mayor priming (`mayor-math`); any agent planning work in this repo |
@@ -245,6 +245,23 @@ recreate what you're running; upstream must remain pullable.*
   directive 2026-07-15, after a `bd update --notes` on a shared bead deepened a
   live Dolt row-conflict in the multi-clone setup.)
 
+- **P1.20 Check-wheel before dispatching design or skill work.** Any plan,
+  convoy, or dispatch for **formula design, methodology design, or skill
+  design** must include a documented check-wheel pass before the dispatch step.
+  The pass result is recorded in the plan doc's §E alternatives/check-zero
+  section — at minimum one entry per alternative surveyed, each noting why it
+  was adopted, adapted, or ruled out, and a stated verdict (adopt / adapt /
+  rule-out). *Allowed exceptions (precise):* (a) trivial prose edits to an
+  existing skill (typo, wording) where no architectural alternatives apply;
+  (b) a skill that is a pure wrapper over a single uniquely-specified upstream
+  tool with no meaningful alternative (the exception must be stated inline).
+  Pass: the plan or design doc submitted for dispatch includes a §E
+  check-zero/wheel-check section with at least one surveyed alternative and a
+  stated verdict. Fail: any plan dispatched for formula, methodology, or skill
+  build work without a §E wheel-check section → **revise**. (Origin: Taylor
+  directive 2026-07-22; triggered by Opus fork finding 5 missing wheel-check
+  entries in design-master-methodology.md; filed via new-hygiene-policy.)
+
 ## Pillar 2 — Ownership boundary
 
 *You own the owned pack set, nothing else.*
@@ -380,6 +397,21 @@ inside gascity core); this is the pack-level, plan-time analogue.*
 - **P5.3 Use only real, documented bd types.** Any policy document, skill file, AGENTS.md, plan, or bead-touching code that references a bead type must use only the types documented in `bd create --help` (`--type` flag): `bug`, `feature`, `task`, `epic`, `chore`, `decision`, `spike`, `story`, `milestone`, `event`. Undocumented types (e.g., `research-journal`, `brief`) are hallucinated — they cannot be executed and produce silent failures when passed to `bd create -t`. Custom types require explicit `types.custom` configuration in bd and a documented approval bead before they may appear in any policy pass/fail criterion. The canonical check: `bd create --help | grep -- '--type'` lists the live type set; any type string not in that list with no corresponding `types.custom` config entry → **fail**. (Origin: 2026-07-12 grilling — `type: research-journal` appeared in brief-system POLICY.md B3.7; replaced with `type: spike` + `[RESEARCH_JOURNAL]` label.)
 
 - **P5.4 Behavioral claims are verified against source ("truth is in the code").** Any plan, skill doc, model, README, or workspace context file describing gascity / brief-system / workflow **behavior** must ground each behavioral claim in the authoritative source — the gascity Go source (`~/repos/gascity`), the workflow assets (`gascity/assets/workflows/**`), and the formula/order TOMLs — **not** in plan narratives or prior human summaries. Narrative/plan docs (e.g. `plans/*.md`) are orientation only and are presumed stale until checked. When a doc's behavioral claim contradicts the code, **the code wins**: the claim is corrected in the same pass (ties to P1.17 root-cause discipline and the fix-docs-inline habit). Pass: every non-trivial behavioral claim in a checked doc is traceable to a source file (Go/asset/TOML) and none contradicts current source. Fail: a plan/skill/model asserts gascity behavior that is unsourced **and** contradicted by the code, or repeats a known-stale narrative claim without re-verification. Exception: prose explicitly labeled non-normative ("conceptual overview") needn't cite source line-by-line but still may not contradict it. (Origin: 2026-07-14 grilling — `plans/gascity-restart-context.md` claimed `gc.publisher` "merges branch to main" — VERIFIED FALSE against code, no build/publish path merges to main; and carried command-drift bugs `gc config check` / `gc convoy show` / `gc dolt sql --db`, none of which exist in the binary. Taylor: "the truth is in the code." Cross-ref bd memory `truth-is-in-the-code`.)
+
+- **P5.5 Claude is not a co-author; its use is cited, not attributed.** Commits
+  produced with AI assistance must NOT include `Co-Authored-By: Claude ...`
+  trailers — Claude is not a legal author and the trailer falsely implies
+  authorship on GitHub. Instead, cite AI assistance via the
+  `[autogenerated by Claude <model> v<version> on <datetime>]` footer, per the
+  `claude-commit` skill. *Allowed exceptions (precise):* none — the distinction
+  (citation vs. authorship) applies universally. Pass: commit messages that use
+  the `[autogenerated by ...]` footer form (or omit AI attribution entirely when
+  only light assistance was used). Fail: any commit message containing a
+  `Co-Authored-By: Claude` or `Co-Authored-By: claude-*` trailer → **revise**
+  (remove the trailer; add the `[autogenerated by ...]` footer if AI wrote
+  substantive content). (Origin: Taylor directive 2026-07-22; grounded in
+  `agent-skills/skills/claude-commit/SKILL.md` line: "Do NOT add
+  `Co-Authored-By` lines.")
 
 ## Pillar 6 — Observability & fail-loud
 
@@ -558,6 +590,22 @@ must not contradict `gc agent list`, must include inside/outside agent distincti
 Triggered by: Fable structural audit + Taylor directive that check-build-hygiene
 must cover workspace context files. Enforcement: check-build-hygiene §11 (gs- bead
 filed by Fable agent). Exceptions: explicitly fenced historical sections.
+
+### 2026-07-22 — P5.5 added: Claude is not a co-author
+Commits with AI assistance use `[autogenerated by Claude <model> ...]` footer,
+never `Co-Authored-By: Claude`. Grounded in `claude-commit` skill (line: "Do NOT
+add Co-Authored-By lines"). Triggered by: Taylor directive 2026-07-22.
+Exceptions: none.
+
+### 2026-07-22 — P1.20 added: check-wheel before design/skill dispatch
+Any plan or convoy for formula design, methodology design, or skill design must
+document a check-wheel pass in a §E alternatives/check-zero section before
+dispatch. At minimum one alternative surveyed per plan, with a stated verdict.
+Triggered by: Opus fork finding 5 missing wheel-check entries in
+design-master-methodology.md + Taylor directive 2026-07-22 (new-hygiene-policy).
+Exceptions: (a) trivial prose edits; (b) pure wrappers over uniquely-specified
+upstream tools (stated inline). 5 follow-up beads filed: gsp-7wpbz, gsp-z4u0i,
+gsp-n018o, gsp-6qydb, gsp-lxp6h.
 
 ### 2026-07-12 — P5.1 added: "gascity is the name" (vocabulary & terminology)
 Opens Pillar 5. Codifies that "gastown" is no longer a valid runtime identity or
