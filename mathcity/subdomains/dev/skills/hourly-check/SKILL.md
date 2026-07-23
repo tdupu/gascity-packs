@@ -95,6 +95,7 @@ right place to surface this so the human can act directly.
 | Any session last-active > 2h AND it holds a shuffler lock | Shuffler stall |
 | Any molecule with +1h == 0 AND running for > 3h | Molecule stalled |
 | `PILE` > 0 AND no active brief-operators | Shuffler dead with pile backlog |
+| `gc status` returns partial banner OR reported running count < `TMUX_COUNT` × 0.5 | gc status probe timeout (gs-0cy2) — trust tmux, not gc status |
 
 If a condition is met, emit prominently in the report output (Step 4):
 ```
@@ -110,7 +111,7 @@ Emit a single copy-pastable block:
 • City Health Check — <time> HST (<UTC>) — check <N>/12
 
 ---
-1. Fleet: <N> tmux sessions — <stable/STALLED>. <N> dispatchers, <N> brief-operators <active/idle>, <N> run-operators, <N> impl-workers.
+1. Fleet: <N> tmux sessions (ground truth) — <stable/STALLED>. <N> dispatchers, <N> brief-operators <active/idle>, <N> run-operators, <N> impl-workers. [Use `gc session list` counts, NOT `gc status` running count — see gs-0cy2]
 
 2. Dolt: ✅ <N>ms — healthy. / ⚠️ <N>ms — WARN latency. / ❌ DOWN.
 
@@ -154,6 +155,7 @@ On `FIRING == 1` only:
 - **Shuffler lock stale**: check `gc session list` for brief-operator sessions; if none, `rm ~/gt/.beads/briefs/.shuffle.lock`.
 - **Molecule +1h == 0 for > 3h**: `gc session peek <session-id>` to confirm. If stuck, report to Taylor.
 - **Usage limit hit**: city agents pause on API rate limits. Alert text: "usage limit suspected — agents may be paused. Run /city-status to confirm, then wait or re-nudge sessions."
+- **gc status partial or count mismatch**: bug gs-0cy2 — `gc status` probe timed out; reported counts are wrong. Use `tmux -L gt ls` and `gc session list` as ground truth. No action needed unless tmux count is also anomalous.
 
 ## What this skill does NOT do
 

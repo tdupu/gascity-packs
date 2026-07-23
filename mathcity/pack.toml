@@ -6,3 +6,11 @@ description = "Taylor-local mathematical work pack, including the brief pipeline
 
 [providers.codex]
 base = "builtin:codex"
+
+# WS-A #3 fix (MAYOR-HANDOFF-throughput-plan.md, 2026-07-23, gsp-yxj8r).
+# Invariant: at least one control-dispatcher session exists per rig at all times,
+# independent of demand probes, restart state, or first-tick latency.
+[[named_session]]
+template = "control-dispatcher"
+scope = "rig"
+mode = "always"
