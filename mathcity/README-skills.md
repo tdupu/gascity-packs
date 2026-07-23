@@ -81,10 +81,11 @@ _Regenerate/verify with `/update-README`._
 | `profile-magma` | `mathcity-computing.profile-magma` | Wrap the Magma code the user is working on in a profiling harness to find bottlenecks (slow intrinsics, memory hogs) |
 | `update-issue` | `mathcity-computing.update-issue` | Replace a GitHub issue's body with a single up-to-date canonical statement, consolidating all prior body versions into ONE archive comment per issue (folded via HTML <details> blocks) |
 
-### Pack development / hygiene — `subdomains/dev/skills/`  (11)
+### Pack development / hygiene — `subdomains/dev/skills/`  (12)
 
 | Skill | Alias | What it does |
 |---|---|---|
+| `adjust-workers` | `mathcity-dev.adjust-workers` | Scale the number of concurrent run-operators on a Gas City rig — reads live session counts, proposes a max_active_sessions patch, and routes it through the pack PR pipeline (city-toml-via-packs-not-hand policy). |
 | `audit-recent-work` | `mathcity-dev.audit-recent-work` | Produce a full accounting of work adjudicated in a session or date range — brief-record beads, decision beads, stack archives, and in-flight molecules — across all rigs. Distinguishes mid-flight build-basic-briefed molecules from genuine dispatch gaps. |
 | `city-status` | `mathcity-dev.city-status` | Read-only Gas City fleet and work-queue snapshot — checks tmux liveness, active sessions, in-progress beads (with lease/heartbeat status), molecule step tables (steps done, +1h change, start/completion times), brief pipeline state (.pile/.stack counts, shuffler lock), and Dolt health. |
 | `check-build-hygiene` | `mathcity-dev.check-build-hygiene` | Audit the CURRENT live install — gc/bd binaries, the three source repos, pack imports, and skill sinks — against the Pack Portability & Boundary Policy (mathcity/subdomains/dev/POLICY.md) |
