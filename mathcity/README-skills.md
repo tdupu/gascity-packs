@@ -37,6 +37,7 @@ _Regenerate/verify with `/update-README`._
 | `fan-out` | `mathcity.fan-out` | Fan an epic bead out into sub-beads (convoy members) WITHOUT consuming additional WIP-dispatcher slots |
 | `file-briefs` | `mathcity.file-briefs` | Async brief-filing variant of grill-with-docs for Mayor onboarding |
 | `formula-creator` | `mathcity.formula-creator` | Create a new formula TOML in any gascity-packs pack and validate gc/bd command surface before committing |
+| `formula-creator-math` | `mathcity-dev.formula-creator-math` | Create a mathcity formula TOML with enforced briefed-terminal-step convention (all mathcity formulas must end with a brief gate before merge/publish) |
 | `fp-finder-skill` | `mathcity.fp-finder-skill` | Fixed-point convergence engine for SKILL.md files |
 | `gate-test-execution-silent` | `mathcity.gate-test-execution-silent` | G14 gate (test-execution-silent) |
 | `gc-recycle-bead` | `mathcity.gc-recycle-bead` | Handle graceful lifecycle transitions for research beads — beads that contain mathematical decisions, session notes, or research context rather than purely actionable task steps |
