@@ -11,6 +11,7 @@ Presents briefs **one at a time, in full**, while pre-loading the next brief in 
 
 ## When to use
 
+- "Next" / "Next brief" / "Continue" / "What's next" — any brief-advance signal after a verdict
 - "Present my next brief"
 - "Next from the ripe queue"
 - "Show me the brief queue"
