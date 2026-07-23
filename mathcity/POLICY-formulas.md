@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.2 |
+| Version | 1.3 |
 | Status | Draft |
 | Date | 2026-07-23 |
 | Prefix | F |
@@ -207,6 +207,32 @@ expensive downstream rework.
 
 ---
 
+## Pillar 6 — Testing discipline
+
+*Every formula must have at least one test. Tests start basic and grow;
+the smoke test is the non-negotiable minimum.*
+
+**F6.1 — New formulas require a basic smoke test before dispatch.**
+Every new formula must be accompanied by at least one smoke test before it
+is considered deployable. The smoke test must exercise the formula's minimal
+happy path — can it be invoked with valid vars and reach the terminal step
+without error? It does not need to verify mathematical correctness. Tests
+grow over time; the smoke test is the minimum bar, not the ceiling.
+
+Pass: a smoke test file exists for the formula in `mathcity/tests/` or a
+co-located `tests/` directory; the file is documented (path noted) in the
+brief; the test has been run and passed before the brief is filed.
+Fail: a new formula is briefed or dispatched with no associated smoke test,
+OR a test file exists but has never been run and its result is not recorded
+in the brief.
+
+Rationale: a formula with no test has no evidence it works. Requiring only
+a minimal smoke test — not a full correctness proof — keeps the compliance
+bar low while establishing a test surface that can grow incrementally. This
+prevents "tests later" from becoming never.
+
+---
+
 ## Change Log
 
 | Version | Date | Change |
@@ -214,3 +240,4 @@ expensive downstream rework.
 | 1.0 | 2026-07-23 | Initial draft — three pillars (F1–F3), six rules (F1.1–F1.3, F2.1–F2.3, F3.1–F3.3). Prefix F registered. Taylor directive (QUIMBY Q27). |
 | 1.1 | 2026-07-23 | Add F4.1 — /check-zero + /check-wheel required before terminal brief (Pillar 4: Pre-brief quality gates). Taylor directive (QUIMBY Q27). |
 | 1.2 | 2026-07-23 | Add F5.1 + F5.2 — Pillar 5 pre-dispatch review gates (/fp-finder or /coordinate-review + /critical-review before sling; /critical-review on plan before execution). Taylor directive (QUIMBY Q27). |
+| 1.3 | 2026-07-23 | Add F6.1 — Pillar 6 testing discipline: new formulas require a basic smoke test before dispatch. Taylor directive (QUIMBY Q27). |
