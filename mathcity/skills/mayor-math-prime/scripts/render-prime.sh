@@ -62,6 +62,9 @@ if handoff_bead:
 with open(template_path) as f:
     tmpl = Template(f.read())
 
+prior_quimby = last["quimby"]
+prev = sessions[-2] if len(sessions) >= 2 else {}
+
 print(tmpl.render(
     sessions=sessions,
     quimby_number=quimby_number,
@@ -72,6 +75,11 @@ print(tmpl.render(
     handoff_bead_content=handoff_content,
     city_state=last.get("city_state") or "(not recorded)",
     charge=last.get("charge_for_next") or "(no charge recorded)",
+    objectives_short=last.get("objectives_short") or [],
+    objectives_long=last.get("objectives_long") or [],
+    prior_quimby=prior_quimby,
+    prior_objectives_eval=last.get("objectives_eval") or [],
+    prior_additional_work=last.get("additional_work") or [],
 ))
 PYEOF
 fi

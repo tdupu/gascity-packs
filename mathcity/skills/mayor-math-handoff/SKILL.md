@@ -29,6 +29,67 @@ Minimum checks:
 
 Fail → revise the draft. Do not proceed to step 1 until the draft is clean.
 
+## 0b. Session self-assessment (fill this before writing anything else)
+
+Collect the four self-assessment inputs that feed the catalog entry and the
+PROMPT. Do this by introspection — you lived this session.
+
+**Session metadata** (estimate honestly):
+- `hours_active`: wall-clock hours from prime to handoff (e.g. `"~3h"`)
+- `compactions`: number of context compactions this session (check the
+  `/clear` count or conversation structure; if unknown write `"unknown"`)
+
+**Objective evaluation table** — read `charge_for_next` from the PREVIOUS
+session's catalog entry (the one that charged YOU). For each objective
+listed there, fill one row:
+
+| Objective | Completed? | Remarks | How to improve |
+|---|---|---|---|
+| <verbatim from prior charge_for_next> | yes / partial / no | what made it easy or hard | concrete suggestion |
+
+Be honest about partial completions and blockers. If an objective was never
+attempted, say why (superseded, blocked, deprioritized). These rows feed the
+`objectives_eval` field of your catalog entry AND the future
+`check-mayor-objectives` skill.
+
+**Additional work log** — list things worked on that were NOT in the
+`charge_for_next`. One line each:
+- `<what>: <why it was needed or picked up>` (e.g. `"WS-B critical-review
+  revision: design docs needed a second pass before math-city-work dispatch"`)
+
+This reveals scope creep, emergent blockers, and objectives that were too
+coarse or too granular.
+
+**Draft new objectives** for the next session — TWO lists:
+
+- `objectives_short` (what QUIMBY N+1 should finish in one session):
+  list 3–7 concrete, completable items. Write them as action verbs.
+  Too large = requires multiple sessions. Too small = trivially done in
+  minutes. Sweet spot = a full session's worth each.
+
+- `objectives_long` (multi-session or persistent goals QUIMBY N+1 should
+  advance but not necessarily finish): list 2–4 strategic objectives.
+  These frame the short-term list.
+
+**`check-mayor-objectives` trigger**: once 5 sessions have `objectives_eval`
+rows in `session-catalog.json`, run:
+```bash
+# Check if 5 evaluations exist:
+python3 -c "
+import json
+data = json.load(open('/Users/tdupuy/gt/mathcity-mayor/session-catalog.json'))
+evals = [s for s in data if s.get('objectives_eval')]
+print(f'{len(evals)} eval entries found')
+if len(evals) >= 5:
+    print('READY: run skill-creator-math to build check-mayor-objectives')
+"
+```
+If ready, dispatch `skill-creator-math` to build `mathcity.check-mayor-objectives`
+from the accumulated evaluation corpus. The skill will: read the 5+ eval tables,
+classify each objective as well-scoped / too-large / too-small / ambiguous, and
+produce a revised objective template for future handoffs. Do NOT build the skill
+before 5 evaluations exist.
+
 ## 1. Write the handoff bead (chained)
 
 Write a `gt-` handoff bead holding this session's full arc (what was done,
@@ -63,15 +124,46 @@ Entry shape:
   "quimby": <N>,
   "bead": "<your-handoff-bead-id>",
   "date": "<YYYY-MM-DD>",
+  "hours_active": "<e.g. ~3h>",
+  "compactions": <integer or "unknown">,
   "summary": "<what was done this session>",
   "city_state": "<city state for the next QUIMBY>",
-  "charge_for_next": "<priority charge for the next QUIMBY>"
+  "objectives_eval": [
+    {
+      "objective": "<verbatim from prior charge_for_next or objectives_short>",
+      "completed": "yes | partial | no",
+      "remarks": "<what made it easy or hard>",
+      "improve": "<concrete suggestion for next time>"
+    }
+  ],
+  "additional_work": [
+    "<what: why it was needed>"
+  ],
+  "objectives_short": [
+    "<action-verb objective completable in one session>"
+  ],
+  "objectives_long": [
+    "<multi-session strategic goal>"
+  ],
+  "charge_for_next": "<one-paragraph synthesis of objectives_short for the next QUIMBY>"
 }
 ```
 
-Keep `summary`, `city_state`, and `charge_for_next` ≤ ~40 words each —
-a pointer to the handoff bead, not a retelling of it. These ARE the next
-session's prime input; write them carefully.
+Keep `summary` and `city_state` ≤ ~40 words each. `charge_for_next` is a
+prose synthesis of `objectives_short` — write it for a QUIMBY who will read
+only the PROMPT (no catalog JSON visible directly). The structured fields
+(`objectives_eval`, `objectives_short`, `objectives_long`) are for the
+`check-mayor-objectives` skill and the evaluation table in the PROMPT.
+
+**Sizing guidance for `objectives_short`:**
+- Too large: requires multiple sessions or Taylor decisions not yet made.
+- Too small: can be done in <30 min without coordination.
+- Sweet spot: a 2–4h focused block that produces a verifiable artifact
+  (brief deposited, bead closed, skill committed, formula dispatched).
+- If all short-term objectives were completed AND significant additional
+  work happened, the objectives were too small — expand for next session.
+- If 0–1 objectives were completed, they were too large or the session was
+  derailed — split or add blockers-first objectives.
 
 To update `session-catalog-recent.json` (keep last 5):
 ```bash
@@ -93,15 +185,40 @@ Update it for the next session: refresh the S<N>→S<N+1> update block, state
 of the city, standing rules (only if they changed), the charge, and the
 handoff-bead chain. Two acceptable ways:
 
-- **Curated edit (default):** edit the file directly, preserving the curated
-  standing-rules prose that the jinja render does not capture.
-- **Regenerate:** after step 3, render from the template:
+- **Regenerate (preferred when Jinja is current):** after step 3, render:
   ```bash
   bash ~/gt/gascity-packs/mathcity/skills/mayor-math-prime/scripts/render-prime.sh \
     > ~/gt/mathcity-mayor/restart/PROMPT-mayor-restart.txt
   ```
-  Only do this if the jinja render (`restart/PROMPT-mayor-restart.j2`)
-  carries everything the next session needs — otherwise curate by hand.
+  This automatically includes the objectives and evaluation table from the
+  catalog entry you just wrote in step 3.
+
+- **Curated edit:** edit the file directly. If curating, you MUST include
+  these two sections near the top (after STANDING RULES, before CHARGE):
+
+  ```
+  ######
+  YOUR OBJECTIVES THIS SESSION:
+  ######
+
+  SHORT-TERM (finish this session):
+  - <item from objectives_short>
+  ...
+
+  LONG-TERM (advance but not necessarily finish):
+  - <item from objectives_long>
+  ...
+
+  ######
+  PRIOR SESSION OBJECTIVE EVALUATION (how Q<N> did):
+  ######
+  | Objective | Completed? | Remarks | Improvement |
+  |---|---|---|---|
+  | <from objectives_eval> | yes/partial/no | ... | ... |
+  ```
+
+  Omitting these sections from the plain-text fallback defeats the
+  whole point of the evaluation system.
 
 Do NOT write to `~/Documents/misc/PROMPT-mayor-restart.txt` — that location
 is retired (a pointer file remains there).
