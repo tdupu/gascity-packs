@@ -1,102 +1,129 @@
 ---
 name: new-formula-policy
 description: >
-  Amend POLICY-formulas.md (mathcity formula policy, prefix F) with a new
-  or revised rule. Use when the user says "add a formula policy rule",
+  Propose and apply an amendment to the mathcity formula policy
+  (mathcity/README-formulas.md + formula-creator-math hygiene gate). Use when
+  a new formula convention rule is needed, the README-formulas.md index
+  drifts, a new shape category is required, or check-formula-hygiene surfaces
+  an uncovered case. Trigger on "update formula policy", "new formula rule",
   "amend formula policy", "new-formula-policy", or when check-formula-hygiene
-  finds a gap that requires a new rule rather than a code fix. Full
-  Taylor-gated amendment procedure. Companion: check-formula-hygiene.
-companion: "[[check-formula-hygiene]]"
+  returns an UNKNOWN-CASE finding.
 ---
 
 # new-formula-policy
 
-Amend `mathcity/POLICY-formulas.md` (prefix F, version controlled) by adding,
-revising, or repealing a rule. Taylor approval is required before any edit.
+Propose and commit an amendment to the mathcity formula index policy. The
+two enforcement surfaces are:
+- **`mathcity/README-formulas.md`** — the canonical index every formula must
+  appear in; gate enforced by `formula-creator-math` Step 6 and `formula-work`
+  approve-verdict step.
+- **`formula-creator-math` SKILL.md Step 5** — the hygiene gate that checks
+  briefed terminal step, catalog block, and README-formulas.md entry.
 
-## Step 0 — Read current policy
+Every policy change is gated on Taylor approval before editing either file.
+
+**Companion:** [[check-formula-hygiene]] — run after any amendment.
+
+## When to use
+
+- A new formula shape category is needed (e.g., a new entry in the Shape column of README-formulas.md)
+- The briefed-terminal-step set must expand (new valid terminal step id)
+- A formula is missing from README-formulas.md (drift detected)
+- A required var convention changes (e.g., new mandatory `[vars.artifact_root]` default)
+- `check-formula-hygiene` returns an UNKNOWN-CASE finding
+
+## Step 0 — Read current state
 
 ```bash
-cat ~/gt/gascity-packs/mathcity/POLICY-formulas.md
+cat ~/repos/gascity-packs/mathcity/README-formulas.md
+cat ~/repos/gascity-packs/mathcity/subdomains/dev/skills/formula-creator-math/SKILL.md | grep -A20 "Step 5"
 ```
 
-Note the current version, status, and the highest-numbered rule in each
-pillar. Also read `mathcity/docs/rule-prefix-registry.md` to confirm prefix F
-is registered.
+Note: current formula count, shape categories, and hygiene gate assertions.
 
 ## Step 1 — Draft the amendment
 
-Present a structured draft to Taylor (or to the brief stack via `create-brief`
-if Taylor is not in-session):
-
 ```
-PROPOSED AMENDMENT to POLICY-formulas.md — <date>
+PROPOSED AMENDMENT — <date>
 
-  Rule ID:      F<N.M>   (next available in pillar N)
-  Action:       Add | Revise | Repeal
-  Rule text:    <what the rule requires>
-  Pass:         <checkable condition>
-  Fail:         <what a violation looks like>
-  Rationale:    <why this rule is needed; what failure it prevents>
-  Change log:   Version <current+0.1>, <date>, "<short description>"
+Trigger: <what prompted this — drift, incident, new shape>
+
+Target: <README-formulas.md | formula-creator-math Step 5 | both>
+
+Current rule:
+  <exact text>
+
+Proposed rule:
+  <replacement text>
+
+Rationale:
+  <why the current rule is wrong or incomplete>
+
+Formulas currently in violation of the NEW rule: <list or "none">
+Remediation required: <yes/no>
 ```
 
-For a repeal: the rule ID is permanent — mark it `[REPEALED <date>]` in the
-policy body and note the reason. Never delete a rule ID.
+Present draft to Taylor before touching any file.
 
 ## Step 2 — Gate on Taylor approval
 
-Full [[present-it]] — a policy amendment is architecture-class. Do not edit
-any file before Taylor approves in this conversation, or before a Taylor-signed
-brief verdict reaches APPROVED.
+```
+DECISION:  Approve proposed amendment to mathcity formula policy §<section>?
+CONTEXT:   <one sentence on trigger>
+RECOMMEND: APPROVE — <one-line rationale>
+CONFIRM:   y / n / grill-me-further
+```
 
-If Taylor is not in-session: file a brief via `create-brief` and stop here.
+Taylor's approval in this conversation is required. A prior session's
+"sounds good" does not carry over.
 
 ## Step 3 — Apply the amendment
 
-Only after approval:
+After Taylor approves:
+
+1. Edit `README-formulas.md`:
+   - Add/modify rows, update count in header, update shape vocabulary if needed.
+2. Edit `formula-creator-math` SKILL.md Step 5 if hygiene gate changes.
+3. Run gitleaks:
+   ```bash
+   gitleaks detect --no-git --source ~/repos/gascity-packs/mathcity/README-formulas.md
+   ```
+4. Commit both files together:
+   ```bash
+   cd ~/repos/gascity-packs
+   git add mathcity/README-formulas.md \
+           mathcity/subdomains/dev/skills/formula-creator-math/SKILL.md
+   git commit -m "policy(mathcity): <one-line summary of amendment>"
+   git push fork main
+   ```
+
+## Step 4 — Verify
 
 ```bash
-# Edit the policy doc
-$EDITOR ~/gt/gascity-packs/mathcity/POLICY-formulas.md
-# Add the new rule under the correct pillar
-# Bump the version number (minor increment for new/revised rule, patch for repeal)
-# Append a row to the Change Log table
+# Count matches header
+actual=$(grep -c "^| \`" ~/repos/gascity-packs/mathcity/README-formulas.md)
+echo "Formulas in table: $actual"
+grep "^[0-9]* formulas" ~/repos/gascity-packs/mathcity/README-formulas.md
+
+# Every formula TOML has a row
+ls ~/repos/gascity-packs/mathcity/formulas/*.toml | while read f; do
+  name=$(basename "$f" .toml)
+  grep -q "$name" ~/repos/gascity-packs/mathcity/README-formulas.md \
+    || echo "MISSING: $name"
+done
 ```
-
-Run gitleaks to confirm no secrets entered the file:
-```bash
-gitleaks detect --no-git --source ~/gt/gascity-packs/mathcity/POLICY-formulas.md
-```
-
-## Step 4 — Verify with check-formula-hygiene
-
-Run the checker on any existing formula that might be affected by the new rule:
-```bash
-# Example: check formula-creator-math after a pillar-3 amendment
-cat ~/gt/gascity-packs/mathcity/formulas/formula-creator-math.toml | \
-  # invoke check-formula-hygiene with the TOML path
-```
-
-Use `check-formula-hygiene` (this skill's companion) to confirm the policy
-and the checker are in sync.
-
-## Step 5 — Commit to ~/gt/gascity-packs
-
-```bash
-cd ~/gt/gascity-packs
-git add mathcity/POLICY-formulas.md
-git commit -m "policy(formulas): add/revise/repeal F<N.M> — <one-line description>"
-git push origin main
-```
-
-Report the commit SHA.
 
 ## Hard rules
 
-- Never edit the policy before Taylor approves.
-- Rule IDs are permanent — repeal, never delete.
-- Draft policies (Status: Draft) may be amended freely while Draft.
-  Adopted policies require this full procedure even for typos (PP2.3).
-- Do not amend to excuse an existing violation — fix the formula first.
-- After amending, run check-formula-hygiene on all affected formulas.
+- Never edit README-formulas.md without Taylor approval (Step 2 mandatory).
+- Never change the policy to excuse an existing violation — fix the violation first.
+- Policy is subordinate to `mathcity/subdomains/dev/POLICY.md` — conflicts: POLICY.md wins.
+- Amendments are permanent — no silent rewrites of prior policy.
+
+## Cross-references
+
+- `mathcity/README-formulas.md` — the document this maintains
+- `formula-creator-math` SKILL.md — enforces README-formulas.md gate at creation time
+- `formula-work` SKILL.md — enforces README-formulas.md gate at approve-verdict time
+- `check-formula-hygiene` — run after any amendment
+- `mathcity/subdomains/dev/POLICY.md` — superior policy

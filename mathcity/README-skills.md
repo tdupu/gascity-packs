@@ -2,7 +2,7 @@
 
 **Single canonical cross-pack index of every skill in the mathcity pack family.**
 
-109 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+110 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
 
 **Maintenance (single source of truth — no competing updater):**
 - `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
@@ -84,7 +84,7 @@ _Regenerate/verify with `/update-README`._
 | `profile-magma` | `mathcity-computing.profile-magma` | Wrap the Magma code the user is working on in a profiling harness to find bottlenecks (slow intrinsics, memory hogs) |
 | `update-issue` | `mathcity-computing.update-issue` | Replace a GitHub issue's body with a single up-to-date canonical statement, consolidating all prior body versions into ONE archive comment per issue (folded via HTML <details> blocks) |
 
-### Pack development / hygiene — `subdomains/dev/skills/`  (15)
+### Pack development / hygiene — `subdomains/dev/skills/`  (16)
 
 | Skill | Alias | What it does |
 |---|---|---|
@@ -99,6 +99,7 @@ _Regenerate/verify with `/update-README`._
 | `check-zero` | `mathcity-dev.check-zero` | Wheel-check — survey existing gascity formulas/skills/orders, prior beads, code, Magma intrinsics, math databases (LMFDB, Stacks), Python packages, and known theorems before building anything from scratch. |
 | `check-defer` | `mathcity-dev.check-defer` | Framework-cognition compliance checker — scans a skill, formula, or pipeline artifact and flags every place a framework makes a reasoning decision that should be a model call. |
 | `hourly-check` | `mathcity-dev.hourly-check` | 12-hour city health watchdog — fires every hour, shows fleet/molecule/brief/Dolt snapshot, raises a prominent inline alert to the invoking session if stalls or usage limits are detected. |
+| `new-formula-policy` | `mathcity-dev.new-formula-policy` | Propose and apply an amendment to the mathcity formula policy (mathcity/README-formulas.md + formula-creator-math hygiene gate) |
 | `new-hygiene-policy` | `mathcity-dev.new-hygiene-policy` | Propose and apply an amendment to the mathcity hygiene policy (mathcity/subdomains/dev/POLICY.md) |
 | `push-the-fleet` | `mathcity-dev.push-the-fleet` | Saturate the city fleet — finds all ready, unblocked beads across rigs and dispatches them via build-basic-briefed (math-city-work pattern) until active workers reach TARGET (default 10). |
 | `skill-creator-math` | `mathcity-dev.skill-creator-math` | Create a new skill in the gascity-packs mathcity pack family (~/repos/gascity-packs/mathcity/ — parent skills/ or a subdomain child pack per ADR 0002) and expose it to plain sessions (agent-skills symlink) and city agents (hand-placed ~/… |
