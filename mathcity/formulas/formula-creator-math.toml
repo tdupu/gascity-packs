@@ -39,14 +39,14 @@ required = true
 pattern = "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
 
 [vars.model]
-description = "Model for draft-toml and validate steps. sonnet is sufficient; use opus when requirements are ambiguous."
-default = "sonnet"
-enum = ["haiku", "sonnet", "opus"]
+description = "Fleet agent for draft-toml and validate steps. gc.run-operator (Sonnet) is sufficient for clear specs; use gc.design-author (Opus-backed) when requirements are ambiguous."
+default = "gc.run-operator"
+enum = ["gc.run-operator", "gc.design-author", "gc.review-synthesizer"]
 
 [vars.plan_target]
-description = "Model for the gather-spec planning step. Default fable — Fable plans, Haiku/Sonnet execute (policy: fable-plans-haiku-executes)."
-default = "fable"
-enum = ["fable", "opus", "sonnet"]
+description = "Fleet agent for the gather-spec planning step. Must be a valid named session handle — NOT a model name. Default gc.run-operator. To route to Opus-class planning, use gc.design-author once gsp-ez3x6.7 ships that named session. See policy: fable-plans-haiku-executes."
+default = "gc.run-operator"
+enum = ["gc.run-operator", "gc.design-author", "gc.review-synthesizer"]
 
 [vars.artifact_root]
 description = "Root for the brief artifact."
@@ -81,10 +81,11 @@ You are extracting:
 3. **Vars** — list every runtime parameter the formula will need.
 4. **Steps** — enumerate each step (id + one-line purpose). The LAST step
    MUST be `file-brief`, `brief-finalize`, or `workflow-finalize`.
-5. **Run targets** — which pool each step routes to (haiku/sonnet/opus/fable or a
-   named session like `mathcity.brief-operator`). The gather-spec step routes to
-   `{{plan_target}}` (default: fable). Plan steps in methodology shape MUST route
-   to fable or opus; execution steps use haiku/sonnet.
+5. **Run targets** — which named session each step routes to. Valid values are
+   fleet addresses like `gc.run-operator`, `gc.design-author`, `gc.task-decomposer`,
+   `gc.implementation-worker`, `mathcity.brief-operator`, etc. Model names
+   (haiku, sonnet, opus, fable) are NOT valid gc.run_target values — they are
+   configured inside the named session, not passed as targets.
 
 Record the spec in bd notes:
 
@@ -123,9 +124,11 @@ Requirements:
 - `[vars]` block for every runtime parameter.
 - `[[steps]]` blocks — every step after the first MUST have `needs`.
 - Last step id MUST be `file-brief`, `brief-finalize`, or `workflow-finalize`.
-- For methodology shape: include `[vars.plan_target]` (default = opus or a
-  named Opus session) and set `metadata = { "gc.run_target" = "{{plan_target}}" }`
-  on the planning step.
+- For methodology shape: include `[vars.plan_target]` with default = `gc.design-author`
+  (a valid fleet address for an Opus-backed planning agent) and set
+  `metadata = { "gc.run_target" = "{{plan_target}}" }` on the planning step.
+  Do NOT use model names (fable, opus, sonnet) as default values — those are
+  not valid gc.run_target values.
 - For do-work shape: last step should combine brief-filing + drain:
   ```toml
   [[steps]]
