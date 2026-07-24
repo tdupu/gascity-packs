@@ -43,6 +43,15 @@ Pack-dev skills (anything derived from
 
 ## Creating a skill
 
+0. **Wheel-check FIRST (P1.20 — REQUIRED).** Before authoring anything, run the
+   `check-wheel` skill on the proposed skill (its name + one-line purpose) — just
+   make sure we aren't reinventing the wheel. This is the gate that stops
+   duplicates (e.g. a second brief-stack skill).
+   - Existing skill/formula/tool already covers it → **STOP.** Adopt or extend the
+     existing one, or bring the overlap to Taylor. Do NOT create a duplicate.
+   - Genuine gap confirmed → proceed. Record the verdict (adopt / adapt / build) in
+     the skill's provenance or the creation bead.
+
 1. **Author** `<destination>/SKILL.md` with `name:` and `description:`
    frontmatter. The description drives triggering — state *when* to use it
    and include trigger phrases. Supporting scripts go in the same

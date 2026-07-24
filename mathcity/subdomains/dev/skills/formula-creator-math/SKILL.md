@@ -54,6 +54,13 @@ gc dolt health >/dev/null 2>&1 || {
 }
 ```
 
+**Wheel-check (P1.20 — REQUIRED).** Before determining shape or writing any TOML,
+run the `check-wheel` skill on the proposed formula (name + one-line purpose) —
+just make sure we aren't reinventing the wheel. If an existing formula/order
+already does this → **STOP**; adopt or extend it, or bring the overlap to Taylor.
+Only proceed on a confirmed gap. Record the verdict (adopt / adapt / build) in the
+formula's provenance or the creation bead.
+
 ---
 
 ## Step 1 — Determine formula shape
