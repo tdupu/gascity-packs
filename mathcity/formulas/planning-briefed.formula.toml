@@ -139,7 +139,7 @@ needs = ["gather-context"]
 title = "Write {{plan_type}} plan for {{source_bead}}"
 metadata = { "gc.run_target" = "{{plan_target}}" }
 description = """
-Produce the plan document. Write to /tmp/{{source_bead}}-plan.md.
+Produce the plan document. Write to $GC_WORK_DIR/{{source_bead}}-plan.md.
 
 Plan type guides:
 - **task-decomposition**: numbered task list with owner role, estimated complexity, and dep order.
@@ -149,7 +149,7 @@ Plan type guides:
 - **hybrid**: combine sections that fit the scope.
 
 ```bash
-cat > /tmp/{{source_bead}}-plan.md << 'EOF'
+cat > $GC_WORK_DIR/{{source_bead}}-plan.md << 'EOF'
 # Plan: <goal from gather-context>
 
 ## Plan type: {{plan_type}}
@@ -161,7 +161,7 @@ EOF
 Record:
 
 ```bash
-bd update {{source_bead}} --notes "planning-briefed produce-plan: draft at /tmp/{{source_bead}}-plan.md"
+bd update {{source_bead}} --notes "planning-briefed produce-plan: draft at $GC_WORK_DIR/{{source_bead}}-plan.md"
 ```
 """
 
@@ -171,7 +171,7 @@ needs = ["produce-plan"]
 title = "Opus review: completeness, consistency, risk"
 metadata = { "gc.run_target" = "{{plan_target}}" }
 description = """
-Review /tmp/{{source_bead}}-plan.md against three criteria:
+Review $GC_WORK_DIR/{{source_bead}}-plan.md against three criteria:
 
 1. **Completeness** — does the plan cover every unknown identified in gather-context?
    Are there tasks with no clear owner role?
@@ -203,7 +203,7 @@ The brief MUST contain:
 - `status: approved` frontmatter
 - `brief_bead: {{source_bead}}`
 - The plan type and goal
-- The full plan document (from /tmp/{{source_bead}}-plan.md) as a fenced markdown block
+- The full plan document (from $GC_WORK_DIR/{{source_bead}}-plan.md) as a fenced markdown block
 - Key risks and unknowns surfaced by review-plan
 - Recommended verdict (A = approve plan and proceed to implementation / C = revise plan)
 
