@@ -34,6 +34,7 @@ _Regenerate/verify with `/update-README`._
 | `math-brief-prep` | do-work | Batch brief-prep cycle: fan-out produce across pending source beads, then file. |
 | `no-brainer-classify` | do-work | Classify and optionally process no-brainer briefs. |
 | `on-merge-brief-record` | do-work | Post-merge brief-record duty: inspect recently closed beads and file brief records for those that lacked one. |
+| `planning-briefed` | methodology | Produce a planning artifact (PERT/decomposition/design) for a bead or epic, gated by a Taylor decision brief. Planning steps run on Opus-level agents (gc.design-author). |
 | `simple-work-briefed` | do-work | Simple-work with a brief filing terminal slot; lightweight alternative to build-basic-briefed for bounded one-off tasks. |
 | `test-execution-request` | do-work | Formal request workflow for test execution that should not happen silently. |
 | `upf-experiment-dispatch` | do-work | Dispatch and breadcrumb an experiment that belongs on UPF. |
