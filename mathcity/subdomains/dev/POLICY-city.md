@@ -72,9 +72,11 @@ document from `C<n>.<m>` to `CT<n>.<m>`. IDs are now safe to cite elsewhere.
 
 - **CT1.1 Per-rig concurrency target N(R).** For each rig R there exists a
   number N(R), **set by the user**, giving the desired number of molecules
-  running on R at any time. N(R) is declared in city configuration (the
-  canonical mechanism — pool `max` / `max_active_sessions` patch vs. pack
-  agent definition — is an open question below), and every formula and
+  running on R at any time. N(R) is declared in city configuration via gc's
+  `max_active_sessions` field — the actual substrate knob for bounded
+  per-rig concurrency (pool `max` / `max_active_sessions` vs. pack agent
+  definition is a placement detail, not an open question about whether the
+  mechanism exists), and every formula and
   workflow must be shaped so the running-molecule count on R converges to
   N(R): the city neither idles slots while compatible work is queued, nor
   runs more than N(R) molecules on R. Pass: at steady state with a non-empty
@@ -86,7 +88,11 @@ document from `C<n>.<m>` to `CT<n>.<m>`. IDs are now safe to cite elsewhere.
   dropped**: it exists as a bead in the queue state, survives city restarts,
   and the moment a slot frees the next eligible item starts (within one
   scheduler/patrol tick — a bounded, stated latency, not "eventually").
-  The queue is the beads DB, not any process's memory. Pass: every sling
+  The bounded tick is a real substrate mechanism: gc's `patrol_interval`
+  sets the tick period, `max_wakes_per_tick` caps promotions per tick, and
+  `nudge_dispatcher` forces an immediate promotion when a slot frees rather
+  than waiting for the next scheduled patrol. The queue is the beads DB,
+  not any process's memory. Pass: every sling
   either starts a molecule or produces a queued bead; freed slots are refilled
   within the stated tick bound; `gc start` after a crash resumes the same
   queue. Fail: a sling that returns success with no molecule and no queued
@@ -156,8 +162,10 @@ the in-flight work instead of racing it.*
   non-stale assignee; races resolve via `bd update --claim` atomicity;
   post-sling verify-assignee gate stays mandatory). If the same work is
   deployed twice, the city structure guarantees no extra compute and no
-  duplicate compute; competing claimants resolve gracefully. Pass/fail: as
-  P1.21.
+  duplicate compute; competing claimants resolve gracefully. This is not a
+  gap to build: gc already ships idempotency infrastructure — the
+  `idempotent` order field, signed-body-hash dedup, and replay protection —
+  which this rule inherits and requires stay on. Pass/fail: as P1.21.
 
 - **CT2.2 Near-duplicate instructions merge at intake.** If nearly identical
   instructions are dispatched twice, the city recognizes the overlap at
@@ -436,11 +444,16 @@ formula, through the front door.*
 - **CT10.2 (PROPOSED) Molecule garbage collection.** Every molecule cleans up
   its working directory/worktree on exit — success, failure, or interrupt
   (CT6.2 salvage commits first, then cleans) — and a periodic sweep order
-  detects and reports orphaned molecule directories. (Origin: ~50 stale
-  `gt-*-mol-*` directories observed littering the city root, 2026-07-23.)
-  Pass: molecule exit leaves no orphan directory; the sweep finds zero — or
-  loudly reports what it found. Fail: orphan molecule dirs accumulating
-  silently → **fail** (P6.1).
+  detects and reports orphaned molecule directories. This is not new
+  machinery to build: gc already provides the reaping knobs; the rule
+  requires they be **ON** — `auto_reap_closed_bead_worktrees` (worktree
+  removed when its bead closes), `auto_prune_worker_dir` (molecule working
+  dir pruned on exit), `wisp_gc_interval` (the periodic sweep cadence), and
+  `nested_worktree_prune` (nested worktrees swept too). (Origin: ~50 stale
+  `gt-*-mol-*` directories observed littering the city root, 2026-07-23 —
+  the litter signature of these knobs left off.) Pass: molecule exit leaves
+  no orphan directory; the sweep finds zero — or loudly reports what it
+  found. Fail: orphan molecule dirs accumulating silently → **fail** (P6.1).
 
 - **CT10.3 (PROPOSED) State lives in beads, not scratch files.** Durable
   city/work state — queues, progress, decisions, memory — lives in the beads
@@ -638,6 +651,18 @@ as defined in [POLICY.md](./POLICY.md) — no parallel vocabulary.
   reliability-as-a-dial (already reflected in CT9.2)
 
 ## Change log
+
+### 2026-07-23 — Substrate citations for 4 rules (Option B)
+Grounded four rules in the real gc substrate field names rather than
+leaving them as open design questions (Taylor #23, Option B, approved
+2026-07-23): CT1.1 cites `max_active_sessions` for bounded per-rig
+concurrency; CT1.2 cites `patrol_interval` + `max_wakes_per_tick` +
+`nudge_dispatcher` for the bounded-tick promotion claim; CT2.1 cites the
+`idempotent` order field + signed-body-hash dedup + replay protection as
+existing idempotency infrastructure; CT10.2 reframed from "build molecule
+GC" to "these knobs must be ON" — `auto_reap_closed_bead_worktrees`,
+`auto_prune_worker_dir`, `wisp_gc_interval`, `nested_worktree_prune`. No
+pass/fail meaning changed.
 
 ### 2026-07-23 — Prefix renumber (C → CT) + trinity completion
 Resolved the `C`-prefix collision with the Computing domain (Open question 7,
