@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | Adopted |
-| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only; amended 2026-07-14: P5.4 truth-is-in-the-code; amended 2026-07-15: P1.19 append-don't-edit beads; amended 2026-07-20: P3.2 upstream issue template required before pr-pipeline; amended 2026-07-22: P1.20 check-wheel before design/skill dispatch; P5.5 Claude not a co-author) |
+| Date | 2026-07-10 (amended 2026-07-12: P5.1 vocabulary/terminology; P5.2 workspace context files; P1.18 city root named-session fleet; P5.3 real bd types only; amended 2026-07-14: P5.4 truth-is-in-the-code; amended 2026-07-15: P1.19 append-don't-edit beads; amended 2026-07-20: P3.2 upstream issue template required before pr-pipeline; amended 2026-07-22: P1.20 check-wheel before design/skill dispatch; P5.5 Claude not a co-author; amended 2026-07-23: P1.21 dispatch idempotency) |
 | Decided | Taylor Dupuy, via grilling session (three open questions resolved; record at bottom) |
 | Applies to | All packs Taylor owns in this repo — the **owned pack set** (§ Scope) |
 | Consumers | `check-hygiene` skill (to be built via skill-creator); mayor priming (`mayor-math`); any agent planning work in this repo |
@@ -245,6 +245,35 @@ recreate what you're running; upstream must remain pullable.*
   directive 2026-07-15, after a `bd update --notes` on a shared bead deepened a
   live Dolt row-conflict in the multi-clone setup.)
 
+- **P1.21 Dispatch idempotency: pre-sling assignee check required.** Any agent,
+  skill, or formula that dispatches work via `gc sling` (or equivalent) must
+  verify the target bead has no active, non-stale assignee BEFORE dispatching.
+  The check: `bd show <bead_id>` must return an empty Assignee field OR a stale
+  claim (per `mathcity/gates/stale-claim.toml` criteria: lease expired OR
+  heartbeat older than `STALE_CLAIM_WINDOW_SECONDS`). If the bead has an active
+  non-stale assignee, the agent must abort cleanly with a visible signal
+  ("ALREADY DISPATCHED — bead `<id>` has active assignee; aborting") and NOT
+  re-sling. Competing workers that both pass the pre-sling check (a genuine
+  race) must rely on `bd update --claim` atomicity at the substrate level —
+  only the first claimant proceeds; the second sees a claim failure and backs
+  off with a visible log entry. The post-sling verify-assignee gate (from
+  `math-city-work` doctrine, bead `he-uz9fg`) remains mandatory and is NOT
+  superseded by this pre-sling check — both gates are required.
+  *Allowed exceptions (precise):* (a) re-slinging is explicitly authorized by
+  Taylor in a current-session directive that names the bead and the reason for
+  the re-dispatch; (b) the stale-claim gate confirmed staleness in the same
+  dispatch step and the bead was released before re-slinging.
+  Pass: every dispatch decision in a plan, skill, or formula includes a
+  documented pre-sling assignee check with a stated abort path if non-empty
+  and non-stale.
+  Fail: any plan, skill, or formula that dispatches work via gc sling without a
+  documented pre-sling assignee check → **revise**. Silent re-dispatch of an
+  already-assigned bead → **fail** (P6.1 overlap: swallowed duplicate is a
+  silent failure). (Origin: Taylor directive 2026-07-23 QUIMBY Q27; triggered
+  by recognition that double-dispatch creates competing workers that consume
+  duplicate fleet resources with no graceful resolution. Existing stale-claim
+  gate covers recovery; this rule covers prevention.)
+
 - **P1.20 Check-wheel before dispatching design or skill work.** Any plan,
   convoy, or dispatch for **formula design, methodology design, or skill
   design** must include a documented check-wheel pass before the dispatch step.
@@ -485,6 +514,9 @@ inside gascity core); this is the pack-level, plan-time analogue.*
 - City root `pack.toml` must import a pack providing the named-session fleet
   (implementation-worker etc.) when city-scope (gt-) build-basic work is
   expected; omission silently starves the gt- queue (P1.18).
+- No dispatch via `gc sling` without a pre-sling assignee check; active
+  non-stale assignee → abort with visible signal, never re-sling silently;
+  post-sling verify-assignee gate also mandatory (P1.21).
 - No drive-by scope creep, even inside the owned set (P2.4 / B10).
 - No "gastown" as a live agent identity, routing target, or plan vocabulary —
   `gastown.*` agents are dead; use `gc.*` / `mathcity.*` replacements (P5.1).
@@ -616,3 +648,18 @@ is a runtime contract"). Exceptions: (a) `gastownhall/*` org in URLs, (b) upstre
 pack/template name as a proper noun, (c) gc-docs migration pages, (d) read-only
 historical artifacts. Migration tracked in `mathcity/subdomains/dev/docs/IMPORTS-GC-MIGRATION-PLAN-2026-07-08.md`.
 | 2026-07-13 | P1.15: gascity-root mapping rewritten — `gascity` rig (binary/upstream-PR work) uses `tdupu/gascity-dolt` per the main rule; city HQ store (`~/gt`, instance management) uses dedicated `tdupu/gascity-HQ-dolt` | Taylor verdict (hq canon question): HQ-dolt canonical; supersedes the old `~/gt uses gascity-dolt` exception set by ecc11604 |
+
+### 2026-07-23 — P1.21 added: dispatch idempotency (pre-sling assignee check)
+Any agent, skill, or formula dispatching via `gc sling` must verify the target
+bead has no active non-stale assignee before dispatching. Active assignee →
+abort cleanly with visible signal ("ALREADY DISPATCHED"); do not re-sling.
+Competing workers that race past the pre-sling check resolve via `bd update
+--claim` atomicity (second claimant backs off). Post-sling verify-assignee gate
+(math-city-work doctrine) remains mandatory alongside this rule. Triggered by:
+Taylor directive 2026-07-23 QUIMBY Q27: "Dispatching work should be idempotent.
+If we deploy the same work twice the city structure should be such that it
+doesn't matter. We will not do extra compute, we will not do duplicate compute.
+Tasks which are competing should resolve gracefully." Existing stale-claim gate
+covers recovery; this rule covers prevention. Exceptions: (a) explicit Taylor
+in-session re-dispatch authorization naming the bead and reason; (b) stale-claim
+gate confirmed staleness and bead was released before re-slinging.

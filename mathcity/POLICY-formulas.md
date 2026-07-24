@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.3 |
+| Version | 1.4 |
 | Status | Draft |
 | Date | 2026-07-23 |
 | Prefix | F |
@@ -233,6 +233,55 @@ prevents "tests later" from becoming never.
 
 ---
 
+## Pillar 7 — Dispatch idempotency
+
+*Dispatching the same work twice must be a no-op. Competing dispatch attempts
+must resolve gracefully, not race. The city detects and aborts duplicate
+dispatch rather than accumulating redundant workers.*
+
+**F7.1 — Pre-dispatch assignee check required before any `gc sling`.**
+Before a formula step (or any dispatching agent) executes a `gc sling` or
+equivalent dispatch, it must verify the target bead has no active, non-stale
+assignee. The check: `bd show <bead_id>` must show an empty Assignee field OR
+a stale claim (per `mathcity/gates/stale-claim.toml` criteria: lease expired
+OR heartbeat older than `STALE_CLAIM_WINDOW_SECONDS`, default 3600s).
+If the bead has an active non-stale Assignee, the dispatch step must:
+(a) emit a visible signal ("ALREADY DISPATCHED — bead `<id>` has active
+    assignee `<agent>`; aborting duplicate sling"), and
+(b) exit cleanly without launching a competing workflow.
+Staleness determination is delegated to the existing stale-claim gate; the
+dispatch step calls it and respects its exit code.
+
+Pass: every dispatch step invokes a pre-sling bead-state check; exit code
+from the assignee check gates whether the sling proceeds; abort path emits a
+visible signal per P6.1.
+Fail: a formula dispatch step slings a bead without checking for an active
+existing assignee, enabling competing workers on the same bead; or the
+dispatch step swallows a "bead already assigned" condition and proceeds
+silently.
+
+Note: this rule operates at the formula and dispatch-skill level. Substrate-
+level serialization (`bd update --claim` atomicity) is NOT a substitute —
+it provides last-resort recovery for races that get past this gate; it does
+not prevent the Mayor from launching a second sling in the first place.
+
+**F7.2 — Formula steps that create beads must prevent logical duplicates.**
+A formula step whose purpose is to create a new bead (work item, convoy
+member, or derivative bead) must search for an existing bead covering the
+same work before creating. Minimum check: `bd search <keywords>` for a title
+match with status ≠ closed. If a live match is found, the step must surface
+the conflict (visible signal or return value to the Mayor) and exit without
+creating a duplicate bead. The check is required even when the bead ID is
+generated deterministically — deterministic IDs do not prevent logical
+duplicates across sessions or rigs.
+
+Pass: bead-creating steps include a prior-bead search; conflicts are surfaced
+to the Mayor; no duplicate beads are created for the same logical work unit.
+Fail: a formula creates a new bead for work that an open bead already tracks,
+without surfacing the match to the Mayor.
+
+---
+
 ## Change Log
 
 | Version | Date | Change |
@@ -241,3 +290,4 @@ prevents "tests later" from becoming never.
 | 1.1 | 2026-07-23 | Add F4.1 — /check-zero + /check-wheel required before terminal brief (Pillar 4: Pre-brief quality gates). Taylor directive (QUIMBY Q27). |
 | 1.2 | 2026-07-23 | Add F5.1 + F5.2 — Pillar 5 pre-dispatch review gates (/fp-finder or /coordinate-review + /critical-review before sling; /critical-review on plan before execution). Taylor directive (QUIMBY Q27). |
 | 1.3 | 2026-07-23 | Add F6.1 — Pillar 6 testing discipline: new formulas require a basic smoke test before dispatch. Taylor directive (QUIMBY Q27). |
+| 1.4 | 2026-07-23 | Add F7.1 + F7.2 — Pillar 7 dispatch idempotency: pre-sling assignee check required; bead-creating steps must prevent logical duplicates. Taylor directive (QUIMBY Q27). |
