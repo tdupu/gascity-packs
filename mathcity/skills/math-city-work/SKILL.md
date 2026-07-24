@@ -5,10 +5,11 @@ description: >
   S14-verified way. Use whenever the Mayor (QUIMBY) wants to dispatch work:
   "math-city-work", "feed the machine", "feed this bead to the fleet",
   "dispatch this the right way", "sling <bead> the preferred way", "put this
-  through build-basic-briefed", or "get the fleet working on <bead>". Encodes
-  the feed-don't-hand-sling doctrine, the build-basic-briefed preferred formula
-  (policy gsp-fhdnu), the mandatory verify-assignee gate, and the
-  slow-build-≠-strand rules that stop a healthy fleet from looking broken.
+  through the fleet", or "get the fleet working on <bead>". Encodes the
+  feed-don't-hand-sling doctrine, formula selection (work-briefed default,
+  build-basic-briefed / planning-briefed / smoke-test-briefed explicit), the
+  mandatory verify-assignee gate, and the slow-build-≠-strand rules that stop
+  a healthy fleet from looking broken.
   NOT for adjudicating briefs (use adjudicate-brief) or manual one-by-one
   hand-slinging (that is the anti-pattern this skill exists to replace).
 ---
@@ -46,23 +47,40 @@ dispatcher auto-pulls ready work. Do **not** sling work items one-by-one as a
 matter of course — that was the QUIMBY-13 misfire. Hand-dispatch is only for a
 specific bead you deliberately want built now.
 
-## The preferred formula — build-basic-briefed (policy gsp-fhdnu)
+## Formula selection — choose the right tool
 
-`build-basic-briefed` is the **preferred** feed formula. It runs the full build
-lifecycle and, at its terminal step (`push=false`), emits a **decision brief**
-instead of publishing — which is what closes the accounting gap (work becomes a
-brief on the stack, not an invisible merge). It is S14-verified working; the
-old "it strands / routes to dead role-agents" claim was a misdiagnosis.
+**Default: `work-briefed`** — auto-routes between `simple-work-briefed` and
+`build-basic-briefed` based on bead complexity. Use this when you are not
+certain which formula fits; the router decides.
 
-To deliberately feed one bead:
+| Formula | Use when |
+|---|---|
+| `work-briefed` | **Default.** Let the router decide between simple and full cycle. |
+| `build-basic-briefed` | Full 37-step factory: requirements → plan → decompose → implement → review → finalize → brief. Use when the bead is complex, multi-file, or needs starter review. |
+| `simple-work-briefed` | Single bounded operation (run a script, apply a patch, verify a condition, generate an artifact). No planning needed; result still needs Taylor adjudication. |
+| `planning-briefed` | Produce a planning artifact (PERT, task decomposition, design doc, requirements) **before** implementation begins. Use for epics or large beads that need design-first. Routes to `gc.design-author` (Opus-level, on_demand). |
+| `smoke-test-briefed` | Run a smoke test on a formula, skill, Magma intrinsic, or script and file a brief with test evidence (satisfies F6.1). |
+
+When in doubt between `build-basic-briefed` and `simple-work-briefed`, pick
+`work-briefed` and let the router decide. Only pick `build-basic-briefed`
+explicitly when you know the bead is full-cycle work.
+
+## Sling command (replace `<formula>` with your selection above)
 
 ```bash
-gc sling <rig>/gc.run-operator <bead> --on build-basic-briefed \
+gc sling <rig>/gc.run-operator <bead> --on <formula> \
   --var interaction_mode=autonomous --var review_mode=agent \
   --var drain_policy=separate --var push=false --var open_pr=false
 ```
 
 (Run from the correct rig dir, e.g. `~/gt/hecke` for `he-*`, so bd resolves.)
+
+**`planning-briefed` requires two extra vars:**
+```bash
+gc sling <rig>/gc.run-operator <bead> --on planning-briefed \
+  --var source_bead=<bead> --var brief_slug=<bead>-planning \
+  --var interaction_mode=autonomous --var push=false
+```
 
 ## MANDATORY — the verify-assignee gate
 
@@ -94,10 +112,11 @@ assume success. This gate is the loud-failure guard that S13 lacked.
 
 ## Provenance (source of truth)
 
-- Policy: `gsp-fhdnu` (build-basic-briefed = preferred feed formula)
+- Policy: `gsp-fhdnu` (build-basic-briefed = preferred feed formula; work-briefed = routing wrapper)
 - Bug: `gs-0cy2` (gc status probe-timeout false "stopped/0")
 - Doctrine: `he-uz9fg` (verify-assignee + slow-build≠strand doc fix)
 - Full story: `bd recall great-regression-misdiagnosis-s14`
 
 Recommended model: **Sonnet** (dispatch + verify — mechanical with light
-judgment).
+judgment). Use **Opus** or **Fable** only if the formula selection requires
+architectural judgment.
