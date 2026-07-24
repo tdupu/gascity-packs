@@ -4,12 +4,34 @@ Single-writer shuffler for brief pile to stack promotion.
 This formula is intended for the `brief-shuffle-pile` order. It processes at
 most one pile item per run, applies gate-keep rules, and either promotes it to
 the stack with a manifest append or rejects it into `.pile/.rejected`.
+
+§E Check-wheel (P1.20) — lock expiry mechanism (v3, 2026-07-23)
+Alternatives surveyed before implementing the acquire-lock expiry fix:
+  (A) Shell-exec acquire with atomic mv + tmp file — strongest atomicity; requires
+      a new .gc/scripts/checks/acquire-shuffle-lock.sh asset and exec check in
+      the step; ruled out for this targeted fix (follow-up bead filed for v4).
+  (B) Session-liveness check as sole stale criterion — current v2 behavior; proved
+      fragile: a sleeping session (mid-formula, waiting for next step dispatch)
+      appears dead during brief liveness windows, causing premature lock theft and
+      concurrent select-pile-item runs (gt-v3pisq regression observed 2026-07-23).
+      Ruled out.
+  (C) Time-based expiry field (expires_at = acquired + 5 min) + BOTH-criterion
+      stale detection (expired AND dead session) — ADOPTED: additive field,
+      backward-compatible, eliminates permanent stall. BOTH required prevents
+      premature theft from sleeping (state=asleep) sessions between formula
+      steps; 5-min window bounds worst-case stall when a session truly dies.
+  (D) Dolt lease bead as lock — architectural redesign, eliminates all file-race
+      issues; deferred as v4 scope along with (A).
 """
 formula = "brief-shuffle"
 # v2 (2026-07-16): reject branch no longer dead-ends — files a remediation
 # bead via escalate.sh + emits brief.gate_rejected (QUIMBY 10 S10 finding:
 # nothing reads .pile/.rejected/).
-version = 2
+# v3 (2026-07-23): acquire-lock adds expires_at (5 min) + dual stale criterion
+# (expired AND dead-session — BOTH required; EITHER re-introduces premature theft
+# from sleeping sessions); release-lock max_attempts raised 1→3 to survive
+# transient manifest check failures.
+version = 3
 
 [requires]
 formula_compiler = ">=2.0.0"
@@ -34,8 +56,50 @@ title = "Acquire the shuffler lock"
 metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
 Acquire `{{artifact_root}}/.shuffle.lock` before touching `.pile`, `stack`, or
-`stack/.index.jsonl`. If the lock is held by a live run, stop cleanly. If it
-is stale, record why it is stale before taking over.
+`stack/.index.jsonl`.
+
+Lock file format — write ALL five fields atomically when acquiring or stealing:
+  session:    mathcity__brief-operator-<session-slug>
+  bead:       <GC_BEAD_ID>
+  step:       brief-shuffle.acquire-lock
+  acquired:   <ISO8601 UTC timestamp — now>
+  expires_at: <ISO8601 UTC timestamp — now + 5 minutes>
+
+STALE DETECTION — the lock is stale only when BOTH conditions hold:
+  (a) `expires_at` is in the past (time-based expiry), AND
+  (b) the holder session ID is not present in `gc session list --state active`
+      output (not currently running a Claude turn).
+
+WARNING — do NOT use condition (b) alone: a session with state="asleep" does
+NOT appear in --state active output, but it may have valid queued formula steps.
+Using (b) alone steals from sleeping sessions and causes concurrent
+select-pile-item execution (gt-v3pisq regression, 2026-07-23). BOTH conditions
+must be true before stealing.
+
+If the lock file is missing or unparseable, treat it as stale and take over.
+
+INVARIANT (P1.17): after at most 5 minutes from `expires_at` plus confirmed
+session death, any molecule can safely take over. This bounds stall time to
+5 min + death-detection latency while preventing premature theft from sleeping
+sessions that still have work queued.
+
+Acquire procedure:
+1. Check if `{{artifact_root}}/.shuffle.lock` exists.
+2. If YES: read `expires_at` and `session` from the lock file.
+   - STALE (BOTH (a) and (b) above): log "stale lock stolen
+     (expired + dead session) — former holder: <session>, was: <expires_at>"
+     in the step notes; overwrite the lock file with all five fields
+     (your session, now, now+5min); proceed.
+   - LIVE (either condition false): log "lock not stale — holder: <session>,
+     expires: <expires_at>, session-state: active|asleep; NOT acquiring" in
+     the step notes; FAIL this step (do not close as success — a successful
+     close dispatches select-pile-item without the lock). The
+     brief-shuffle-pile order re-fires when the lock is released or expires.
+3. If NO: write the lock file (all five fields); proceed.
+
+If the lock file exists but has no `expires_at` field (legacy v2 lock): treat
+it as stale only if BOTH: `acquired` is more than 5 minutes ago AND the holder
+session is not in `gc session list --state active`.
 """
 
 [[steps]]
@@ -148,10 +212,15 @@ select by unlock count.
 
 This step runs on BOTH routes (promote/reject AND the empty-pile no-op
 route, gsp-3al3): the lock must always be released when the run ends.
+
+IMPORTANT: Delete the lock file regardless of the manifest check result. If
+the manifest check fails (the check below runs after deletion), a follow-up
+bead for manifest repair is preferable to leaving the lock stranded. The
+lock MUST be released; manifest repair can happen independently.
 """
 
 [steps.check]
-max_attempts = 1
+max_attempts = 3
 
 [steps.check.check]
 mode = "exec"
