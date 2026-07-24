@@ -20,7 +20,7 @@ so the formula is drafted, validated, and briefed asynchronously.
 Think of it as: **`simple-work` is to `simple-work-briefed`** as
 **`formula-work` is to `formula-creator-math`**.
 
-## Pre-flight (fleet must be up)
+## Pre-flight (fleet must be up, target pool must be live)
 
 ```bash
 tmux -L gt ls >/dev/null 2>&1 || {
@@ -33,6 +33,20 @@ gc dolt health >/dev/null 2>&1 || {
   echo "Run 'gc dolt status' / 'gc dolt start' and retry."
   exit 1
 }
+
+# MANDATORY: verify the model/plan_target pool has live sessions before slinging.
+# formula-creator-math routes ALL steps to the `model` var (default gc.run-operator).
+# Passing gc.design-author when it has no live sessions causes a silent within-molecule
+# strand — the root molecule IS assigned but its steps never execute (Rung A variant).
+MODEL="${model:-gc.run-operator}"
+POOL_SHORT="${MODEL##*/}"   # strip rig prefix: gc.run-operator → gc.run-operator (no prefix in our tmux names)
+LIVE=$(tmux -L gt ls 2>/dev/null | grep -c "${POOL_SHORT}" || true)
+if [ "${LIVE:-0}" -eq 0 ]; then
+  echo "HALT: --var model=${MODEL} has no live tmux sessions."
+  echo "Use gc.run-operator (always staffed) or start a ${MODEL} session first."
+  echo "Check live pools: tmux -L gt ls"
+  exit 1
+fi
 ```
 
 ## Dispatch command
@@ -42,7 +56,7 @@ gc sling <rig>/gc.run-operator <bead> --on formula-creator-math \
   --var source_bead=<bead> \
   --var brief_slug=<bead>-<short-slug> \
   --var formula_name=<new-formula-name> \
-  --var model=<haiku|sonnet|opus> \
+  --var model=gc.run-operator \
   --var context="<optional: file paths, bead IDs, or inline notes for gather-spec>"
 ```
 
@@ -61,15 +75,19 @@ Run from the rig root where the bead lives (e.g. `~/gt/gascity-packs` for
 
 | Var | Default | When to override |
 |-----|---------|-----------------|
-| `model` | `sonnet` | Use `opus` when the formula shape is ambiguous or methodology; `haiku` is not recommended for formula authoring |
+| `model` | `gc.run-operator` | Override to `gc.design-author` only when that pool has confirmed live sessions (`tmux -L gt ls | grep design-author`). Do NOT use model names (sonnet/opus/haiku) — these are fleet addresses, not model names. The pre-flight check will halt if the named pool has no live sessions. |
 | `artifact_root` | `.beads/briefs` | Leave at default unless the rig uses a non-standard brief root |
 | `context` | (empty) | Pass file paths, bead IDs, or inline text the polecat needs to understand the formula spec |
 
 ### Model guidance
 
-- **sonnet** — default; sufficient for clear specs (non-methodology, do-work, source-search shapes).
-- **opus** — use when the formula is methodology shape (needs a plan/design step) or when the spec bead is underspecified.
-- **haiku** — too weak for formula authoring; avoid.
+`--var model` takes a **fleet address**, not a model name. Valid values (per formula-creator-math.toml enum):
+
+- **`gc.run-operator`** — default; Sonnet-backed; always staffed; sufficient for clear specs.
+- **`gc.design-author`** — Opus-backed; use for methodology/ambiguous shapes. **Verify liveness first** (`tmux -L gt ls | grep design-author`). The pre-flight check halts if this pool has no live sessions.
+- **`gc.review-synthesizer`** — for spec synthesis from multiple sources.
+
+Never pass a model name (sonnet, opus, haiku, fable) as the `model` var — they are not valid gc.run_target values. formula-creator-math steps would silently route to a non-existent target.
 
 ## MANDATORY — verify-assignee gate
 
