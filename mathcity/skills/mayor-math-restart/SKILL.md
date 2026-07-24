@@ -57,7 +57,7 @@ only for explicit interactive design sessions.
 
 ## 3. Orient and confirm
 
-> **Dispatch reminder (authority: gsp-mnfj):** Default dispatch is **SLING** — slung work is tracked, resumable, and keeps the Mayor's prompt open to Taylor. **FORK** is acceptable only when the task is fast, self-contained, in-session, and needs no Taylor adjudication. See [[mayor-math]] Rule 0 for the full decision table.
+> **Dispatch reminder (authority: gsp-mnfj, supersedes gsp-geuo "always fork"):** Default dispatch is **SLING** — slung work is tracked, resumable, and keeps the Mayor's prompt open to Taylor. **FORK** is acceptable only when the task is fast, self-contained, in-session, and needs no Taylor adjudication. See [[mayor-math]] Rule 0 for the full decision table.
 
 1. Run `/prime-outsider` to check open beads and current handoff-bead status.
 2. Report the session's top priority to Taylor before taking any other action.
