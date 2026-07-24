@@ -2,7 +2,7 @@
 
 **Single canonical index of every formula in the mathcity pack.**
 
-21 formulas in `mathcity/formulas/`. This file is the ONE complete list. When in doubt, **this file wins**.
+23 formulas in `mathcity/formulas/`. This file is the ONE complete list. When in doubt, **this file wins**.
 
 **Maintenance (single source of truth):**
 - `formula-creator-math` appends the new formula's row here as a required step before filing the brief.
@@ -13,7 +13,7 @@ _Regenerate/verify with `/update-README`._
 
 ---
 
-## Formulas — `mathcity/formulas/`  (21)
+## Formulas — `mathcity/formulas/`  (23)
 
 | Formula | Shape | What it does |
 |---|---|---|
@@ -36,6 +36,7 @@ _Regenerate/verify with `/update-README`._
 | `on-merge-brief-record` | do-work | Post-merge brief-record duty: inspect recently closed beads and file brief records for those that lacked one. |
 | `planning-briefed` | methodology | Produce a planning artifact (PERT/decomposition/design) for a bead or epic, gated by a Taylor decision brief. Planning steps run on Opus-level agents (gc.design-author). |
 | `simple-work-briefed` | do-work | Simple-work with a brief filing terminal slot; lightweight alternative to build-basic-briefed for bounded one-off tasks. |
+| `smoke-test-briefed` | do-work | Smoke-test a mathcity artifact (formula, skill, Magma, Python, script) and file a brief with test evidence and reproducibility guide (F6.1). |
 | `test-execution-request` | do-work | Formal request workflow for test execution that should not happen silently. |
 | `upf-experiment-dispatch` | do-work | Dispatch and breadcrumb an experiment that belongs on UPF. |
 | `work-briefed` | do-work | Routing wrapper: auto-selects between simple-work-briefed and build-basic-briefed based on task shape. |

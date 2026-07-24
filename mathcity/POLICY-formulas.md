@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.4 |
+| Version | 1.5 |
 | Status | Draft |
-| Date | 2026-07-23 |
+| Date | 2026-07-24 |
 | Prefix | F |
 | Subordinate to | `mathcity/subdomains/dev/POLICY.md` |
 | Applies to | All formula TOMLs in every mathcity pack (mathcity/ and all subdomains) |
@@ -282,6 +282,43 @@ without surfacing the match to the Mayor.
 
 ---
 
+## Pillar 8 — Briefed terminal discipline
+
+*Every `-briefed` formula exists to route work through a Taylor decision
+brief. Its final step must be part of the brief cycle — never a bare
+implementation, push, or merge step. The brief IS the gate before anything
+is merged or published.*
+
+**F8.1 — Every `-briefed` formula must terminate in the brief cycle.**
+A formula whose name ends in `-briefed` must have a terminal step that either
+(a) files or produces a decision brief, or (b) is a router step that delegates
+to another `-briefed` formula. The allowed terminal step ids are:
+
+| Terminal step id | Meaning |
+|---|---|
+| `file-brief` | Files a decision brief to the brief stack for adjudication |
+| `brief-finalize` | Post-file finalization record + drain |
+| `workflow-finalize` | Combined brief-file + drain (1–3 step formulas) |
+| `publish` | `build-basic-briefed`'s decision-brief terminal slot |
+| `route` | Router terminal that delegates to a `-briefed` formula (e.g. `work-briefed`) |
+
+Pass: the last step's `id` is in the allowed set above.
+Fail: a `-briefed` formula's terminal step is a bare implementation step
+(`git-push`, `run-script`, `commit`, `implement`, or any step that merges or
+publishes without a brief gate).
+
+Enforced by: `formula-creator-math` Step 5 hygiene gate (which carries the
+same allowed set) and `check-formula-hygiene`. When the allowed set changes,
+amend BOTH this rule and the `formula-creator-math` gate in the same commit so
+they never drift.
+
+Rationale: the `-briefed` suffix is a promise that the formula ends at a
+Taylor decision gate. A briefed formula that ends in a raw push or merge
+silently bypasses adjudication — the exact failure the brief pipeline exists
+to prevent.
+
+---
+
 ## Change Log
 
 | Version | Date | Change |
@@ -291,3 +328,4 @@ without surfacing the match to the Mayor.
 | 1.2 | 2026-07-23 | Add F5.1 + F5.2 — Pillar 5 pre-dispatch review gates (/fp-finder or /coordinate-review + /critical-review before sling; /critical-review on plan before execution). Taylor directive (QUIMBY Q27). |
 | 1.3 | 2026-07-23 | Add F6.1 — Pillar 6 testing discipline: new formulas require a basic smoke test before dispatch. Taylor directive (QUIMBY Q27). |
 | 1.4 | 2026-07-23 | Add F7.1 + F7.2 — Pillar 7 dispatch idempotency: pre-sling assignee check required; bead-creating steps must prevent logical duplicates. Taylor directive (QUIMBY Q27). |
+| 1.5 | 2026-07-24 | Add F8.1 — Pillar 8 briefed terminal discipline: every `-briefed` formula must terminate in the brief cycle (allowed terminals: file-brief, brief-finalize, workflow-finalize, publish, route). Reconciles the stale formula-creator-math allowed-set (adds publish + route). Taylor directive. |

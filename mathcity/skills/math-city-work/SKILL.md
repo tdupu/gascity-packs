@@ -47,23 +47,47 @@ dispatcher auto-pulls ready work. Do **not** sling work items one-by-one as a
 matter of course — that was the QUIMBY-13 misfire. Hand-dispatch is only for a
 specific bead you deliberately want built now.
 
-## Formula selection — choose the right tool
+## Formula selection — enumerate, then use judgement (do NOT hardcode)
 
-**Default: `work-briefed`** — auto-routes between `simple-work-briefed` and
-`build-basic-briefed` based on bead complexity. Use this when you are not
-certain which formula fits; the router decides.
+The set of `*-briefed` formulas **grows and changes**. This skill deliberately
+does NOT carry a fixed list to route against — a hardcoded switch falls out of
+date the moment a new briefed formula lands (`smoke-test-briefed` was exactly
+that miss). Selecting the formula is a **reasoning task for you**, not a lookup.
 
-| Formula | Use when |
-|---|---|
-| `work-briefed` | **Default.** Let the router decide between simple and full cycle. |
-| `build-basic-briefed` | Full 37-step factory: requirements → plan → decompose → implement → review → finalize → brief. Use when the bead is complex, multi-file, or needs starter review. |
-| `simple-work-briefed` | Single bounded operation (run a script, apply a patch, verify a condition, generate an artifact). No planning needed; result still needs Taylor adjudication. |
-| `planning-briefed` | Produce a planning artifact (PERT, task decomposition, design doc, requirements) **before** implementation begins. Use for epics or large beads that need design-first. Routes to `gc.design-author` (Opus-level, on_demand). |
-| `smoke-test-briefed` | Run a smoke test on a formula, skill, Magma intrinsic, or script and file a brief with test evidence (satisfies F6.1). |
+**Step A — enumerate the LIVE set at dispatch time.** Read what actually
+exists right now; never assume the examples below are the complete set:
 
-When in doubt between `build-basic-briefed` and `simple-work-briefed`, pick
-`work-briefed` and let the router decide. Only pick `build-basic-briefed`
-explicitly when you know the bead is full-cycle work.
+```bash
+gc formula list 2>/dev/null | grep -i briefed        # authoritative: current catalog names
+# fallback if gc is slow/unavailable:
+ls -1 ~/gt/gascity-packs/mathcity/formulas/*briefed* 2>/dev/null
+```
+
+**Step B — read the bead and judge which enumerated formula fits.** Look at
+`bd show <bead>` — its type, scope, file blast-radius, whether it needs design,
+whether it is itself a test — and reason about which of the *currently
+enumerated* briefed formulas is the right vehicle. The points below are
+**signals to weigh, not an exhaustive routing table**; new briefed formulas
+will introduce right answers this skill cannot predict, so always reason
+against Step A's actual output, not this list:
+
+- The bead already carries a decision **brief**, or you are unsure which cycle
+  fits → **`work-briefed`** (the router — it decides simple vs. full for you).
+  This is the safe default and the well-tested auto-dispatch path.
+- A **very easy, bounded** change — Haiku-level single-file edit, a one-shot
+  script run, a small patch, a condition check → **`simple-work-briefed`**.
+- **Planning / design-first** work (an epic or large bead that needs a PERT,
+  decomposition, design doc, or requirements before anyone implements) →
+  **`planning-briefed`** (routes to Opus-tier `gc.design-author`).
+- **Testing** an artifact (formula, skill, Magma intrinsic, script) →
+  **`smoke-test-briefed`**.
+- Genuinely **complex, multi-file, full-cycle** build work needing the
+  requirements → plan → decompose → implement → review → finalize factory →
+  **`build-basic-briefed`**.
+
+If none of the enumerated formulas cleanly fits, fall back to **`work-briefed`**
+and let the router decide — do not force a poor match, and never pass a formula
+name that Step A did not actually return.
 
 ## Sling command (replace `<formula>` with your selection above)
 

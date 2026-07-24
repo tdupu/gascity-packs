@@ -34,10 +34,16 @@ Every mathcity formula produced by this skill MUST end with one of:
 | `file-brief` | Task completes and files a brief to `.beads/briefs/` for adjudication |
 | `brief-finalize` | After filing, writes a finalization record and drains |
 | `workflow-finalize` | Combined brief-file + drain (use when formula is 1–3 steps) |
+| `publish` | The full-factory decision-brief terminal slot (as in `build-basic-briefed`) |
+| `route` | Router terminal that delegates to another `-briefed` formula (as in `work-briefed`) |
 
 **Never ship a mathcity formula whose last step is a pure implementation
 step** (e.g., `git-push`, `run-script`, `commit`). The brief IS the gate
 before anything is merged or published.
+
+This invariant is policy: **POLICY-formulas.md F8.1** (every `-briefed` formula
+must terminate in the brief cycle). The allowed set here and the Step 5 gate
+below MUST match F8.1's table — amend all three together if it ever changes.
 
 ---
 
@@ -213,7 +219,7 @@ with open('mathcity/formulas/<name>.toml', 'rb') as f:
 steps = d.get('steps', [])
 assert steps, 'No steps defined'
 last = steps[-1]['id']
-allowed = {'file-brief', 'brief-finalize', 'workflow-finalize'}
+allowed = {'file-brief', 'brief-finalize', 'workflow-finalize', 'publish', 'route'}
 assert last in allowed, f'Terminal step is \"{last}\" — must be one of {allowed}'
 print(f'OK: terminal step = {last}')
 "
