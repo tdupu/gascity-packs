@@ -98,7 +98,7 @@ The skill uses bash/grep to scan LaTeX files. For each `.tex` file:
 ### Example 1: Hyperboloid.tex Test
 
 ```bash
-ROOT=$HOME/gt/.gc/worktrees/hecke/polecats/gastown.nux/worktrees/he-d4l
+ROOT=$HOME/gt/.gc/worktrees/hecke/polecats/gc.run-operator/worktrees/he-d4l
 check-labels-and-refs $ROOT/latex/notes/hyperboloid.tex ~/gt/tmp-for-taylor/he-ja26/
 # Produces: ~/gt/tmp-for-taylor/he-ja26/check-labels-and-refs-report.json
 ```

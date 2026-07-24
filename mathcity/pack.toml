@@ -11,6 +11,6 @@ base = "builtin:codex"
 # Invariant: at least one control-dispatcher session exists per rig at all times,
 # independent of demand probes, restart state, or first-tick latency.
 [[named_session]]
-template = "control-dispatcher"
+template = "core.control-dispatcher"
 scope = "rig"
 mode = "always"
