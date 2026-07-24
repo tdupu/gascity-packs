@@ -2,7 +2,7 @@
 
 **Single canonical cross-pack index of every skill in the mathcity pack family.**
 
-113 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+115 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
 
 **Maintenance (single source of truth — no competing updater):**
 - `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
@@ -84,7 +84,7 @@ _Regenerate/verify with `/update-README`._
 | `profile-magma` | `mathcity-computing.profile-magma` | Wrap the Magma code the user is working on in a profiling harness to find bottlenecks (slow intrinsics, memory hogs) |
 | `update-issue` | `mathcity-computing.update-issue` | Replace a GitHub issue's body with a single up-to-date canonical statement, consolidating all prior body versions into ONE archive comment per issue (folded via HTML <details> blocks) |
 
-### Pack development / hygiene — `subdomains/dev/skills/`  (19)
+### Pack development / hygiene — `subdomains/dev/skills/`  (21)
 
 | Skill | Alias | What it does |
 |---|---|---|
@@ -95,12 +95,14 @@ _Regenerate/verify with `/update-README`._
 | `formula-work` | `mathcity-dev.formula-work` | Dispatch a bead to the formula-creator-math formula, which drafts a mathcity formula TOML and gates it behind a Taylor decision brief |
 | `check-build-formulas-and-skills` | `mathcity-dev.check-build-formulas-and-skills` | Completeness audit for the mathcity formula and skill catalogs — checks every formula TOML appears in README-formulas.md, every skill appears in README-skills.md, and every formula passes F-rule hygiene (briefed terminal step, no model-name run_target) |
 | `check-build-hygiene` | `mathcity-dev.check-build-hygiene` | Audit the CURRENT live install — gc/bd binaries, the three source repos, pack imports, and skill sinks — against the Pack Portability & Boundary Policy (mathcity/subdomains/dev/POLICY.md) |
+| `check-city-policy` | `mathcity-dev.check-city-policy` | Audit a plan, diff, or the live running-city state against the City Operations Policy (mathcity/subdomains/dev/POLICY-city.md, CT-rules); reports PASS/PASS-WITH-NOTES/FAIL per CT-rule |
 | `check-formula-hygiene` | `mathcity-dev.check-formula-hygiene` | Audit a formula TOML or formula-creation skill against POLICY-formulas.md (mathcity formula policy); reports PASS/FAIL for each F-rule |
 | `check-plan-hygiene` | `mathcity-dev.check-plan-hygiene` | Gate a plan doc or beads convoy against the Pack Portability & Boundary Policy (mathcity/subdomains/dev/POLICY.md) BEFORE any build starts |
 | `check-wheel` | `mathcity-dev.check-wheel` | Gate a plan, implementation, or data artifact against the "no reinventing the wheel" invariant — detects existing resources that cover the proposed work, then produces a hygienic import recommendation via check-plan-hygiene when reinvention is found. |
 | `check-zero` | `mathcity-dev.check-zero` | Wheel-check — survey existing gascity formulas/skills/orders, prior beads, code, Magma intrinsics, math databases (LMFDB, Stacks), Python packages, and known theorems before building anything from scratch. |
 | `check-defer` | `mathcity-dev.check-defer` | Framework-cognition compliance checker — scans a skill, formula, or pipeline artifact and flags every place a framework makes a reasoning decision that should be a model call. |
 | `hourly-check` | `mathcity-dev.hourly-check` | 12-hour city health watchdog — fires every hour, shows fleet/molecule/brief/Dolt snapshot, raises a prominent inline alert to the invoking session if stalls or usage limits are detected. |
+| `new-city-policy` | `mathcity-dev.new-city-policy` | Propose and apply an amendment to the City Operations Policy (mathcity/subdomains/dev/POLICY-city.md, CT-rules) — sole write path, Taylor-gated |
 | `new-formula-policy` | `mathcity-dev.new-formula-policy` | Propose and apply an amendment to the mathcity formula policy (mathcity/README-formulas.md + formula-creator-math hygiene gate) |
 | `new-hygiene-policy` | `mathcity-dev.new-hygiene-policy` | Propose and apply an amendment to the mathcity hygiene policy (mathcity/subdomains/dev/POLICY.md) |
 | `push-the-fleet` | `mathcity-dev.push-the-fleet` | Saturate the city fleet — finds all ready, unblocked beads across rigs and dispatches them via build-basic-briefed (math-city-work pattern) until active workers reach TARGET (default 10). |
