@@ -19,6 +19,49 @@ This skill is the batch version of `math-city-work`: same formula, same
 vars, same verify-assignee doctrine — but it sweeps the whole queue instead
 of one bead.
 
+## Step 0 — Load research priorities
+
+Locate `PRIORITIES.md` at the city root:
+
+```bash
+CITY_ROOT=$(gc root 2>/dev/null || echo "$HOME/gt")
+PRIORITIES_FILE="$CITY_ROOT/PRIORITIES.md"
+```
+
+**If the file exists:** read it now. It contains ranked research areas and
+keywords. Use it as a scoring overlay in Step 3 — candidates matching
+PRIORITIES.md P0 keywords dispatch before equal-priority candidates that
+don't match; P1 keywords fill next, and so on. Announce the active priorities
+at the top of the Step 6 report.
+
+**If the file does not exist:** before dispatching, examine evidence of current
+research direction:
+
+1. Run `bd ready` across all rigs to see what is queued (read titles).
+2. Run `gc dolt sql -q "SELECT id, title FROM gascity_packs.issues WHERE status='closed' ORDER BY closed_at DESC LIMIT 15"` to see what completed recently.
+3. From those signals, draft a starter file and write it to `$CITY_ROOT/PRIORITIES.md`. Announce to Taylor that you created it and what you inferred.
+
+**PRIORITIES.md format (write this when creating from scratch):**
+
+```markdown
+# Research Priorities
+
+Last updated: <YYYY-MM-DD>
+
+## P0 — Critical / Blocking
+<!-- Specific bead IDs or keyword phrases that always dispatch first -->
+
+## P1 — High Priority Research Areas
+<!-- Name research themes, e.g. "hecke algebra correctness", "brief pipeline" -->
+- <area>
+
+## P2 — Active but not urgent
+- <area>
+
+## Skip / Defer
+<!-- Keywords or bead IDs to never auto-dispatch -->
+```
+
 ## Pre-flight (same as math-city-work)
 
 ```bash
