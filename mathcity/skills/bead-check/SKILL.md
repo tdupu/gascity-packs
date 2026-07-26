@@ -86,6 +86,41 @@ D4 Appropriate rig? <yes|no → rig X> — <evidence>
 D5 Disposition & routing: <executor skill or actor> ; proposed command (NOT run): `<exact command>`
 ```
 
+## Lost-Bead Classification Output
+
+When the checked bead may be lost, stale, stranded, blocked, superseded, or
+no-fire, append a fenced TOML block using
+`schema = "lost-bead-classification.v1"`.
+
+```toml
+schema = "lost-bead-classification.v1"
+bead_id = "example-bead-id"
+observed_at = "2026-07-25T00:00:00Z"
+observer = "bead-check"
+
+[finding]
+lost_class = "immediate_strand"
+evidence = ["specific command output or observation"]
+
+[disposition]
+recommendation = "resling"
+rationale = "The bead is still valid, but no worker claimed the dispatch."
+reversible = true
+
+[root_cause]
+class = "no_worker_claimed"
+suspected_source = "math-city-work"
+repair_candidate = true
+fingerprint = "empty_assignee_after_verified_sling"
+```
+
+Use only categories from `assets/bead-filter/lost-bead-schema.toml`. Set
+`repair_candidate = true` only when the evidence points to a repeatable
+upstream process failure. This block is observation output only; `bead-check`
+remains read-only and must not mutate bead state. To persist it, a caller
+creates a linked `type=event` bead using this TOML as the event description or
+attached evidence.
+
 ## The five determinations
 
 ### D1 — Out of date?

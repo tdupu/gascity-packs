@@ -142,6 +142,42 @@ Append one line per b' to `~/gt/.beads/decisions-track/manifest.jsonl`:
  "acts_on": [<list of S-bead IDs>]}
 ```
 
+### Lost-bead classification bridge
+
+When a manifest row carries lost-bead filter fields, create or reuse one
+linked `type=event` bead per classified source bead before filing the cluster
+brief. Each cluster brief must include a `Classification Records` section with
+the event bead IDs and one TOML printout per bead:
+
+```toml
+schema = "lost-bead-classification.v1"
+bead_id = "example-bead-id"
+observed_at = "2026-07-25T00:00:00Z"
+observer = "refine-bead-manifest"
+
+[finding]
+lost_class = "hidden_blocker"
+evidence = ["manifest classification evidence"]
+
+[disposition]
+recommendation = "encode_dependency"
+rationale = "The blocker should be encoded mechanically."
+reversible = true
+
+[root_cause]
+class = "hidden_human_decision_dependency"
+suspected_source = "manual"
+repair_candidate = true
+fingerprint = "ready_but_prose_blocked"
+```
+
+When writing `~/gt/.beads/decisions-track/manifest.jsonl`, include
+`classification_event_id`, `classification_schema`, `lost_class`,
+`recommended_disposition`, `root_cause`, and `fingerprint` for each bead or
+cluster when known. The manifest row is a cache pointer; the linked event bead
+is the canonical classification record and remains visible through `bd list`,
+`bd show`, and dependency traversal.
+
 ## Step 6 — check-zero + partition verification
 
 Verify the partition is complete:

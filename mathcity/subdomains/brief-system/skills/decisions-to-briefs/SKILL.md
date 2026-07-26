@@ -218,6 +218,20 @@ Rules:
 | `run-skill` | run a named audit/hygiene skill (e.g. `bead-check`) on `target` | yes (read-only skills only) |
 | `external-reminder` | CANNOT automate — re-surface `note:` to the human; the verdict edge must ping, never act | n/a |
 
+For `sling-bead`, include provenance fields so the brief-system dispatch edge
+produces the same canonical event as work-system dispatch:
+
+```yaml
+provenance:
+  dispatch_source: decisions-track
+  source_decision: manifest-entry-or-brief-path
+  expected_provenance_schema: dispatch-provenance.v1
+  canonical_record: linked type=event bead
+```
+
+The verdict executor must create or reuse that linked `type=event` bead before
+presenting any table or file export as dispatch evidence.
+
 ## HARD SAFETY INVARIANT
 
 **Action-blocks auto-execute ONLY reversible dispatch** (`sling-bead`,
