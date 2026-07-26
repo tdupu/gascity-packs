@@ -99,6 +99,36 @@ If Assignee is empty after 60s, re-check molecule status and escalate to mayor:
 bd show <molecule-bead> | head -5   # molecule-bead ID printed at sling time
 ```
 
+## Dispatch provenance event
+
+Record every `simple-work-briefed` sling outcome as a linked event bead using
+`dispatch-provenance.v1`. The linked event bead is the canonical record; any
+brief text, manifest row, or file export is a cache.
+
+```toml
+schema = "dispatch-provenance.v1"
+source_bead = "<bead>"
+dispatch_command = "gc sling <rig>/gc.run-operator <bead> --on simple-work-briefed ..."
+formula = "simple-work-briefed"
+verified_assignee = true
+assignee_state = "non_empty"
+classification_hint = "healthy"
+fingerprint = "verified_sling_claimed"
+observed_at = "YYYY-MM-DDTHH:MM:SSZ"
+```
+
+For an empty assignee after the gate, set `verified_assignee=false`,
+`assignee_state="empty_after_60s"`,
+`classification_hint="immediate_strand"`, and
+`fingerprint="empty_assignee_after_verified_sling"` before escalating.
+
+Create and link the event:
+
+```bash
+bd create "dispatch provenance for <bead>" --type event --event-category dispatch.provenance --event-target <bead> --event-payload '<dispatch-provenance.v1 TOML or JSON>' --silent
+bd dep relate <event-bead> <bead>
+```
+
 ## What happens after dispatch
 
 1. Fleet polecat picks up the molecule (`simple-work-briefed`).

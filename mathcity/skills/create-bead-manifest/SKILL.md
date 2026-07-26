@@ -78,6 +78,24 @@ Apply these rules in order (first match wins):
 | 13 | Moot assessment = moot (title suggests superseded, escalation resolved) | `🗑️ CLOSE_MOOT` |
 | 14 | Default (P2, fresh, non-bug) | `📦 DISPATCH` |
 
+### Lost-bead filter fields
+
+For beads that look lost, stale, stranded, blocked, superseded, or no-fire,
+add these columns to the manifest row. Persisted classification events use
+`schema = "lost-bead-classification.v1"`.
+
+- `lost_class`: one of `assets/bead-filter/lost-bead-schema.toml` `lost_classes`.
+- `recommended_disposition`: one of the schema dispositions.
+- `root_cause`: one root-cause class from the schema.
+- `fingerprint`: a stable grouping key.
+- `classification_evidence`: command output references or quoted observations.
+
+Preserve the broad action category such as `DISPATCH_NOW`, `TRIAGE_OLD`, or
+`CLOSE_MOOT`; the lost-bead fields are additional classifier evidence, not
+replacements for the manifest partition. Manifest rows are snapshots. Durable
+classifications are linked `type=event` beads created during refinement or
+dispatch provenance capture.
+
 **Moot assessment heuristic:**
 - `✅` = recent (≤ 3d) OR explicitly resolved OR type=decision with clear verdict recorded
 - `🔍 check` = structural/old needs human verify before dispatch

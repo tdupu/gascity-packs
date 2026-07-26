@@ -118,6 +118,47 @@ bd show <bead> | grep -i assignee   # must be NON-EMPTY
 If Assignee is still empty after ~30–60s, re-check and escalate — do **not**
 assume success. This gate is the loud-failure guard that S13 lacked.
 
+## Dispatch provenance event
+
+Every `gc sling` outcome gets a linked event bead; files, tables, and brief
+mentions are caches of that event. Use `dispatch-provenance.v1` so downstream
+lost-bead filters can treat work-system and brief-system dispatch uniformly.
+
+```toml
+schema = "dispatch-provenance.v1"
+source_bead = "<bead>"
+dispatch_command = "gc sling <rig>/gc.run-operator <bead> --on <formula> ..."
+formula = "<formula>"
+verified_assignee = true
+assignee_state = "non_empty"
+classification_hint = "healthy"
+fingerprint = "verified_sling_claimed"
+observed_at = "YYYY-MM-DDTHH:MM:SSZ"
+```
+
+If the verify-assignee gate stays empty, record the event as the canonical
+strand evidence before escalating:
+
+```toml
+schema = "dispatch-provenance.v1"
+source_bead = "<bead>"
+dispatch_command = "gc sling <rig>/gc.run-operator <bead> --on <formula> ..."
+formula = "<formula>"
+verified_assignee = false
+assignee_state = "empty_after_60s"
+classification_hint = "immediate_strand"
+fingerprint = "empty_assignee_after_verified_sling"
+observed_at = "YYYY-MM-DDTHH:MM:SSZ"
+```
+
+Create the event with:
+
+```bash
+bd create "dispatch provenance for <bead>" --type event --event-category dispatch.provenance --event-target <bead> --event-payload '<dispatch-provenance.v1 TOML or JSON>' --silent
+```
+
+Then link it to the source bead with `bd dep relate <event-bead> <bead>`.
+
 ## SLOW-BUILD ≠ STRAND (do not misread a healthy fleet)
 
 - **Molecule roots stay OPEN by design** until every terminal step finishes.
