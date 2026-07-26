@@ -210,10 +210,18 @@ The brief MUST contain:
 - `source_formula: planning-briefed`
 - `source_step: file-brief`
 - `routing_path: "{{routing_path}}"`
+- `review_gate: approved`
+- `unlock_count: <int>`
+- `priority: P0|P1|P2|P3|P4`
+- `server_touching: false`
+- `user_skill_touching_override: false`
 - The plan type and goal
 - The full plan document (from $GC_WORK_DIR/{{source_bead}}-plan.md) as a fenced markdown block
 - Key risks and unknowns surfaced by review-plan
 - Recommended verdict (A = approve plan and proceed to implementation / C = revise plan)
+- A complete `## Gate Evidence` section for the active gate profile, including
+  this machine-readable G9 line:
+  `G9 No-brainer-filter: PASS - classifier_state=known_non_no_brainer; classified_at=<ISO-8601-utc>; category=none; confidence=none; stop_gates_clear=false; reason=Taylor plan approval required; proposed_registry_extension=none`
 
 After filing:
 

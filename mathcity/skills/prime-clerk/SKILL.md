@@ -145,7 +145,7 @@ deprecated. Always use the `build-basic-briefed` pattern above, or let
    `~/repos/hecke/.beads/briefs/` (repo side, 11+ entries — more entries =
    this is the operative stack for repo work per CLAUDE.md routing rules).
    `stack/` is presentation-ready, ordered by `unlock_count` desc via
-   `stack/manifest.jsonl`; `.pile/` (city side only) is awaiting
+   `stack/.index.jsonl`; `.pile/` (city side only) is awaiting
    gate-keep promotion. Skip any brief whose bead has `Status: HELD`.
 2. Present the top brief with `present-briefs` (which wraps `present-it`;
    no-brainers collapse to compact one-liners, full briefs go through

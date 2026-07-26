@@ -100,7 +100,7 @@ Pre-loading: [next-artifact-id]
 ### Phase 4 — wait for verdict, then cycle
 
 When Taylor gives a verdict:
-1. Look up the full slug from the manifest (`manifest.jsonl` entry where `source == artifact_id`; use its `slug` field)
+1. Look up the full slug from the stack index (`stack/.index.jsonl` entry where `source == artifact_id`; use its `slug` field)
 2. Invoke `brief-record-decision` via `gc sling`:
    ```bash
    gc sling <rig>/gc.run-operator brief-record-decision --formula \
@@ -109,6 +109,7 @@ When Taylor gives a verdict:
      --var reason="<Taylor's stated reason, or empty string>"
    ```
    Map Taylor's words: "approve"/"yes"/"ship it" → `approve`; "reject"/"no"/"drop it" → `reject`; "revise"/"fix it"/"update it" → `revise`; "defer"/"later"/"not now"/"skip" → `defer`.
+   If Taylor says the brief is a no-brainer that should not have surfaced, keep the ordinary verdict as `approve`, `reject`, `revise`, or `defer`, and pass `--var no_brainer_leak=true --var no_brainer_leak_reason="<Taylor's reason>"` to `brief-record-decision`.
 3. Acknowledge: "Decision recorded: [artifact] → [choice]"
 4. Present the pre-loaded next brief immediately (use the content already fetched in Phase 2 — no wait)
 5. Start pre-loading the brief after that

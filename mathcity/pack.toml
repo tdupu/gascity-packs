@@ -6,3 +6,17 @@ description = "Taylor-local mathematical work pack, including the brief pipeline
 
 [providers.codex]
 base = "builtin:codex"
+options_schema_merge = "by_key"
+
+[[providers.codex.options_schema]]
+key = "permission_mode"
+
+  [[providers.codex.options_schema.choices]]
+  value = "no-approval-sandboxed"
+  label = "No approval (sandboxed)"
+  flag_args = ["--ask-for-approval", "never", "--sandbox", "workspace-write"]
+
+  [[providers.codex.options_schema.choices]]
+  value = "no-approval-unrestricted"
+  label = "No approval (unrestricted)"
+  flag_args = ["--ask-for-approval", "never", "--sandbox", "danger-full-access"]

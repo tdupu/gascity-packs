@@ -156,6 +156,34 @@ check_manifest() {
   check_jsonl "$ROOT/stack/.index.jsonl"
 }
 
+check_stack_index_path() {
+  configured="assets/brief-pipeline/paths.toml"
+  [ -f "$configured" ] || fail "missing paths.toml: $configured"
+  grep -Eq '^manifest[[:space:]]*=[[:space:]]*"\.beads/briefs/stack/\.index\.jsonl"' "$configured" ||
+    fail "paths.toml manifest must point at stack/.index.jsonl"
+}
+
+check_no_direct_stack_producers() {
+  tmp="${TMPDIR:-/tmp}/brief-direct-stack-matches.$$"
+  : > "$tmp"
+  find formulas -type f -name '*.toml' ! -name 'brief-shuffle.toml' |
+  while IFS= read -r file; do
+    case "$file" in
+      formulas/brief-present-next.toml|formulas/brief-review-patrol.toml|formulas/brief-watchdog-refill.toml|formulas/brief-record-decision.toml)
+        continue
+        ;;
+    esac
+    grep -nE 'BRIEF_PATH="\{\{artifact_root\}\}/stack/|mkdir -p "\{\{artifact_root\}\}/stack"|stack/manifest\.jsonl|manifest\.jsonl' "$file" |
+      sed "s|^|$file:|" >> "$tmp" || true
+  done
+  if [ -s "$tmp" ]; then
+    cat "$tmp" >&2
+    rm -f "$tmp"
+    fail "producer formulas must deposit to .pile; only brief-shuffle writes stack"
+  fi
+  rm -f "$tmp"
+}
+
 check_decision_record() {
   # One-bead model (brief-system POLICY.md B2.2): the CANONICAL adjudication
   # record is the verdict recorded on the brief bead itself (type=decision,
@@ -210,6 +238,61 @@ check_no_brainer_safety() {
   if grep -Eq 'G5b User-skill-touching:[[:space:]]*(FAIL|BLOCKED)' "$path"; then
     fail "user-skill-touching gate blocks no-brainer handling"
   fi
+}
+
+check_no_brainer_classification_evidence() {
+  path="$(brief_path)"
+  require_file "$path"
+  g9_lines="$(grep -E 'G9 No-brainer-filter:' "$path" || true)"
+  [ -n "$g9_lines" ] || fail "missing G9 No-brainer-filter evidence in $path"
+  g9_line_count="$(printf '%s\n' "$g9_lines" | grep -c . | tr -d ' ')"
+  [ "$g9_line_count" = "1" ] ||
+    fail "G9 evidence must contain exactly one G9 No-brainer-filter line in $path"
+  g9_line="$g9_lines"
+  printf '%s\n' "$g9_line" | grep -Eq 'G9 No-brainer-filter:[[:space:]]*PASS' ||
+    fail "missing passing G9 No-brainer-filter evidence in $path"
+  printf '%s\n' "$g9_line" | grep -Eq 'classified_at=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z' ||
+    fail "G9 evidence must set classified_at=<ISO-8601-utc> in $path"
+
+  state_count="$(printf '%s\n' "$g9_line" | grep -Eo 'classifier_state=(known_no_brainer|known_non_no_brainer|candidate|capability_blocker|safety_blocked)' | wc -l | tr -d ' ')"
+  [ "$state_count" = "1" ] ||
+    fail "G9 evidence must contain exactly one classifier_state=known_no_brainer|known_non_no_brainer|candidate|capability_blocker|safety_blocked"
+
+  state="$(printf '%s\n' "$g9_line" | grep -Eo 'classifier_state=(known_no_brainer|known_non_no_brainer|candidate|capability_blocker|safety_blocked)' | head -n 1 | cut -d= -f2)"
+  case "$state" in
+    known_no_brainer)
+      printf '%s\n' "$g9_line" | grep -Eq 'category=[A-Za-z0-9._-]+' ||
+        fail "known_no_brainer G9 evidence must set category in $path"
+      category="$(printf '%s\n' "$g9_line" | grep -Eo 'category=[A-Za-z0-9._-]+' | head -n 1 | cut -d= -f2)"
+      [ "$category" != "none" ] || fail "known_no_brainer G9 evidence must set a registry category, not category=none"
+      registry="assets/brief-pipeline/no-brainer-categories.toml"
+      [ -f "$registry" ] || fail "missing no-brainer category registry: $registry"
+      grep -Eq '^id[[:space:]]*=[[:space:]]*"'"$category"'"' "$registry" ||
+        fail "known_no_brainer category is not in $registry: $category"
+      printf '%s\n' "$g9_line" | grep -Eq 'stop_gates_clear=true' ||
+        fail "known_no_brainer G9 evidence requires stop_gates_clear=true in $path"
+      confidence="$(printf '%s\n' "$g9_line" | grep -Eo 'confidence=([0-9]+([.][0-9]+)?)' | head -n 1 | cut -d= -f2)"
+      [ -n "$confidence" ] || fail "known_no_brainer G9 evidence must set confidence"
+      awk -v c="$confidence" 'BEGIN { exit (c >= 0.85 ? 0 : 1) }' ||
+        fail "known_no_brainer confidence must be >= 0.85"
+      ;;
+    known_non_no_brainer)
+      printf '%s\n' "$g9_line" | grep -Eq 'reason=[^;]+' ||
+        fail "known_non_no_brainer G9 evidence must set reason in $path"
+      ;;
+    candidate)
+      printf '%s\n' "$g9_line" | grep -Eq 'proposed_registry_extension=[^;]+' ||
+        fail "candidate G9 evidence must set proposed_registry_extension in $path"
+      ;;
+    capability_blocker)
+      printf '%s\n' "$g9_line" | grep -Eq 'reason=[^;]+' ||
+        fail "capability_blocker G9 evidence must set blocker reason in $path"
+      ;;
+    safety_blocked)
+      printf '%s\n' "$g9_line" | grep -Eq 'stop_gate=(G5|G5b|L4)' ||
+        fail "safety_blocked G9 evidence must name stop_gate=G5, G5b, or L4 in $path"
+      ;;
+  esac
 }
 
 check_no_brainer_execute_safety() {
@@ -305,11 +388,14 @@ case "$COMMAND" in
   pile-nonempty) check_pile_nonempty ;;
   shuffle-result) check_shuffle_result ;;
   manifest-current) check_manifest ;;
+  stack-index-path) check_stack_index_path ;;
+  no-direct-stack-producers) check_no_direct_stack_producers ;;
   decision-record) check_decision_record ;;
   watchdog-record) check_watchdog_record ;;
   test-execution-record) check_test_execution_record ;;
   breadcrumb) check_breadcrumb ;;
   no-brainer-safety) check_no_brainer_safety ;;
+  no-brainer-classification-evidence) check_no_brainer_classification_evidence ;;
   no-brainer-execute-safety) check_no_brainer_execute_safety ;;
   server-touching-safety) check_server_touching_safety ;;
   archive-sweep-record) check_archive_sweep_record ;;

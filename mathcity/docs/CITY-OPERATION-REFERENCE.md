@@ -144,7 +144,9 @@ to `mathcity.brief-operator` (pool sweep gt-oiigr / gt-wz0xj / gt-rix5m).
 ### Codex Worker
 
 `codex-worker` is a rig-scoped agent using the `codex` provider (`builtin:codex`).
-It is `fallback=true` and `permission_mode=suggest`. Dispatched explicitly via the
+It is `fallback=true` and `permission_mode=no-approval-unrestricted` so managed Codex
+sessions can run their Gas City work loop without waiting at approval prompts and can reach
+the local Dolt-backed Beads server. Dispatched explicitly via the
 `codex-dispatch` formula — never by automated orders. Use when an independent non-Anthropic
 perspective is needed (cross-model review, design decisions, large proofs).
 

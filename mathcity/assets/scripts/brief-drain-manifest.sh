@@ -3,7 +3,7 @@
 #
 # Reads stack/.index.jsonl (relative to BRIEF_ROOT, default .beads/briefs),
 # filters out entries that are already decided/archived, then sorts by
-# unlock_count (ascending) and writes two output files:
+# unlock_count (descending) and writes two output files:
 #
 #   <out_dir>/no-brainer-slugs.txt  — one slug per line, gate_profile=no_brainer
 #   <out_dir>/full-brief-slugs.txt  — one slug per line, everything else
@@ -97,11 +97,11 @@ done < "$MANIFEST"
 
 [ -f "$TMP_PENDING" ] || touch "$TMP_PENDING"
 
-# Sort ascending by unlock_count (first field). NOTE: this is NOT insertion-order
+# Sort descending by unlock_count (first field). NOTE: this is NOT insertion-order
 # stable — POSIX sort, as a last resort, compares whole lines, so ties among
 # equal unlock_count values order lexically (by slug then profile), not by the
 # order they appeared in the manifest.
-sort -k1,1n "$TMP_PENDING" | while IFS=' ' read -r _uc slug profile; do
+sort -k1,1nr "$TMP_PENDING" | while IFS=' ' read -r _uc slug profile; do
   [ -z "$slug" ] && continue
   case "$profile" in
     no_brainer|no-brainer) printf '%s\n' "$slug" >> "$NB_FILE" ;;

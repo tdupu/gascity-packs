@@ -104,11 +104,11 @@ id = "G9"
 name = "no-brainer-filter"
 kind = "review"
 required = true
-# rules per the POLICY.md gate-inventory table (G9 -> N1-N4)
-rules = ["N1", "N2", "N3", "N4"]
+# rules per the POLICY.md gate-inventory table (G9 -> N1-N4, N6)
+rules = ["N1", "N2", "N3", "N4", "N6"]
 evidence_key = "G9 No-brainer-filter"
 policy = "no-brainer-brief-filter.md"
-description = "Shortcut classification must be explicit and cannot override stop gates or Taylor-only decisions."
+description = "No-brainer classifier evidence must record exactly one state: known_no_brainer, known_non_no_brainer, candidate, capability_blocker, or safety_blocked. Missing, malformed, or stale classification evidence blocks shortcut handling and stack promotion."
 
 [[gates]]
 id = "G10"
@@ -240,4 +240,3 @@ gates = [
   "G13",
   "G16",
 ]
-

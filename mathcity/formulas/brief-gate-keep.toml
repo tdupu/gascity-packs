@@ -75,11 +75,19 @@ Review and update the judgment gates:
 - G2 Good-test
 - G4 Critical-review
 - G6 LaTeX-gate
-- G9 No-brainer-filter
+- G9 No-brainer-filter: the brief must contain exactly one machine-readable `classifier_state` (`known_no_brainer`, `known_non_no_brainer`, `candidate`, `capability_blocker`, or `safety_blocked`) plus `classified_at` and the fields required for that state. Free-form "classifier considered" prose is a gate failure.
 
 Use the corresponding brief-bundle skills/policies. Stop gates must remain
 blocked unless the brief cites Taylor authorization.
 """
+
+[steps.check]
+max_attempts = 1
+
+[steps.check.check]
+mode = "exec"
+path = ".gc/scripts/checks/brief-no-brainer-classification-evidence.sh"
+timeout = "1m"
 
 [[steps]]
 id = "disposition"
@@ -95,6 +103,8 @@ Record one disposition in the brief:
 
 Promotion is allowed only when all required gates are `PASS` or justified `N/A`
 and no stop/manual gate is unresolved.
+
+Missing, malformed, or stale G9 classifier evidence must produce `Disposition: reject` or `Disposition: blocked`; it must never promote to stack.
 """
 
 [steps.check]
@@ -104,4 +114,3 @@ max_attempts = 2
 mode = "exec"
 path = ".gc/scripts/checks/brief-disposition-required.sh"
 timeout = "2m"
-

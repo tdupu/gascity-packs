@@ -233,9 +233,17 @@ The brief MUST contain:
 - `source_formula: smoke-test-briefed`
 - `source_step: file-brief`
 - `routing_path: "{{routing_path}}"`
+- `review_gate: approved`
+- `unlock_count: <int>`
+- `priority: P0|P1|P2|P3|P4`
+- `server_touching: false`
+- `user_skill_touching_override: false`
 - `recommended_verdict: A` (pass), `C` (conditional — minor issues), or `R` (fail)
 - Full contents of `{{test_root}}/{{test_slug}}/TESTING.md` embedded inline
 - Pass/fail status of each smoke-test step
+- A complete `## Gate Evidence` section for the active gate profile, including
+  this machine-readable G9 line:
+  `G9 No-brainer-filter: PASS - classifier_state=known_non_no_brainer; classified_at=<ISO-8601-utc>; category=none; confidence=none; stop_gates_clear=false; reason=Taylor smoke-test evidence review required; proposed_registry_extension=none`
 
 Template:
 
@@ -248,6 +256,11 @@ producer_contract: brief-producer.v1
 source_formula: smoke-test-briefed
 source_step: file-brief
 routing_path: "{{routing_path}}"
+review_gate: approved
+unlock_count: <int>
+priority: P2
+server_touching: false
+user_skill_touching_override: false
 recommended_verdict: <A|C|R>
 ---
 
@@ -260,6 +273,13 @@ recommended_verdict: <A|C|R>
 ## Result: <PASS | CONDITIONAL | FAIL>
 
 <One-paragraph summary of what was tested and what the outcome was.>
+
+## Gate Evidence
+
+G9 No-brainer-filter: PASS - classifier_state=known_non_no_brainer; classified_at=<ISO-8601-utc>; category=none; confidence=none; stop_gates_clear=false; reason=Taylor smoke-test evidence review required; proposed_registry_extension=none
+
+Include every other required gate from the active profile as `PASS`, `FAIL`,
+`BLOCKED`, or justified `N/A` before filing to `.pile/`.
 
 ## TESTING.md
 

@@ -6,7 +6,7 @@ The produce stage fans out as a drain — one brief-prep formula instance per
 pending source bead, all running in parallel. The shuffle stage is gated on the
 produce fan-in and runs only after every source brief has settled in .pile
 (succeeded or failed). Shuffle acquires the single-writer lock before touching
-.pile or stack/manifest.jsonl.
+.pile or stack/.index.jsonl.
 """
 formula = "math-brief-prep"
 version = 1
@@ -86,27 +86,16 @@ title = "Shuffle prepared briefs into stack (single-writer, fan-in)"
 needs = ["produce"]
 metadata = { "gc.run_target" = "{{prep_target}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
-After the produce fan-in, run the single-writer shuffle loop for all briefs
-in `{{artifact_root}}/.pile` submitted during this produce run.
+After the produce fan-in, run the `brief-shuffle` formula against
+`{{artifact_root}}/.pile` for briefs submitted during this produce run.
+`brief-shuffle` is the only writer to `{{artifact_root}}/stack/` and
+`{{artifact_root}}/stack/.index.jsonl`; this fan-in step must not move briefs
+to stack or append index records directly.
 
-1. Acquire `{{artifact_root}}/.shuffle.lock`. If the lock is held by a live
-   concurrent shuffler, stop cleanly — the `brief-shuffle-pile` order will
-   handle remaining items.
-2. Select the oldest markdown brief from `.pile` (one item per iteration).
-3. Apply the gate registry from `assets/brief-pipeline/gates.toml`. Judgment
-   gates must already be present in the brief; the shuffler does not invent
-   approvals.
-4. For passing briefs: move to `{{artifact_root}}/stack/<slug>.md` and append
-   one JSON object to `stack/manifest.jsonl` with keys: `slug`, `path`,
-   `source`, `unlock_count`, `created_at`, `gate_profile`. Do not write the
-   `status` key here; `brief-record-decision` adds it later.
-5. For failing or blocked briefs: move to
-   `{{artifact_root}}/.pile/.rejected/<slug>/brief.md` with a short rejection
-   record. Do not append to `stack/manifest.jsonl`.
-6. Release the lock after each item. Repeat from step 1 until the pile is empty.
-
-This step is the single writer for `stack/` and `manifest.jsonl`. No other
-formula or step may promote to stack concurrently.
+If the shuffler lock is held by a live concurrent shuffler, stop cleanly — the
+`brief-shuffle-pile` order will handle remaining items. If briefs fail or block
+their gates, let `brief-shuffle` move them to `.pile/.rejected/` with the
+rejection record.
 """
 
 [steps.check]

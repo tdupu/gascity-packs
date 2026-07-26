@@ -22,7 +22,7 @@ presentations = ".beads/briefs/presentations"
 decisions = ".beads/briefs/decisions"
 decisions_log = ".beads/briefs/decisions.jsonl"
 route_log = ".beads/briefs/decisions/file-or-sendback.jsonl"
-manifest = ".beads/briefs/stack/manifest.jsonl"
+manifest = ".beads/briefs/stack/.index.jsonl"
 staging = ".beads/briefs/.staging"
 lock = ".beads/briefs/.shuffle.lock"
 

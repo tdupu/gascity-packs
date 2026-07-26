@@ -287,20 +287,33 @@ metadata = { "gc.run_target" = "mathcity.brief-operator" }
 description = """
 File a decision brief asking Taylor to approve the new formula TOML.
 
-Read the draft from `/tmp/{{formula_name}}.toml`, then write the brief:
+Read the draft from `/tmp/{{formula_name}}.toml`, then write the brief to
+`.pile/`; `brief-shuffle` is the only writer to `stack/`:
 
 ```bash
-BRIEF_PATH="{{artifact_root}}/stack/{{brief_slug}}.md"
-mkdir -p "{{artifact_root}}/stack"
+BRIEF_PATH="{{artifact_root}}/.pile/{{brief_slug}}.md"
+mkdir -p "{{artifact_root}}/.pile"
 ```
 
 The brief MUST contain:
 - `status: approved` frontmatter
 - `brief_bead: {{source_bead}}`
+- `brief_slug: {{brief_slug}}`
+- `producer_contract: brief-producer.v1`
+- `source_formula: formula-creator-math`
+- `source_step: file-brief`
+- `review_gate: approved`
+- `unlock_count: <int>`
+- `priority: P0|P1|P2|P3|P4`
+- `server_touching: false`
+- `user_skill_touching_override: false`
 - A summary of what the formula does and which shape it uses
 - The full draft TOML (fenced as `toml`) for Taylor to review inline
 - A recommended verdict (A=approve and commit / C=defer if more design needed)
 - The three validation check results (all-pass confirmation)
+- A complete `## Gate Evidence` section for the active gate profile, including
+  this machine-readable G9 line:
+  `G9 No-brainer-filter: PASS - classifier_state=known_non_no_brainer; classified_at=<ISO-8601-utc>; category=none; confidence=none; stop_gates_clear=false; reason=Taylor formula approval required; proposed_registry_extension=none`
 
 Template:
 
@@ -309,6 +322,14 @@ Template:
 status: approved
 brief_bead: {{source_bead}}
 brief_slug: {{brief_slug}}
+producer_contract: brief-producer.v1
+source_formula: formula-creator-math
+source_step: file-brief
+review_gate: approved
+unlock_count: <int>
+priority: P2
+server_touching: false
+user_skill_touching_override: false
 recommended_verdict: A
 ---
 
@@ -327,6 +348,13 @@ recommended_verdict: A
 - [x] TOML parses without error
 - [x] Terminal step is `<id>` (one of: file-brief, brief-finalize, workflow-finalize)
 - [x] Catalog fields present
+
+## Gate Evidence
+
+G9 No-brainer-filter: PASS - classifier_state=known_non_no_brainer; classified_at=<ISO-8601-utc>; category=none; confidence=none; stop_gates_clear=false; reason=Taylor formula approval required; proposed_registry_extension=none
+
+Include every other required gate from the active profile as `PASS`, `FAIL`,
+`BLOCKED`, or justified `N/A` before filing to `.pile/`.
 
 ## Draft TOML
 

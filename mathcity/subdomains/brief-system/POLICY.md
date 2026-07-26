@@ -100,7 +100,7 @@ audits the diff mechanically.
 | G6 | latex-gate | manual | LaTeX-bearing work carries the LaTeX gate outcome, or an explicit no-LaTeX surface check | L1–L4 |
 | G7 | artifacts-staging | mechanical | Artifacts staged under the brief run directory and referenced from the brief | E6 |
 | G8 | brief-record-bookkeeping | mechanical | Bead records (brief bead `type=decision`), source links, pile membership, recorded-verdict/archive records all consistent | B1.7, B2.9, B3.3, N7 |
-| G9 | no-brainer-filter | review | Shortcut classification is explicit and cannot override stop gates or Taylor-only decisions | N1–N4 |
+| G9 | no-brainer-filter | review | Classifier ran and recorded exactly one state: `known_no_brainer`, `known_non_no_brainer`, `candidate`, `capability_blocker`, or `safety_blocked`; missing, malformed, or stale classification evidence blocks shortcut handling | N1–N4, N6 |
 | G10 | improve-readme | mechanical | Qualifying changes show the README improvement or why no README surface exists | D1, B4.3 |
 | G11 | breadcrumb | mechanical | Experiment/deferred work leaves a durable breadcrumb: source, staged artifacts, next owner | D4, E6 |
 | G12 | auto-merge-kill-switch | stop | Automation checks the two-level kill-switch hierarchy before executing (semantics in N5) | N5 |
@@ -413,7 +413,13 @@ default; the kill switch is a brake, not a parking brake.*
 - **N6 Surfacing a no-brainer at Taylor is a regression.** If a brief reaches
   the human-review layer and Taylor's immediate reaction is "this is obvious,
   why am I seeing it?" → that is a classifier regression. The fix is in the
-  classifier prompt or category definitions.
+  classifier prompt or category definitions. When Taylor marks a surfaced
+  brief as an obvious no-brainer leak, adjudication MUST record a durable
+  `no_brainer_leak` event keyed to the brief slug, brief bead when known,
+  source bead when known, ordinary verdict, Taylor reason, previous classifier
+  state when known, safety flags, and repair status. Missing leak evidence
+  means the failure signal cannot repair the classifier and is a G9/N6
+  regression.
 - **N7 Auto-execution leaves a full audit trail.** Every auto-executed
   no-brainer must have: the classifier output (category, **confidence
   score**, stop-gate flags) staged as evidence, the verdict recorded on the
@@ -744,3 +750,4 @@ the brief bead and the bead is closed (B2.2).
 | 2026-07-12 | Gate-table authority: the gate-inventory table declared authoritative for gate definitions (id, name, kind, purpose, rules mapping); `gates.toml` demoted to machine join-layer (PP4.1) that must match it, mismatch = PP1.7 drift; gates.toml repaired to match (header comment, G2/G4/G8 stale descriptions, stale G3/G9/G13 derivation comments); check-brief-policy gains a mechanical table-vs-registry diff audit; Known-drift G12 entry marked RESOLVED (registry wording verified to match N5) | Taylor verdict "POLICY" (POLICY-TABLE-AUTHORITATIVE) 2026-07-12; PP1.2/PP1.7 derivation |
 | 2026-07-12 | PP1.8 concision: rationale clauses moved out of rule bodies into this row — B2.5 "the constraint is Taylor's decision budget, and everything subordinates to the constraint"; B4.2 "Leaving the old code behind for 'reference' creates drift — the production path and the legacy path coexist, and the next worker won't know which is current"; L4 "a one-character sign change is exactly the case the gate exists for"; N6 "not a scheduling slip" and "not in asking Taylor to accept more noise" (N6's fix-location sentence kept — load-bearing remediation routing). Pass/fail outcomes unchanged | Taylor verdict "adopt" 2026-07-12; decision bead gsp-pxcu |
 | 2026-07-12 | E7 amended to file-plus-pointer (PP1.9): bulky experiment outputs live in the filesystem keyed by bead ID (D4/E6/G7 staging conventions); the bead carries the verdict/summary line plus a pointer; original intent (results feed research beads, not the void) and pass/fail shape retained | Taylor verdict "adopt" 2026-07-12; decision bead gsp-pxcu |
+| 2026-07-26 | Amend G9/N6: require explicit no-brainer classifier states and durable leak records | Taylor approved using no-brainer leaks as replayable filter-repair signals |
