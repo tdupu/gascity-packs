@@ -28,6 +28,14 @@ workflow root itself as the source and say so in the brief header.
 4. The deposited brief is `gc.brief.*`-stamped by brief-prep. Never strip
    those keys — they are the self-exclusion filter that keeps brief
    molecules from re-entering brief-firing mechanisms.
+5. The deposited brief must include this producer provenance frontmatter:
+
+   ```yaml
+   producer_contract: brief-producer.v1
+   source_formula: build-basic-briefed
+   source_step: publish
+   routing_path: "{{routing_path}}"
+   ```
 
 ## Record the outcome
 
@@ -42,7 +50,11 @@ gc bd update "$CLAIMED_BEAD_ID" \
   --set-metadata 'gc.build_outcome=pass' \
   --set-metadata 'gc.final_report=<final report path>' \
   --set-metadata 'gc.brief.slug=<brief slug>' \
-  --set-metadata 'gc.brief.path=<deposited brief path>'
+  --set-metadata 'gc.brief.path=<deposited brief path>' \
+  --set-metadata 'gc.brief.source_formula=build-basic-briefed' \
+  --set-metadata 'gc.brief.source_step=publish' \
+  --set-metadata 'gc.brief.routing_path={{routing_path}}' \
+  --set-metadata 'gc.brief.producer_contract=brief-producer.v1'
 gc bd close "$CLAIMED_BEAD_ID" --reason 'Decision brief deposited; shipping deferred to the APPROVE verdict edge.'
 ```
 

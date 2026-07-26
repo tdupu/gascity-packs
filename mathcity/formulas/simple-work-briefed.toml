@@ -64,6 +64,10 @@ default = "mathcity.brief-operator"
 description = "Brief pipeline artifact root (rig-relative)."
 default = ".beads/briefs"
 
+[vars.routing_path]
+description = "Comma-separated route from wrapper formula to final producer."
+default = "simple-work-briefed"
+
 [[steps]]
 id = "execute-task"
 title = "Execute: {{task}}"
@@ -103,7 +107,7 @@ If blocked without a path forward, file an escalation before stopping:
 id = "file-brief"
 title = "File brief for {{source_bead}}"
 needs = ["execute-task"]
-metadata = { "gc.run_target" = "{{run_target}}", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.source" = "{{source_bead}}", "gc.brief.type" = "{{brief_type}}", "gc.brief.path" = "{{artifact_root}}/.staging/{{brief_slug}}/brief.md" }
+metadata = { "gc.run_target" = "{{run_target}}", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.source" = "{{source_bead}}", "gc.brief.source_formula" = "simple-work-briefed", "gc.brief.source_step" = "file-brief", "gc.brief.routing_path" = "{{routing_path}}", "gc.brief.producer_contract" = "brief-producer.v1", "gc.brief.type" = "{{brief_type}}", "gc.brief.path" = "{{artifact_root}}/.pile/{{brief_slug}}.md" }
 description = """
 Use the `mathcity.brief-prep` skill to prepare and file a brief about the
 result of the `execute-task` step.
@@ -123,6 +127,15 @@ Then invoke the brief-prep skill with:
 The brief's "What is being decided" section must describe the action taken
 and what Taylor needs to approve, reject, or defer. Include the subagent
 output as the primary evidence section.
+
+The deposited brief must include this provenance frontmatter:
+
+```yaml
+producer_contract: brief-producer.v1
+source_formula: simple-work-briefed
+source_step: file-brief
+routing_path: "{{routing_path}}"
+```
 
 After `mathcity.brief-prep` completes and the brief is in `.pile/`, close
 this step bead and call `gc runtime drain-ack`.

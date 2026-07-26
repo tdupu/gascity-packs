@@ -37,11 +37,17 @@ target_required = true
 name = "build-basic-briefed"
 description = "build-basic whose terminal publish slot produces a decision brief (via the brief-prep skill + catch-no-brainer) instead of pushing; shipping happens on APPROVE via the normal verdict edge."
 
+[vars]
+
+[vars.routing_path]
+description = "Comma-separated route from wrapper formula to final producer."
+default = "build-basic-briefed"
+
 [[steps]]
 id = "publish"
 title = "Produce decision brief for the build (briefed publish slot)"
 needs = ["finalize"]
-metadata = { "gc.run_target" = "gc.publisher" }
+metadata = { "gc.run_target" = "gc.publisher", "gc.brief.source_formula" = "build-basic-briefed", "gc.brief.source_step" = "publish", "gc.brief.routing_path" = "{{routing_path}}", "gc.brief.producer_contract" = "brief-producer.v1" }
 description_file = "../assets/workflows/build-basic-briefed/publish.md"
 
 [requires]

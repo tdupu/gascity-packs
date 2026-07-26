@@ -280,6 +280,23 @@ check_file_or_sendback_log() {
   fi
 }
 
+check_producer_contract() {
+  path="$(brief_path)"
+  require_file "$path"
+  require_text "$path" '^producer_contract:[[:space:]]*brief-producer\.v1\b' "brief missing producer_contract"
+  require_text "$path" '^source_formula:[[:space:]]*[A-Za-z0-9._-]+' "brief missing source_formula"
+  require_text "$path" '^source_step:[[:space:]]*[A-Za-z0-9._-]+' "brief missing source_step"
+}
+
+check_producer_repair_self_exclusion() {
+  path="$(brief_path)"
+  require_file "$path"
+  require_text "$path" '^producer_contract:[[:space:]]*brief-producer-repair\.v1\b' "repair brief missing self-exclusion producer_contract"
+  require_text "$path" '^repair_source_formula:[[:space:]]*[A-Za-z0-9._-]+' "repair brief missing repair_source_formula"
+  require_text "$path" '^repair_failed_gate:[[:space:]]*[A-Za-z0-9._-]+' "repair brief missing repair_failed_gate"
+  require_text "$path" '^repair_failure_fingerprint:[[:space:]]*[A-Za-z0-9._-]+' "repair brief missing repair_failure_fingerprint"
+}
+
 case "$COMMAND" in
   test-evidence) check_test_evidence ;;
   mechanical-gates) check_mechanical_gates ;;
@@ -297,6 +314,7 @@ case "$COMMAND" in
   server-touching-safety) check_server_touching_safety ;;
   archive-sweep-record) check_archive_sweep_record ;;
   file-or-sendback-log) check_file_or_sendback_log ;;
+  producer-contract) check_producer_contract ;;
+  producer-repair-self-exclusion) check_producer_repair_self_exclusion ;;
   *) fail "unknown check: $COMMAND" ;;
 esac
-

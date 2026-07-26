@@ -56,6 +56,10 @@ default = "{{test_slug}}-smoke-test"
 description = "Root for the brief artifact."
 default = ".beads/briefs"
 
+[vars.routing_path]
+description = "Comma-separated route from wrapper formula to final producer."
+default = "smoke-test-briefed"
+
 [vars.test_root]
 description = "Root directory for test scripts and results."
 default = "mathcity/tests"
@@ -212,19 +216,23 @@ must state that clearly and section 3 must explain how to debug the failure.
 id = "file-brief"
 title = "File test-evidence brief for {{test_slug}}"
 needs = ["record-results"]
-metadata = { "gc.run_target" = "mathcity.brief-operator" }
+metadata = { "gc.run_target" = "mathcity.brief-operator", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.source" = "{{source_bead}}", "gc.brief.source_formula" = "smoke-test-briefed", "gc.brief.source_step" = "file-brief", "gc.brief.routing_path" = "{{routing_path}}", "gc.brief.producer_contract" = "brief-producer.v1", "gc.brief.path" = "{{artifact_root}}/.pile/{{brief_slug}}.md" }
 description = """
 File a decision brief with the test evidence so Taylor can review.
 
 ```bash
-BRIEF_PATH="{{artifact_root}}/stack/{{brief_slug}}.md"
-mkdir -p "{{artifact_root}}/stack"
+BRIEF_PATH="{{artifact_root}}/.pile/{{brief_slug}}.md"
+mkdir -p "{{artifact_root}}/.pile"
 ```
 
 The brief MUST contain:
 - `status: approved` frontmatter
 - `brief_bead: {{source_bead}}` (if non-empty)
 - `brief_slug: {{brief_slug}}`
+- `producer_contract: brief-producer.v1`
+- `source_formula: smoke-test-briefed`
+- `source_step: file-brief`
+- `routing_path: "{{routing_path}}"`
 - `recommended_verdict: A` (pass), `C` (conditional — minor issues), or `R` (fail)
 - Full contents of `{{test_root}}/{{test_slug}}/TESTING.md` embedded inline
 - Pass/fail status of each smoke-test step
@@ -236,6 +244,10 @@ Template:
 status: approved
 brief_bead: {{source_bead}}
 brief_slug: {{brief_slug}}
+producer_contract: brief-producer.v1
+source_formula: smoke-test-briefed
+source_step: file-brief
+routing_path: "{{routing_path}}"
 recommended_verdict: <A|C|R>
 ---
 

@@ -60,6 +60,10 @@ default = ".beads/briefs"
 description = "Optional extra context (file paths, bead IDs, inline notes)."
 default = ""
 
+[vars.routing_path]
+description = "Comma-separated route from wrapper formula to final producer."
+default = "planning-briefed"
+
 [[steps]]
 id = "pre-flight"
 title = "Verify Opus-level agent ({{plan_target}}) is configured"
@@ -190,18 +194,22 @@ bd update {{source_bead}} --notes "planning-briefed review-plan: <PASS | issues 
 id = "file-brief"
 needs = ["review-plan"]
 title = "File decision brief for {{source_bead}} plan"
-metadata = { "gc.run_target" = "mathcity.brief-operator" }
+metadata = { "gc.run_target" = "mathcity.brief-operator", "gc.brief.slug" = "{{brief_slug}}", "gc.brief.source" = "{{source_bead}}", "gc.brief.source_formula" = "planning-briefed", "gc.brief.source_step" = "file-brief", "gc.brief.routing_path" = "{{routing_path}}", "gc.brief.producer_contract" = "brief-producer.v1", "gc.brief.path" = "{{artifact_root}}/.pile/{{brief_slug}}.md" }
 description = """
 File a decision brief asking Taylor to approve the plan before implementation begins.
 
 ```bash
-BRIEF_PATH="{{artifact_root}}/stack/{{brief_slug}}.md"
-mkdir -p "{{artifact_root}}/stack"
+BRIEF_PATH="{{artifact_root}}/.pile/{{brief_slug}}.md"
+mkdir -p "{{artifact_root}}/.pile"
 ```
 
 The brief MUST contain:
 - `status: approved` frontmatter
 - `brief_bead: {{source_bead}}`
+- `producer_contract: brief-producer.v1`
+- `source_formula: planning-briefed`
+- `source_step: file-brief`
+- `routing_path: "{{routing_path}}"`
 - The plan type and goal
 - The full plan document (from $GC_WORK_DIR/{{source_bead}}-plan.md) as a fenced markdown block
 - Key risks and unknowns surfaced by review-plan
@@ -210,7 +218,7 @@ The brief MUST contain:
 After filing:
 
 ```bash
-bd update {{source_bead}} --notes "planning-briefed file-brief: brief at {{brief_slug}}.md — awaiting Taylor verdict"
+bd update {{source_bead}} --notes "planning-briefed file-brief: brief at {{artifact_root}}/.pile/{{brief_slug}}.md — awaiting Taylor verdict"
 gc runtime drain-ack
 ```
 """

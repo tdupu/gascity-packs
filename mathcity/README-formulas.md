@@ -2,7 +2,7 @@
 
 **Single canonical index of every formula in the mathcity pack.**
 
-23 formulas in `mathcity/formulas/`. This file is the ONE complete list. When in doubt, **this file wins**.
+26 formulas in `mathcity/formulas/`. This file is the ONE complete list. When in doubt, **this file wins**.
 
 **Maintenance (single source of truth):**
 - `formula-creator-math` appends the new formula's row here as a required step before filing the brief.
@@ -13,7 +13,7 @@ _Regenerate/verify with `/update-README`._
 
 ---
 
-## Formulas — `mathcity/formulas/`  (23)
+## Formulas — `mathcity/formulas/`  (26)
 
 | Formula | Shape | What it does |
 |---|---|---|
@@ -22,6 +22,9 @@ _Regenerate/verify with `/update-README`._
 | `brief-gate-keep` | do-work | Run the brief gate registry against one brief. |
 | `brief-prep` | methodology | Prepare a policy-gated brief from source work. |
 | `brief-present-next` | do-work | Drain all pending stack briefs in one session. |
+| `brief-producer-failure-record` | do-work | Record producer-failure signals from brief-shuffle gate rejects. |
+| `brief-producer-failure-rollup` | do-work | Roll up repeated producer-failure patterns and sling repair reviews. |
+| `brief-producer-repair` | do-work | Diagnose repeated gate failures from a brief producer and file a repair brief. |
 | `brief-record-decision` | do-work | Record Taylor's decision for a presented brief and archive the run. |
 | `brief-review-patrol` | do-work | Patrol the brief stack for briefs stuck at the Phase 5 review gate. |
 | `brief-shuffle` | do-work | Single-writer shuffler for brief pile to stack promotion. |

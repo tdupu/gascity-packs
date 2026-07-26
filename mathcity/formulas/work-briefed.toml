@@ -82,6 +82,10 @@ default = "false"
 description = "Whether to open a PR. Passed to build-basic-briefed on full-path."
 default = "false"
 
+[vars.routing_path]
+description = "Comma-separated route prefix for nested routers."
+default = "work-briefed"
+
 [[steps]]
 id = "route"
 title = "Route {{source_bead}}: assess complexity and dispatch to the right formula"
@@ -117,10 +121,46 @@ When in doubt: FULL.
 ## Step 3 — Record verdict
 
 ```bash
-bd update {{source_bead}} --notes "work-briefed route: SIMPLE|FULL — <one-line reason>"
+for cmd in bd jq; do
+  command -v "$cmd" >/dev/null 2>&1 || {
+    echo "I'm sorry, I can't do that — required command '$cmd' is missing." >&2
+    echo "Install '$cmd' or run the appropriate setup/update skill before routing work-briefed." >&2
+    exit 1
+  }
+done
+
+route_payload="$(jq -nc \
+  --arg schema "work-briefed-route.v1" \
+  --arg source_bead "{{source_bead}}" \
+  --arg route "<SIMPLE-or-FULL>" \
+  --arg child_formula "<simple-work-briefed-or-build-basic-briefed>" \
+  --arg routing_path "{{routing_path}},<simple-work-briefed-or-build-basic-briefed>" \
+  --arg reason "<one-line reason from the heuristic>" \
+  '{schema:$schema,source_bead:$source_bead,route:$route,child_formula:$child_formula,routing_path:$routing_path,reason:$reason}')"
+route_event="$(bd create "work-briefed route for {{source_bead}}" \
+  --type=event \
+  --event-category work_briefed.route \
+  --event-target "{{source_bead}}" \
+  --event-payload "$route_payload" \
+  --silent)"
+bd dep relate "$route_event" "{{source_bead}}"
 ```
 
+Do not write a route note to `{{source_bead}}`; the linked event bead is the
+append-only route record.
+
 ## Step 4 — Dispatch to the right formula
+
+Before either child `gc sling`, verify the source bead is not already actively
+assigned:
+
+```bash
+assignee="$(bd show "{{source_bead}}" --json --readonly | jq -r '.[0].assignee // .assignee // ""')"
+if [ -n "$assignee" ]; then
+  echo "ALREADY DISPATCHED — bead {{source_bead}} has active assignee: $assignee; aborting work-briefed child dispatch" >&2
+  exit 1
+fi
+```
 
 **If SIMPLE** — dispatch via simple-work-briefed:
 
@@ -134,6 +174,7 @@ gc sling ${RIG}/gc.run-operator {{source_bead}} --on simple-work-briefed \
   --var model={{model}} \
   --var brief_type={{brief_type}} \
   --var artifact_root={{artifact_root}} \
+  --var routing_path="{{routing_path}},simple-work-briefed" \
   --var task="$(bd show {{source_bead}} | head -5)"
 ```
 
@@ -151,7 +192,19 @@ gc sling ${RIG}/gc.run-operator {{source_bead}} --on build-basic-briefed \
   --var review_mode={{review_mode}} \
   --var drain_policy={{drain_policy}} \
   --var push={{push}} \
-  --var open_pr={{open_pr}}
+  --var open_pr={{open_pr}} \
+  --var routing_path="{{routing_path}},build-basic-briefed"
+```
+
+After either child `gc sling`, verify that assignment became visible:
+
+```bash
+sleep 5
+child_assignee="$(bd show "{{source_bead}}" --json --readonly | jq -r '.[0].assignee // .assignee // ""')"
+if [ -z "$child_assignee" ]; then
+  echo "DISPATCH VERIFY FAILED — bead {{source_bead}} has no assignee after work-briefed child sling" >&2
+  exit 1
+fi
 ```
 
 ## Step 5 — Close this routing step
