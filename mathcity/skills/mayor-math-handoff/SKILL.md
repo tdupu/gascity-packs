@@ -1,11 +1,11 @@
 ---
 name: mayor-math-handoff
-description: SESSION-END handoff for the math-city Mayor (QUIMBY). Writes the chained handoff bead, expands the run-log, adds the session-catalog entry, and updates the restart PROMPT so the next Mayor session can prime from it. Run at the END of every QUIMBY session — directly, or as the first half of mayor-math-restart (handoff → clear → prime). Trigger phrases: "mayor-math-handoff", "hand off the mayor session", "end the QUIMBY session", "write the mayor handoff".
+description: SESSION-END handoff for the math-city Mayor. Writes the chained handoff bead, expands the run-log, adds the session-catalog entry, and updates the restart PROMPT so the next Mayor session can prime from it. Run at the END of every Mayor session — directly, or as the first half of mayor-math-restart (handoff → clear → prime). Trigger phrases: "mayor-math-handoff", "hand off the mayor session", "end the Mayor session", "write the mayor handoff".
 ---
 
 # mayor-math-handoff
 
-The QUIMBY SESSION-END procedure — the first half of the restart cycle
+The Mayor session SESSION-END procedure — the first half of the restart cycle
 (**`mayor-math-handoff`** → `/clear` → `mayor-math-prime`). Do ALL FIVE steps,
 in this order (the catalog entry must exist before the PROMPT is regenerated):
 
@@ -62,12 +62,12 @@ coarse or too granular.
 
 **Draft new objectives** for the next session — TWO lists:
 
-- `objectives_short` (what QUIMBY N+1 should finish in one session):
+- `objectives_short` (what Mayor session N+1 should finish in one session):
   list 3–7 concrete, completable items. Write them as action verbs.
   Too large = requires multiple sessions. Too small = trivially done in
   minutes. Sweet spot = a full session's worth each.
 
-- `objectives_long` (multi-session or persistent goals QUIMBY N+1 should
+- `objectives_long` (multi-session or persistent goals Mayor session N+1 should
   advance but not necessarily finish): list 2–4 strategic objectives.
   These frame the short-term list.
 
@@ -93,7 +93,7 @@ before 5 evaluations exist.
 ## 1. Write the handoff bead (chained)
 
 Write a `gt-` handoff bead holding this session's full arc (what was done,
-what was verified at source, open threads, warnings for the next QUIMBY).
+what was verified at source, open threads, warnings for the next Mayor session).
 Reference the prior chain (S1 gt-gnh7m → … → S12 gt-9050ks → …) so
 `bd show` walks the lineage. The `/handoff-bead` skill does the mechanics.
 
@@ -104,7 +104,7 @@ Write this session's `S<N>.x` rows to a **new shard file**
 Do NOT append to the `run-log.md` monolith — it is a frozen 190KB archive;
 `mayor-math-prime` reads shards from the directory, not the monolith.
 
-Format: begin with `## S<N> — QUIMBY <N> (<date>, written by <agent>)`,
+Format: begin with `## S<N> — Mayor session <N> (<date>, written by <agent>)`,
 then one `S<N>.x` subsection per topic (triage, infra, math, handoff).
 Never rewrite prior sessions' rows.
 
@@ -121,13 +121,13 @@ Entry shape:
 
 ```json
 {
-  "quimby": <N>,
+  "mayor_session": <N>,
   "bead": "<your-handoff-bead-id>",
   "date": "<YYYY-MM-DD>",
   "hours_active": "<e.g. ~3h>",
   "compactions": <integer or "unknown">,
   "summary": "<what was done this session>",
-  "city_state": "<city state for the next QUIMBY>",
+  "city_state": "<city state for the next Mayor session>",
   "objectives_eval": [
     {
       "objective": "<verbatim from prior charge_for_next or objectives_short>",
@@ -145,12 +145,12 @@ Entry shape:
   "objectives_long": [
     "<multi-session strategic goal>"
   ],
-  "charge_for_next": "<one-paragraph synthesis of objectives_short for the next QUIMBY>"
+  "charge_for_next": "<one-paragraph synthesis of objectives_short for the next Mayor session>"
 }
 ```
 
 Keep `summary` and `city_state` ≤ ~40 words each. `charge_for_next` is a
-prose synthesis of `objectives_short` — write it for a QUIMBY who will read
+prose synthesis of `objectives_short` — write it for a Mayor session that will read
 only the PROMPT (no catalog JSON visible directly). The structured fields
 (`objectives_eval`, `objectives_short`, `objectives_long`) are for the
 `check-mayor-objectives` skill and the evaluation table in the PROMPT.

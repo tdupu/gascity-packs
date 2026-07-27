@@ -1,7 +1,7 @@
 # Gascity Restart & Brief System Verification Checklist
 
 > **DO NOT ABRIDGE OR TRUNCATE THE CONTENTS OF THIS FILE WITHOUT EXPLICIT USER AUTHORIZATION.**
-> Correct errors in place (P5.4); every section has been verified correct over multiple QUIMBY generations.
+> Correct errors in place (P5.4); every section has been verified correct across multiple Mayor sessions.
 
 **City:** `~/gt`  
 **Date:** 2026-07-14  
@@ -62,7 +62,7 @@
 
 > **Skip this phase** if `gc version` already shows the build you want and there are no pending source changes in `~/repos/gascity` or `~/repos/beads`.
 
-> **⚠️ SCHEMA MISMATCH GUARD (P5.4 Q23, 2026-07-21):** The gc binary embeds the beads library from go.mod (`github.com/steveyegge/beads`). If `bd version` reports a HIGHER schema than `gc`'s embedded beads knows, the city will hang at `starting_bead_store`. Check via `gc supervisor logs | grep "binary knows up to"`. Workaround: add `GC_BEADS_FORCE_FALLBACK=1` to the launchd plist (`~/Library/LaunchAgents/com.gascity.supervisor.plist`), reload, then start. Permanent fix: add `replace github.com/steveyegge/beads => /Users/tdupuy/repos/beads` to `~/repos/gascity/go.mod` and rebuild (BART lane). **NOTE: `gc supervisor install --force` / `gc start` overwrites the plist** — re-add `GC_BEADS_FORCE_FALLBACK=1` after any reinstall.
+> **⚠️ SCHEMA MISMATCH GUARD (P5.4 Q23, 2026-07-21):** The gc binary embeds the beads library from go.mod (`github.com/steveyegge/beads`). If `bd version` reports a HIGHER schema than `gc`'s embedded beads knows, the city will hang at `starting_bead_store`. Check via `gc supervisor logs | grep "binary knows up to"`. Workaround: add `GC_BEADS_FORCE_FALLBACK=1` to the launchd plist (`~/Library/LaunchAgents/com.gascity.supervisor.plist`), reload, then start. Permanent fix: add `replace github.com/steveyegge/beads => /Users/tdupuy/repos/beads` to `~/repos/gascity/go.mod` and rebuild (repo-side landing agent lane). **NOTE: `gc supervisor install --force` / `gc start` overwrites the plist** — re-add `GC_BEADS_FORCE_FALLBACK=1` after any reinstall.
 
 - [ ] **Stop the city first** (if running)
   ```bash

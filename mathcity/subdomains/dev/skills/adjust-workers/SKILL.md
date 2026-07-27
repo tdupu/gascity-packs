@@ -11,7 +11,7 @@ Gas City rig. Reads the live session state, computes the gap, proposes a
 (per `city-toml-via-packs-not-hand` policy — never hand-edit city.toml).
 
 **Scope:** outside-agent only (Taylor's Claude Code session). Does NOT dispatch
-city agents; proposes a config change for BART to commit.
+city agents; proposes a config change for repo-side landing agent to commit.
 
 ## Pre-flight
 
@@ -88,7 +88,7 @@ Proposed [[patches.agent]] for ~/gt/city.toml (via pack PR):
 This will allow up to <N> concurrent run-operators for the <rig> rig,
 and keep 1 warm session alive between work items.
 
-Policy: city-toml-via-packs-not-hand → this goes via pack PR (BART's lane),
+Policy: city-toml-via-packs-not-hand → this goes via pack PR (repo-side landing lane),
 not a hand-edit. See Step 5.
 ```
 
@@ -142,20 +142,20 @@ mol-pr-from-issue PR flow.
 
 ## Step 6 — Gate on authorize-git-operation
 
-If Taylor approves the patch and QUIMBY is about to push anything:
+If Taylor approves the patch and Mayor session is about to push anything:
 
 ```
 I need to push to tdupu/gascity-packs.
 Run /authorize-git-operation to proceed.
 ```
 
-Note: QUIMBY (outside agent) cannot commit to ~/repos — this is BART's lane.
-Hand the proposed patch block to BART with the bead ID and proposed TOML text.
+Note: Mayor session (outside agent) cannot commit to ~/repos — this is the repo-side landing lane.
+Hand the proposed patch block to repo-side landing agent with the bead ID and proposed TOML text.
 
 ## What this skill does NOT do
 
 - Does not hand-edit `~/gt/city.toml` directly (violates city-toml-via-packs-not-hand)
-- Does not commit or push to any repo (QUIMBY is in conservative profile; BART executes)
+- Does not commit or push to any repo (Mayor session is in conservative profile; repo-side landing agent executes)
 - Does not affect brief-operator pool (that uses `pool = {max = N}` via its own [[patches.agent]])
 - Does not adjust rig-level `max_active_sessions` (the per-rig cap under `[[rigs]]`) — that is a different lever
 

@@ -1,11 +1,11 @@
 ---
 name: mayor-math-restart
-description: Full QUIMBY session orientation. Run at the start of every new QUIMBY (math-city Mayor) session. Reads the restart prompt, the durable operation docs, and the session catalog so a fresh session can operate the city the way the current QUIMBY does.
+description: Full Mayor session orientation. Run at the start of every new Mayor session (math-city Mayor) session. Reads the restart prompt, the durable operation docs, and the session catalog so a fresh session can operate the city the way the current Mayor session does.
 ---
 
 # mayor-math-restart
 
-Full QUIMBY onboarding. (There is NO auto-injecting PreToolUse hook — this skill
+Full Mayor onboarding. (There is NO auto-injecting PreToolUse hook — this skill
 reads its own context. Corrected 2026-07-16.) Do these in order:
 
 ## 1. Read the orientation context (target ~30KB — keep it tight)
@@ -14,9 +14,9 @@ reads its own context. Corrected 2026-07-16.) Do these in order:
 
 1. **`~/gt/mathcity-mayor/restart/PROMPT-mayor-restart.txt`** (~1KB) — this session's
    background, standing rules, city state, and charge.
-2. **`~/gt/gascity-packs/mathcity/docs/QUIMBY-ONBOARDING.md`** (~7KB) — S11-corrected
+2. **`~/gt/gascity-packs/mathcity/docs/MAYOR-ONBOARDING.md`** (~7KB) — S11-corrected
    operational truths (the gold). Contains pointer to CITY-RESTART-CHECKLIST.md.
-3. **`~/gt/mathcity-mayor/session-catalog-recent.json`** (~5–11KB) — last 5 QUIMBY sessions
+3. **`~/gt/mathcity-mayor/session-catalog-recent.json`** (~5–11KB) — last 5 Mayor sessions
    (arc, city state, charge). Full history is in `session-catalog.json` if needed.
    **Consistency guard:** the handoff bead named in the PROMPT must appear as the newest
    entry here. If it is absent, the prior session did not finish its close protocol
@@ -44,7 +44,7 @@ reads its own context. Corrected 2026-07-16.) Do these in order:
   *Trigger: before running any test or triaging a pipeline failure.*
 - [`DOGFOOD-WORKFLOW.md`](../../docs/DOGFOOD-WORKFLOW.md) (11KB) — hotfix → hygienic loop, ~/gt↔~/repos duality.
   *Trigger: before applying a hotfix, making a pack change, or deploying anything.*
-- [**Policies**](../../docs/QUIMBY-ONBOARDING.md#policies) — see the Policies section of QUIMBY-ONBOARDING.md for the full navigation tree.
+- [**Policies**](../../docs/MAYOR-ONBOARDING.md#policies) — see the Policies section of MAYOR-ONBOARDING.md for the full navigation tree.
 
 ## 2. File onboarding briefs (async)
 
@@ -61,7 +61,7 @@ only for explicit interactive design sessions.
 
 1. Run `/prime-outsider` to check open beads and current handoff-bead status.
 2. Report the session's top priority to Taylor before taking any other action.
-3. Confirm with BART (`80b87468`) what BART is supposed to be doing before starting work.
+3. Confirm with the repo-side landing agent what that agent is supposed to be doing before starting work.
 
 ## 4. At session end
 
@@ -81,12 +81,12 @@ only for explicit interactive design sessions.
 
 ```json
 {
-  "quimby": <N>,
+  "mayor_session": <N>,
   "bead": "<your-handoff-bead-id>",
   "date": "<YYYY-MM-DD>",
   "summary": "<what was done this session>",
-  "city_state": "<city state for the next QUIMBY>",
-  "charge_for_next": "<priority charge for the next QUIMBY>"
+  "city_state": "<city state for the next Mayor session>",
+  "charge_for_next": "<priority charge for the next Mayor session>"
 }
 ```
 

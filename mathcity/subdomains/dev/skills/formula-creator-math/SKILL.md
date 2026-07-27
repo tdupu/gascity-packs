@@ -266,10 +266,10 @@ git commit -m "feat(mathcity): add <name> formula (briefed terminal step enforce
 git push fork main
 ```
 
-Then message BART to pull the fork into `~/gt/gascity-packs`:
+Then message repo-side landing agent to pull the fork into `~/gt/gascity-packs`:
 
 ```
-gc mail send bart "New formula <name> pushed to tdupu/gascity-packs fork main. Please pull and run gc supervisor install --force." --subject "[ACTION REQUIRED]"
+gc mail send repo-side-landing-agent "New formula <name> pushed to tdupu/gascity-packs fork main. Please pull and run gc supervisor install --force." --subject "[ACTION REQUIRED]"
 ```
 
 ---

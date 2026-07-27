@@ -364,7 +364,7 @@ Include every other required gate from the active profile as `PASS`, `FAIL`,
 
 ## Recommended verdict
 
-**A** — approve and commit to `mathcity/formulas/{{formula_name}}.toml`, push to fork, message BART to pull.
+**A** — approve and commit to `mathcity/formulas/{{formula_name}}.toml`, push to fork, and ask the repo-side landing agent to pull.
 
 If you prefer adjustments, defer (C) with notes and I will revise.
 ```

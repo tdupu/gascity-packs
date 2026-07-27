@@ -120,7 +120,7 @@ bd show <molecule-bead> | head -5   # molecule-bead ID printed at sling time
 After an **A (approve)** verdict, the executing agent:
 1. Commits the TOML to `mathcity/formulas/<formula_name>.toml`
 2. **Adds a row to `mathcity/README-formulas.md`** (REQUIRED — same commit)
-3. Pushes to fork and messages BART to pull
+3. Pushes to fork and messages repo-side landing agent to pull
 
 No formula is considered shipped until it appears in `README-formulas.md`.
 Check before marking done:

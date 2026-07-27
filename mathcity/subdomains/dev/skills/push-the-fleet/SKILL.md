@@ -116,7 +116,7 @@ Detect rig from the bead ID prefix (first 2–4 chars before the first `-`).
 
 - `[epic]` — epics are scheduling containers, not direct work items
 - `taylor-gated` / `taylor-ok-required` in the title — requires Taylor's explicit OK before dispatch
-- `[reconcile D]` or BART-coordinated deploy beads — route to BART
+- `[reconcile D]` or repo-side landing agent-coordinated deploy beads — route to repo-side landing agent
 - `brief-record` type — recording a verdict, not building; dispatching via build-basic-briefed is wrong for these
 - `input convoy for <other>` — convoys feed context to another bead; dispatch the parent bead instead
 - `Step spec for` — step specs are auto-managed by the formula machinery
@@ -185,7 +185,7 @@ is a "no more unblocked work" state, not a failure.
 - Never dispatch the same bead twice — check for an existing `in_progress`
   molecule before slinging.
 - Do not dispatch beads that are blocked (dependencies open).
-- Do not touch ~/repos/ — all git operations are BART's lane.
+- Do not touch ~/repos/ — all git operations use the repo-side landing lane.
 - Do not hand-edit city.toml to raise worker caps — use `adjust-workers` if
   the worker ceiling itself is the bottleneck.
 - If the bottleneck is worker *slots* (too few run-operators in the pool),

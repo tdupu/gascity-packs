@@ -20,7 +20,7 @@ trigger = "condition"
 # submit-to-pile step actually deposits (formulas/brief-prep.toml:136 sets
 # gc.brief.path = "{{artifact_root}}/.pile/{{brief_slug}}.md") and what the
 # live stack holds. The prior depth-2 <slug>/brief.md glob was a MISDIAGNOSIS
-# (gsp-*, QUIMBY 10 S10 shuffler audit): the earlier depth-1 check found
+# (gsp-*, Mayor session S10 shuffler audit): the earlier depth-1 check found
 # nothing because of the pre-gsp-3al3 scope/deadlock defects, not the glob —
 # depth-1-flat matches brief-prep output; depth-2 matched NOTHING, so the
 # order never fired and pile→stack promotion was universally dead. This

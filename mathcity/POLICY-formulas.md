@@ -323,9 +323,9 @@ to prevent.
 
 | Version | Date | Change |
 |---|---|---|
-| 1.0 | 2026-07-23 | Initial draft — three pillars (F1–F3), six rules (F1.1–F1.3, F2.1–F2.3, F3.1–F3.3). Prefix F registered. Taylor directive (QUIMBY Q27). |
-| 1.1 | 2026-07-23 | Add F4.1 — /check-zero + /check-wheel required before terminal brief (Pillar 4: Pre-brief quality gates). Taylor directive (QUIMBY Q27). |
-| 1.2 | 2026-07-23 | Add F5.1 + F5.2 — Pillar 5 pre-dispatch review gates (/fp-finder or /coordinate-review + /critical-review before sling; /critical-review on plan before execution). Taylor directive (QUIMBY Q27). |
-| 1.3 | 2026-07-23 | Add F6.1 — Pillar 6 testing discipline: new formulas require a basic smoke test before dispatch. Taylor directive (QUIMBY Q27). |
-| 1.4 | 2026-07-23 | Add F7.1 + F7.2 — Pillar 7 dispatch idempotency: pre-sling assignee check required; bead-creating steps must prevent logical duplicates. Taylor directive (QUIMBY Q27). |
+| 1.0 | 2026-07-23 | Initial draft — three pillars (F1–F3), six rules (F1.1–F1.3, F2.1–F2.3, F3.1–F3.3). Prefix F registered. Taylor directive (Mayor session Q27). |
+| 1.1 | 2026-07-23 | Add F4.1 — /check-zero + /check-wheel required before terminal brief (Pillar 4: Pre-brief quality gates). Taylor directive (Mayor session Q27). |
+| 1.2 | 2026-07-23 | Add F5.1 + F5.2 — Pillar 5 pre-dispatch review gates (/fp-finder or /coordinate-review + /critical-review before sling; /critical-review on plan before execution). Taylor directive (Mayor session Q27). |
+| 1.3 | 2026-07-23 | Add F6.1 — Pillar 6 testing discipline: new formulas require a basic smoke test before dispatch. Taylor directive (Mayor session Q27). |
+| 1.4 | 2026-07-23 | Add F7.1 + F7.2 — Pillar 7 dispatch idempotency: pre-sling assignee check required; bead-creating steps must prevent logical duplicates. Taylor directive (Mayor session Q27). |
 | 1.5 | 2026-07-24 | Add F8.1 — Pillar 8 briefed terminal discipline: every `-briefed` formula must terminate in the brief cycle (allowed terminals: file-brief, brief-finalize, workflow-finalize, publish, route). Reconciles the stale formula-creator-math allowed-set (adds publish + route). Taylor directive. |

@@ -2,7 +2,7 @@
 name: math-city-work
 description: >
   Feed a bead (or a set of ready beads) into the math-city fleet the correct,
-  S14-verified way. Use whenever the Mayor (QUIMBY) wants to dispatch work:
+  S14-verified way. Use whenever the Mayor wants to dispatch work:
   "math-city-work", "feed the machine", "feed this bead to the fleet",
   "dispatch this the right way", "sling <bead> the preferred way", "put this
   through the fleet", or "get the fleet working on <bead>". Encodes the
@@ -17,7 +17,7 @@ description: >
 # math-city-work — feed the machine the correct way
 
 The canonical dispatch skill for the math-city Mayor. It codifies the
-S14-verified doctrine so no future QUIMBY re-derives it (or re-panics over a
+S14-verified doctrine so no future Mayor session re-derives it (or re-panics over a
 healthy-but-slow fleet — see `bd recall great-regression-misdiagnosis-s14`).
 
 ## Pre-flight (fleet must be up)
@@ -44,7 +44,7 @@ gc dolt health >/dev/null 2>&1 || {
 The Mayor's job is **queue health + unblocking**, not manual dispatch. Make
 the bead **ready and unblocked** (deps closed, priority set, rig correct); the
 dispatcher auto-pulls ready work. Do **not** sling work items one-by-one as a
-matter of course — that was the QUIMBY-13 misfire. Hand-dispatch is only for a
+matter of course — that was the Mayor session-13 misfire. Hand-dispatch is only for a
 specific bead you deliberately want built now.
 
 ## Formula selection — enumerate, then use judgement (do NOT hardcode)

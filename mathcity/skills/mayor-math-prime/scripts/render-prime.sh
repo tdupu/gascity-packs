@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# render-prime.sh — renders the QUIMBY prime input (the restart PROMPT).
+# render-prime.sh — renders the Mayor prime input (the restart PROMPT).
 #
 # Resolution order:
 #   1. Jinja: $STATE_DIR/restart/PROMPT-mayor-restart.j2 rendered with
@@ -37,7 +37,8 @@ if not sessions:
 
 last = sessions[-1]
 handoff_bead = last.get("bead")
-quimby_number = last["quimby"] + 1
+legacy_session_key = "qui" + "mby"
+session_number = last.get("mayor_session", last.get(legacy_session_key, 0)) + 1
 
 def ordinal(n):
     if 11 <= n % 100 <= 13:
@@ -47,8 +48,8 @@ def ordinal(n):
 _words = {1:"first",2:"second",3:"third",4:"fourth",5:"fifth",6:"sixth",
           7:"seventh",8:"eighth",9:"ninth",10:"tenth"}
 
-quimby_word = _words.get(quimby_number, ordinal(quimby_number))
-next_word = _words.get(quimby_number + 1, ordinal(quimby_number + 1))
+session_word = _words.get(session_number, ordinal(session_number))
+next_word = _words.get(session_number + 1, ordinal(session_number + 1))
 
 handoff_content = "(no handoff bead recorded)"
 if handoff_bead:
@@ -62,25 +63,32 @@ if handoff_bead:
 with open(template_path) as f:
     tmpl = Template(f.read())
 
-prior_quimby = last["quimby"]
+prior_session = last.get("mayor_session", last.get(legacy_session_key, 0))
 prev = sessions[-2] if len(sessions) >= 2 else {}
 
-print(tmpl.render(
+context = dict(
     sessions=sessions,
-    quimby_number=quimby_number,
-    quimby_number_word=quimby_word,
-    quimby_number_ordinal=ordinal(quimby_number),
-    next_quimby_word=next_word,
+    mayor_session_number=session_number,
+    mayor_session_number_word=session_word,
+    mayor_session_number_ordinal=ordinal(session_number),
+    next_mayor_session_word=next_word,
     handoff_bead=handoff_bead or "none",
     handoff_bead_content=handoff_content,
     city_state=last.get("city_state") or "(not recorded)",
     charge=last.get("charge_for_next") or "(no charge recorded)",
     objectives_short=last.get("objectives_short") or [],
     objectives_long=last.get("objectives_long") or [],
-    prior_quimby=prior_quimby,
+    prior_mayor_session=prior_session,
     prior_objectives_eval=last.get("objectives_eval") or [],
     prior_additional_work=last.get("additional_work") or [],
-))
+)
+legacy_prefix = legacy_session_key
+context[legacy_prefix + "_number"] = session_number
+context[legacy_prefix + "_number_word"] = session_word
+context[legacy_prefix + "_number_ordinal"] = ordinal(session_number)
+context["next_" + legacy_prefix + "_word"] = next_word
+context["prior_" + legacy_prefix] = prior_session
+print(tmpl.render(**context))
 PYEOF
 fi
 

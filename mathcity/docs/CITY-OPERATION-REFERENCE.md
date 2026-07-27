@@ -1,7 +1,7 @@
 # Gascity Restart: Context Reference
 
 > **DO NOT ABRIDGE OR TRUNCATE THE CONTENTS OF THIS FILE WITHOUT EXPLICIT USER AUTHORIZATION.**
-> Correct errors in place (P5.4); every section has been verified correct over multiple QUIMBY generations.
+> Correct errors in place (P5.4); every section has been verified correct across multiple Mayor sessions.
 
 > Narrative reference for the ~/gt city restart, brief system verification, and hecke #335 work.
 > Not a checklist — see gascity-restart-checklist.md for step-by-step.
@@ -52,7 +52,7 @@ Hecke additionally imports `mathcity` and `pr-pipeline` at rig scope (D3 pilot, 
 
 ---
 
-## Outside Agents — BART, Clark, QUIMBY
+## Outside Agents
 
 The city runs two kinds of agents. **Inside agents** are spawned by the gascity
 supervisor (`gc sling`, formula steps, orders) and have a `GC_AGENT` environment
@@ -61,20 +61,21 @@ they have no `GC_AGENT` and are NOT managed by the gascity process.
 
 ### Roster
 
-| Name | UUID (canonical) | Working directory | Role |
-|------|-----------------|-------------------|------|
-| **QUIMBY** | session-scoped (changes each session; mapped as `quimby` in `agent-names.map`) | `~/gt` | The mathcity Mayor. Runs `/mathcity.mayor-math-prime` at session start. Coordinates dispatch, monitors the fleet, adjudicates briefs, routes to BART and Clark. Does NOT commit or push — all git operations go through BART. |
-| **BART** | `80b87468-641a-4198-b873-388ab34e23e1` (stable across sessions) | `~/repos/*` | The git landing agent. Commits, pushes, and opens PRs in Taylor's `~/repos` checkouts. Every push to a `tdupu/*` remote goes through BART + Taylor's `authorize-git-operation` gate. LP1 rule: no `~/gt`-managed agent writes to `~/repos`; BART is the sole writer there. |
-| **Clark** | `dbb55e43-f6b5-47b8-8505-60b448e5ed54` (stable) | `~/repos/*` or `~/gt` | The clerk. Presents briefs to Taylor (`/present-briefs`), runs city audits (`/check-city-policy`), routes work findings to QUIMBY, does NOT execute tasks directly. |
+| Role | Working directory | Responsibility |
+|------|-------------------|----------------|
+| **Mayor session** | `~/gt` | Coordinates dispatch, monitors the fleet, adjudicates or routes briefs, and does not commit or push unless explicitly authorized by the local operating policy. |
+| **repo-side landing agent** | `~/repos/*` | Commits, pushes, and opens PRs in repo-side checkouts after the appropriate authorization gate. |
+| **clerk** | `~/gt` or a repo-side checkout | Presents briefs to Taylor, records verdicts through the brief workflow, and routes questions to the Mayor. |
 
-QUIMBY's UUID changes every Claude Code session. BART and Clark use stable UUIDs and
-can be addressed directly across session boundaries.
+Local UUIDs and human-readable nicknames are private workspace state. Keep
+them in `~/gt/.claude/inbox/.agent-names.map` or another untracked local note,
+not in tracked pack documentation.
 
 ### How they spawn
 
-- **QUIMBY**: Taylor opens a Claude Code session with CWD `~/gt`, then runs `/mathcity.mayor-math-prime`. The restart cycle is `mayor-math-handoff` → `/clear` → `mayor-math-prime`. Each QUIMBY session records its UUID in `~/gt/.claude/inbox/.agent-names.map` (appended by convention).
-- **BART**: Taylor opens a separate Claude Code session with CWD inside `~/repos`. Persistent across Taylor's desktop sessions; BART's UUID is stable.
-- **Clark**: Taylor opens another Claude Code session (or the clerk role is filled by a polechat/fork). Clark's UUID is stable.
+- **Mayor session**: open a Claude Code session with CWD `~/gt`, then run `/mathcity.mayor-math-prime`. The restart cycle is `mayor-math-handoff` -> `/clear` -> `mayor-math-prime`. If the local inbox is in use, record the session UUID in `~/gt/.claude/inbox/.agent-names.map`.
+- **repo-side landing agent**: open a separate Claude Code session with CWD inside `~/repos` when repo-side commits, pushes, or PRs are required.
+- **clerk**: open a session assigned to brief presentation and run `/prime-clerk`.
 - **Inside gc agents** (`gc.run-operator`, `mathcity.brief-operator`, `core.control-dispatcher`, etc.): spawned entirely by the gascity supervisor in response to sling calls, formula steps, or condition-based orders. They have `GC_AGENT` set and are subject to `gc status`, `gc session logs`, and `gc events`.
 
 ### Communication — the agent inbox
@@ -83,7 +84,7 @@ Outside agents communicate via the shared inbox at `~/gt/.claude/inbox/`.
 
 ```
 ~/gt/.claude/inbox/
-  .agent-names.map          # UUID → human name (bart, clark, quimby, …)
+  .agent-names.map          # UUID → human name (repo-side-landing-agent, clerk, mayor, ...)
   <name>/<YYYY-MM-DD>/      # canonical per-recipient per-day folder (V2 layout)
     <HH-MM-SS>-from-<sender>-<subject-slug>.md   # ONE file per message
   <UUID>.md                 # flat append (backward-compat monitor target)
@@ -102,14 +103,14 @@ Rules:
 
 | Action | Who |
 |--------|-----|
-| File / update beads | QUIMBY (or any agent with bd access) |
-| Sling formulas, dispatch fleet | QUIMBY |
-| Adjudicate briefs | Taylor (QUIMBY presents, Taylor decides) |
-| Commit + push to tdupu/ remotes | BART only, behind `authorize-git-operation` |
-| Create / edit files in `~/repos/*` | BART only (LP1 rule) |
-| Present briefs to Taylor | Clark |
-| Run city audits (`check-city-policy`) | Clark |
-| Run `check-plan-hygiene` before a sling | QUIMBY |
+| File / update beads | Mayor session (or any agent with bd access) |
+| Sling formulas, dispatch fleet | Mayor session |
+| Adjudicate briefs | Taylor (Mayor session presents, Taylor decides) |
+| Commit + push to tdupu/ remotes | repo-side landing agent only, behind `authorize-git-operation` |
+| Create / edit files in `~/repos/*` | repo-side landing agent only (LP1 rule) |
+| Present briefs to Taylor | clerk |
+| Run city audits (`check-city-policy`) | clerk |
+| Run `check-plan-hygiene` before a sling | Mayor session |
 | Inside fleet work (build, review, publish) | `gc.run-operator`, `gc.publisher`, etc. |
 
 ---
@@ -265,8 +266,8 @@ and (b) even then the kill-switch halts it until set to `true` or removed.
 Kill-switch hierarchy (both levels checked; first `false` wins):
 
 - City: `~/gt/.beads/auto_merge_enabled` — **absent or `true` = auto-execute permitted**; present and reads `false` = HALTED
-  - **Current state (2026-07-14, QUIMBY restart session): file EXISTS and reads `false` → HALTED**
-- Rig: `<rig_root>/.beads/auto_merge_enabled` — same semantics; also being set to `false` on the `~/repos` side (BART) for defense-in-depth
+  - **Current state (2026-07-14, Mayor restart session): file EXISTS and reads `false` → HALTED**
+- Rig: `<rig_root>/.beads/auto_merge_enabled` — same semantics; also being set to `false` on the `~/repos` side (repo-side landing agent) for defense-in-depth
 
 The gate (`brief-check.sh` `check_no_brainer_execute_safety`) checks, in order: city-level
 path first (`${GC_CITY:-$HOME/gt}/.beads/auto_merge_enabled`), then rig-level

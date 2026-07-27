@@ -105,4 +105,4 @@ find it.
 - Does not require an artifact (works on conversational claims)
 - Does not always find something wrong (reports honestly when claim is sound)
 - Does not replace `critical-review` (use that for full artifact review)
-- Does not send results to BART or the mayor — surfaces inline to invoking session
+- Does not send results to repo-side landing agent or the mayor — surfaces inline to invoking session

@@ -140,9 +140,9 @@ Phase 3 — decision point:
 | Dual-copy drift (`~/repos/gascity-packs` vs `~/gt/gascity-packs`) corrupts which pack version the city runs | Record `git rev-parse HEAD` of both checkouts in every pilot brief (G16 spirit); sync via the normal GitHub exchange before each phase |
 | Route-log spec vs paths mismatch discovered mid-pilot (e.g., decisions.jsonl at root vs decisions/ dir duality) | Treat as a finding, not a blocker: file a bead, brief it, fix it through the loop |
 
-## Live Grounding: Hecke Campaign (2026-07-11, from Quimby/Mayor)
+## Live Grounding: Hecke Campaign (2026-07-11, from Mayor session/Mayor)
 
-This section was added after initial drafting, based on Quimby's 14:17 message with real in-flight context from the hecke repair campaign. It sharpens pilot ordering and the concrete first deliverable.
+This section was added after initial drafting, based on Mayor session's 14:17 message with real in-flight context from the hecke repair campaign. It sharpens pilot ordering and the concrete first deliverable.
 
 ### The he-714x7 convoy (5 TAYLOR_OK_REQUIRED beads)
 

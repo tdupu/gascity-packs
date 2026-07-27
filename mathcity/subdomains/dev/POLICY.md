@@ -269,7 +269,7 @@ recreate what you're running; upstream must remain pullable.*
   Fail: any plan, skill, or formula that dispatches work via gc sling without a
   documented pre-sling assignee check → **revise**. Silent re-dispatch of an
   already-assigned bead → **fail** (P6.1 overlap: swallowed duplicate is a
-  silent failure). (Origin: Taylor directive 2026-07-23 QUIMBY Q27; triggered
+  silent failure). (Origin: Taylor directive 2026-07-23 Mayor session Q27; triggered
   by recognition that double-dispatch creates competing workers that consume
   duplicate fleet resources with no graceful resolution. Existing stale-claim
   gate covers recovery; this rule covers prevention.)
@@ -656,7 +656,7 @@ abort cleanly with visible signal ("ALREADY DISPATCHED"); do not re-sling.
 Competing workers that race past the pre-sling check resolve via `bd update
 --claim` atomicity (second claimant backs off). Post-sling verify-assignee gate
 (math-city-work doctrine) remains mandatory alongside this rule. Triggered by:
-Taylor directive 2026-07-23 QUIMBY Q27: "Dispatching work should be idempotent.
+Taylor directive 2026-07-23 Mayor session Q27: "Dispatching work should be idempotent.
 If we deploy the same work twice the city structure should be such that it
 doesn't matter. We will not do extra compute, we will not do duplicate compute.
 Tasks which are competing should resolve gracefully." Existing stale-claim gate

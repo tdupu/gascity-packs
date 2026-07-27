@@ -26,14 +26,13 @@ short form; see that skill for the full reference.
    ```
    bash ~/.claude/scripts/agent-monitor.sh ~/gt/.claude/inbox <YOUR_UUID>
    ```
-3. Identify the active mayor session. The mayor is always a **QUIMBY**
-   session. Ask Taylor for the current UUID, or find it by grepping the
-   inbox for the most recent sender signing as `(QUIMBY)`:
+3. Identify the active mayor session. Ask Taylor for the current UUID, or find
+   it in the local untracked name map:
    ```bash
-   grep -rh "QUIMBY" ~/gt/.claude/inbox/ | grep "^--" | tail -5
+   awk '$2 == "mayor" {print $1}' ~/gt/.claude/inbox/.agent-names.map | tail -1
    ```
-   Current mayor as of 2026-07-22: **QUIMBY 25** (`d5ed1ca1-d6df-437d-a250-5be0f6f87085`).
-   UUIDs rotate each session — always verify from inbox or ask Taylor.
+   UUIDs rotate by session in some setups — always verify from the local map
+   or ask Taylor.
    Send a hello from `~/gt` (auto-discovers inbox):
    ```bash
    cd ~/gt && bash ~/.claude/scripts/agent-send.sh <YOUR_UUID> <MAYOR_UUID> \
@@ -186,7 +185,7 @@ deprecated. Always use the `build-basic-briefed` pattern above, or let
   `build-basic-briefed`. Run immediately after every APPROVE verdict; verify
   assignee non-empty within ~60s.
 - **`communicate-with-other-agent`** — V2 daily-folder inbox: send messages
-  to the Mayor (QUIMBY) or BART. Use for questions about a brief, holds,
+  to the Mayor or repo-side landing agent. Use for questions about a brief, holds,
   sequencing constraints, or escalations. One topic per message, signed.
 - **`check-plan-hygiene`** — REQUIRED before any sling command copied from a
   brief body. Catches deprecated vocabulary (`gastown.polecat` etc.) and

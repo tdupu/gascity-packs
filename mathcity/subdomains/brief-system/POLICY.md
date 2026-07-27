@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Adopted (2026-07-12) — self-contained rewrite per Taylor directive (session QUIMBY); supersedes the same-day adopted revision |
+| Status | Adopted (2026-07-12) — self-contained rewrite per Taylor directive (session Mayor session); supersedes the same-day adopted revision |
 | Date | 2026-07-12 |
 | Decided | Taylor Dupuy |
 | Applies to | `mathcity-brief-system` subdomain — brief definition and lifecycle, pile/ordering, no-brainer automation, LaTeX gate, experiment gates, testing/spec gates, documentation gates, closure discipline, Magma package updates, server-touching work |

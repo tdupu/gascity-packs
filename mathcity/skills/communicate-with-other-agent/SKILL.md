@@ -17,8 +17,8 @@ Your UUID: `$CLAUDE_CODE_SESSION_ID`, else the stem of the newest
 Every message is ONE file. `agent-send.sh` writes two paths:
 
 - **Canonical** (read this): `~/gt/.claude/inbox/<name>/<YYYY-MM-DD>/<HH-MM-SS>-from-<sender>-<subject-slug>.md`
-  where `<name>` is the **recipient's** human-readable role name (`bart`,
-  `quimby`, `clark`, …) from the UUID→name map in the send script. Unknown
+  where `<name>` is the **recipient's** human-readable role name (`repo-side-landing-agent`,
+  `mayor`, `clerk`, ...) from the UUID-to-name map. Unknown
   UUIDs fall back to their 8-char prefix, so routing never fails.
 - **Flat backward-compat** (legacy monitors): `~/gt/.claude/inbox/<TO-UUID>.md`
   — appended. The `to:` line still carries the raw UUID, so
@@ -30,7 +30,7 @@ To add/rename a role without editing the script, append a line
 ## STEP 0 — Monitor your inbox dir (do first, keep alive)
 
 Watch YOUR canonical folder for new message files (one file per message).
-Resolve `<yourname>` from the map (e.g. `bart`). Single-shot byte/existence
+Resolve `<yourname>` from the map (e.g. `repo-side-landing-agent`). Single-shot byte/existence
 watch, re-armed each pause — do NOT stack monitors:
 
 ```bash

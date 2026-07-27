@@ -26,7 +26,7 @@ PASS — 6/6 checks passed
 
 ## Known limitation
 
-Check 5 (`gc formula show`) requires BART to have pulled the commit that added
-this formula. Until BART pulls, check 5 returns FAIL (non-zero exit from gc).
-Checks 1–4 and 6 pass regardless of BART sync state. The overall test exits 1
-when check 5 fails; re-run after BART pulls to get full PASS.
+Check 5 (`gc formula show`) requires repo-side landing agent to have pulled the commit that added
+this formula. Until repo-side landing agent pulls, check 5 returns FAIL (non-zero exit from gc).
+Checks 1–4 and 6 pass regardless of repo-side landing agent sync state. The overall test exits 1
+when check 5 fails; re-run after repo-side landing agent pulls to get full PASS.

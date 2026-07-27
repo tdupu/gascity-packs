@@ -45,6 +45,28 @@ source bead closes (needs-decision label)
 
 ---
 
+## Filter System
+
+The filter system is the repeat-pattern layer around the brief and bead
+workflows. It classifies mechanical cases, records evidence, and routes the
+next decision to a brief or repair workflow. Filters do not silently merge,
+close, defer, or override human-only decisions.
+
+Start with the [filter user manual](./docs/filters/README.md). The four current
+filter documents are:
+
+- [Repair no-brainer and gates](./docs/filters/repair-no-brainer-and-gates.md)
+- [Formula repair feedback](./docs/filters/formula-repair-feedback.md)
+- [Bead repair no-brainer and gates](./docs/filters/bead-repair-no-brainer-and-gates.md)
+- [Bead repair feedback](./docs/filters/bead-repair-feedback.md)
+
+The user-facing entry points are the existing skills: `brief-prep`,
+`catch-no-brainer`, `present-briefs`, `adjudicate-brief`, and `bead-check`.
+The manual also names the formula-level invocations used for producer-failure
+and lost-bead rollups.
+
+---
+
 ## The Work / Brief Graph (two-layer model)
 
 Conceptual overview (P5.4 non-normative); the cited source files are authoritative.
@@ -152,7 +174,7 @@ These skills ship with the parent pack (subdomain child packs carry their own �
 | `immediate-work` | In-session synchronous dispatch: spawn the right agent NOW for a specific bead or task (no pool, no queue). |
 | `priority-work` | Async targeted dispatch: bump a bead to P0 and dispatch it to a NAMED agent immediately, bypassing queue order. |
 | `mayor-math` | Supplements `gc.mayor` with rig-scoped sling mechanics for the mathcity workflow. |
-| `mayor-math-restart` | Full QUIMBY session orientation; restart context auto-injected via PreToolUse hook before the skill fires. Run at the start of every new QUIMBY session. |
+| `mayor-math-restart` | Full Mayor session orientation; restart context auto-injected via PreToolUse hook before the skill fires. Run at the start of every new Mayor session. |
 | `authorize-git-operation` | Taylor-authorization gate for irreversible git operations (push, merge, PR, delete, release); records the verdict as a decision bead. |
 | `remember-this` | Routes a mid-session insight to the right durable store (`bd remember`, decision bead, MEMORY.md pointer). |
 | `gc-recycle-bead` | Graceful lifecycle transitions for research beads: ABSORB (merge unique content into canonical bead, close with `absorbed_by` metadata), ARCHIVE (add `archived-research` label + defer to prevent dispatch), MATERIALIZE (write key content to versioned file). |
@@ -370,7 +392,7 @@ to the adjudication phase of the brief pipeline. The clerk is a strict
 intermediary: it presents briefs, captures Taylor's verdicts, and dispatches
 approved work — it does not write code, edit policy, or run formulas itself.
 
-The clerk is distinct from the Mayor (QUIMBY). Both may adjudicate briefs, but
+The clerk is distinct from the Mayor. Both may adjudicate briefs, but
 the clerk's PRIMARY job is draining the brief stack. The Mayor coordinates the
 city; the clerk reads to Taylor.
 
@@ -406,16 +428,16 @@ to the Mayor, and points to the brief stack.
 | `present-briefs` | Drain the brief stack to Taylor, one brief at a time, with a pre-loaded hot queue. |
 | `adjudicate-brief` | Fork-wrapper: record Taylor's verdict on the brief bead (APPROVE / REJECT / REVISE / DEFER) and close it. |
 | `math-city-work` | After APPROVE: dispatch the artifact bead via build-basic-briefed. |
-| `communicate-with-other-agent` | V2 daily-folder inbox: send messages to the Mayor (QUIMBY) or BART for questions, holds, or sequencing. |
+| `communicate-with-other-agent` | V2 daily-folder inbox: send messages to the Mayor, clerk, or repo-side landing agent for questions, holds, or sequencing. |
 | `check-plan-hygiene` | REQUIRED before any sling command copied from a brief body. |
 | `prime-outsider` | Re-orient after compaction or session clear: finds open beads and restates standing rules. |
 
 ### Relationship to the Mayor
 
-The Mayor (QUIMBY) and the clerk use the **same** two-skill adjudication flow
+The Mayor and the clerk use the **same** two-skill adjudication flow
 (`present-briefs` → `adjudicate-brief`). The clerk is not subordinate to the
 Mayor for presentation — it dispatches approved briefs directly via
-`math-city-work` without routing through QUIMBY. Questions about holds,
+`math-city-work` without routing through the Mayor. Questions about holds,
 sequencing constraints, or ambiguous beads go to the Mayor on the agent-inbox
 channel (`communicate-with-other-agent`).
 

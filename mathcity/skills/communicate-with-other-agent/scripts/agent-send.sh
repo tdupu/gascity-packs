@@ -18,9 +18,9 @@
 #   3. CWD walk-up looking for .claude/inbox/ (V2) or .claude/.agent-inbox.md (V1)
 #   4. Fallback: $(pwd)/.claude/inbox/
 #
-# UUID->name map: seeded inline below. An optional external file at
-#   <INBOX_DIR>/.agent-names.map  (lines: "<uuid> <name>") is merged in, letting
-# agents self-register a name without editing this script.
+# UUID->name map: optional external file at
+#   <INBOX_DIR>/.agent-names.map  (lines: "<uuid> <name>").
+# Keep local human names and UUIDs in that untracked file, not in this script.
 #
 # The 5th positional arg is OPTIONAL — backward-compatible with 4-arg callers.
 set -euo pipefail
@@ -60,19 +60,11 @@ if [[ -z "$INBOX_DIR" ]]; then
 fi
 
 # --- UUID -> human-readable role name ---
-# bash 3.2 compatible (macOS default has no `declare -A`): case map + optional
-# external <INBOX_DIR>/.agent-names.map (lines "<uuid> <name>") + prefix fallback.
+# bash 3.2 compatible (macOS default has no `declare -A`): optional external
+# <INBOX_DIR>/.agent-names.map (lines "<uuid> <name>") + prefix fallback.
 NAMES_FILE="$INBOX_DIR/.agent-names.map"
 resolve_name() {
     local uuid="$1" name=""
-    case "$uuid" in
-        80b87468-641a-4198-b873-388ab34e23e1) name="bart" ;;
-        d5ed1ca1-d6df-437d-a250-5be0f6f87085) name="quimby" ;;
-        a1afbf29-834e-4960-8d9a-2f0ac521a69a) name="quimby" ;;
-        dbb55e43-f6b5-47b8-8505-60b448e5ed54) name="clark" ;;
-        ae68b9e8-2a73-46c0-847f-d1e9e01f0b5c) name="homer" ;;
-        879d8f83-64db-4ab1-a825-c2ed9cf67632) name="cozy" ;;
-    esac
     if [[ -z "$name" && -f "$NAMES_FILE" ]]; then
         name="$(awk -v u="$uuid" '$1==u {print $2; exit}' "$NAMES_FILE")"
     fi

@@ -6,17 +6,17 @@
 - **Type**: formula
 - **Tested at git SHA**: to be filled in after commit (run `git rev-parse HEAD`)
 - **Test date**: 2026-07-23
-- **Tester**: QUIMBY Q27 (smoke-test-briefed self-test, pre-commit)
+- **Tester**: Mayor session Q27 (smoke-test-briefed self-test, pre-commit)
 
 ## 2. Test summary
 
 **Outcome: CONDITIONAL** — 5/6 checks pass; 1 check (gc formula registration)
-fails because BART has not yet pulled the commit that adds this formula. The
+fails because repo-side landing agent has not yet pulled the commit that adds this formula. The
 structural checks (file exists, TOML valid, catalog fields, terminal step,
 companion skill) all pass.
 
 The single failure is a known pre-sync state, not a formula defect. Expected
-to become full PASS after BART pulls the adding commit.
+to become full PASS after repo-side landing agent pulls the adding commit.
 
 ## 3. How to reproduce
 
@@ -31,7 +31,7 @@ cd ~/gt/gascity-packs
 bash mathcity/tests/smoke-test-briefed-self/smoke_test.sh
 ```
 
-**Expected passing output (after BART pulls):**
+**Expected passing output (after repo-side landing agent pulls):**
 ```
 smoke-test-briefed self-test results:
   PASS: formula file exists
@@ -44,7 +44,7 @@ smoke-test-briefed self-test results:
 PASS — 6/6 checks passed
 ```
 
-**Actual output at time of writing (pre-BART-sync):**
+**Actual output at time of writing (pre-repo-side landing agent-sync):**
 ```
 smoke-test-briefed self-test results:
   PASS: formula file exists

@@ -143,7 +143,7 @@ Any leak → STOP, do not commit; report it. gitleaks FAIL is blocking.
 > **Git note (outside agent):** in `~/repos/gascity-packs`, an OUTSIDE agent
 > does not commit or push on its own — report the changed file and the exact
 > proposed commit/push commands and let the human (or the calling
-> orchestrator/BART) run them. If you are a gascity-managed inside worker
+> orchestrator/repo-side landing agent) run them. If you are a gascity-managed inside worker
 > operating under an explicit standing authorization, commit + push to the
 > fork per that authorization; NEVER push to `gastownhall/gascity-packs`
 > upstream.

@@ -31,7 +31,7 @@ READ FIRST
 
 1. The mathcity operation docs shipped with this pack
    (gascity-packs/mathcity/docs/):
-   QUIMBY-ONBOARDING.md (index), CITY-RESTART-CHECKLIST.md,
+   MAYOR-ONBOARDING.md (index), CITY-RESTART-CHECKLIST.md,
    CITY-OPERATION-REFERENCE.md, TEST-CYCLE-GUIDE.md, DOGFOOD-WORKFLOW.md.
 2. The companion skills: mayor-math (sling mechanics + dispatch doctrine),
    mayor-math-prime (session start), mayor-math-handoff (session end),

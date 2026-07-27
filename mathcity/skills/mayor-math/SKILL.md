@@ -12,7 +12,7 @@ rig-scoped rules for our setup.
 ## Canonical operation docs — READ FIRST
 
 The hard-won gold lives in the mathcity pack (`~/gt/gascity-packs/mathcity/docs/`):
-- **QUIMBY-ONBOARDING.md** — index + corrected operational truths (start here)
+- **MAYOR-ONBOARDING.md** — index + corrected operational truths (start here)
 - **CITY-RESTART-CHECKLIST.md** — Phase 0–6 step-by-step to bring the city up + verify
 - **CITY-OPERATION-REFERENCE.md** — architecture, pools/agents, brief pipeline, correct command surface
 - **TEST-CYCLE-GUIDE.md** + **DOGFOOD-WORKFLOW.md** — the dogfood/test cycle
@@ -132,10 +132,10 @@ CITY: <one sentence — fleet status, Dolt ms, anything unusual>
 ```
 
 No prose narratives. No incident post-mortems. No "READ THIS FIRST" warnings. If a past
-incident matters, file a `bd remember` entry and cite the key — let the next QUIMBY pull
+incident matters, file a `bd remember` entry and cite the key — let the next Mayor session pull
 context on demand rather than front-loading it.
 
 ## Reference
 
 - [[gc.mayor]] — upstream coordinator skill
-- `~/gt/mathcity-mayor/` — QUIMBY session state, restart context, session catalog
+- `~/gt/mathcity-mayor/` — Mayor session state, restart context, session catalog

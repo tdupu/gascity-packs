@@ -7,7 +7,7 @@ the stack with a manifest append or rejects it into `.pile/.rejected`.
 """
 formula = "brief-shuffle"
 # v2 (2026-07-16): reject branch no longer dead-ends — files a remediation
-# bead via escalate.sh + emits brief.gate_rejected (QUIMBY 10 S10 finding:
+# bead via escalate.sh + emits brief.gate_rejected (Mayor session S10 finding:
 # nothing reads .pile/.rejected/).
 version = 2
 
@@ -157,4 +157,3 @@ max_attempts = 1
 mode = "exec"
 path = ".gc/scripts/checks/brief-manifest-current.sh"
 timeout = "1m"
-

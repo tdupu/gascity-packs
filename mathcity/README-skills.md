@@ -48,7 +48,7 @@ _Regenerate/verify with `/update-README`._
 | `intercept-bead` | `mathcity.intercept-bead` | Coordinator/Mayor-side skill for catching an INFLIGHT bead — a new bead that may supersede or affect an existing (old) bead — before it lands and gets lost, duplicated, or auto-dispatched |
 | `is-good-experiment` | `mathcity.is-good-experiment` | Critical-review variant specialized for experiment proposals |
 | `is-good-test` | `mathcity.is-good-test` | Thin wrapper around is-good-experiment specialized for test files |
-| `mayor-math-restart` | `mathcity.mayor-math-restart` | Full QUIMBY session orientation |
+| `mayor-math-restart` | `mathcity.mayor-math-restart` | Full Mayor session orientation |
 | `mayor-math` | `mathcity.mayor-math` | Supplement to gc.mayor for Gas Town (gt HQ) context |
 | `nudge-city` | `mathcity.nudge-city` | Revive city workers that are stalled/asleep after a usage-limit reset by nudging each one to resume, finish its task, and free its run-operator slot |
 | `present-briefs` | `mathcity.present-briefs` | Batch-present N briefs in parallel and maintain a hot queue (≥2 pre-presented at all times) |

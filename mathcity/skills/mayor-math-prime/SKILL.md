@@ -1,11 +1,11 @@
 ---
 name: mayor-math-prime
-description: PRIME a fresh math-city Mayor (QUIMBY) session. Renders the restart PROMPT (jinja template composing the session catalog + current handoff bead + charge, with plain-text and generic fallbacks), then reads the durable operation docs, the session catalog, and the handoff bead, files onboarding briefs, and orients. Run at the START of every new QUIMBY session — directly, or as the second half of mayor-math-restart (handoff → clear → prime). Trigger phrases: "prime the mayor", "mayor-math-prime", "onboard QUIMBY", "start a new mayor session".
+description: PRIME a fresh math-city Mayor session. Renders the restart PROMPT (jinja template composing the session catalog + current handoff bead + charge, with plain-text and generic fallbacks), then reads the durable operation docs, the session catalog, and the handoff bead, files onboarding briefs, and orients. Run at the START of every new Mayor session — directly, or as the second half of mayor-math-restart (handoff → clear → prime). Trigger phrases: "prime the mayor", "mayor-math-prime", "onboard Mayor session", "start a new mayor session".
 ---
 
 # mayor-math-prime
 
-The QUIMBY PRIMING procedure — the session-START half of the restart cycle
+The Mayor session PRIMING procedure — the session-START half of the restart cycle
 (`mayor-math-handoff` → `/clear` → **`mayor-math-prime`**). There is NO
 auto-injecting PreToolUse hook — this skill reads its own context.
 
@@ -23,7 +23,7 @@ Read the full output — it is this session's background, standing rules, city
 state, and charge. The script resolves, in order:
 
 1. **Jinja render** — `restart/PROMPT-mayor-restart.j2` composed with
-   `session-catalog.json` (all prior sessions, auto-computed QUIMBY number)
+   `session-catalog.json` (all prior sessions, auto-computed Mayor session number)
    and the current **handoff bead** fetched live via `bd show`, plus the
    recorded `city_state` and `charge_for_next`.
 2. **Plain-text fallback** — `restart/PROMPT-mayor-restart.txt` (the curated
@@ -37,10 +37,10 @@ state, and charge. The script resolves, in order:
 
 **Read now, always:**
 
-1. **`~/gt/gascity-packs/mathcity/docs/QUIMBY-ONBOARDING.md`** (~7KB) — the index +
+1. **`~/gt/gascity-packs/mathcity/docs/MAYOR-ONBOARDING.md`** (~7KB) — the index +
    S11-corrected operational truths (the gold). It names the deeper docs but does NOT
    ask you to read them now; each is tiered below.
-2. **`~/gt/mathcity-mayor/session-catalog-recent.json`** (~5–11KB) — last 5 QUIMBY
+2. **`~/gt/mathcity-mayor/session-catalog-recent.json`** (~5–11KB) — last 5 Mayor
    sessions (arc, city state, charge). Full history is in `session-catalog.json` only if
    you need it. **Consistency guard:** the handoff bead named in the PROMPT must be the
    newest entry here; if it is absent, the prior session skipped its close protocol — treat
@@ -88,7 +88,7 @@ availability and violates [[mayor-no-direct-grilling]]). Keep
 1. Check open beads and the current handoff-bead status directly
    (`bd ready`; `bd show <handoff-bead>`).
 2. Report the session's top priority to Taylor before taking any other action.
-3. Confirm with BART (`80b87468`) what BART is supposed to be doing before
+3. Confirm with the repo-side landing agent what that agent is supposed to be doing before
    starting work.
 
 ## 4. Surface pending decisions

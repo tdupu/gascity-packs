@@ -1,6 +1,6 @@
 ---
 name: file-briefs
-description: Async brief-filing variant of grill-with-docs for Mayor onboarding. Given the restart PROMPT + canonical onboarding docs + the charge, enumerates open questions/decision points and files one brief per question via the brief pipeline (brief-prep / create-brief), then surfaces the batch via present-briefs. Replaces the synchronous grill-with-docs interview with a doctrine-compliant async brief-stack workflow. Trigger on "file-briefs", "/file-briefs", "file my onboarding briefs", "async grill", or at the start of a QUIMBY session after mayor-math-restart.
+description: Async brief-filing variant of grill-with-docs for Mayor onboarding. Given the restart PROMPT + canonical onboarding docs + the charge, enumerates open questions/decision points and files one brief per question via the brief pipeline (brief-prep / create-brief), then surfaces the batch via present-briefs. Replaces the synchronous grill-with-docs interview with a doctrine-compliant async brief-stack workflow. Trigger on "file-briefs", "/file-briefs", "file my onboarding briefs", "async grill", or at the start of a Mayor session after mayor-math-restart.
 ---
 
 # file-briefs
@@ -14,7 +14,7 @@ Mayor routes decisions through the brief stack, not inline chat.
 
 ## When to use
 
-- At QUIMBY onboarding (invoked by `mayor-math-restart` or the restart PROMPT)
+- At Mayor onboarding (invoked by `mayor-math-restart` or the restart PROMPT)
   instead of `/grill-with-docs`
 - Whenever the Mayor would have grilled Taylor on onboarding docs or the charge
 - Keep `/grill-with-docs` for genuine interactive design sessions where
@@ -25,7 +25,7 @@ Mayor routes decisions through the brief stack, not inline chat.
 Read in Phase 1:
 - `~/Documents/misc/PROMPT-mayor-restart.txt` — background, standing rules,
   city state, and charge
-- `~/gt/gascity-packs/mathcity/docs/QUIMBY-ONBOARDING.md` — the doc index
+- `~/gt/gascity-packs/mathcity/docs/MAYOR-ONBOARDING.md` — the doc index
   (points to CITY-RESTART-CHECKLIST.md, CITY-OPERATION-REFERENCE.md,
   TEST-CYCLE-GUIDE.md, DOGFOOD-WORKFLOW.md)
 - The **handoff bead** named in the PROMPT (`bd show <id>`)
@@ -81,7 +81,7 @@ For each `bead_id` from Phase 2, invoke `/brief-prep` with the bead-id as the
 artifact and a reviewer persona specific to onboarding decisions:
 
 ```
-reviewer_persona = "QUIMBY onboarding reviewer checking that this decision
+reviewer_persona = "Mayor onboarding reviewer checking that this decision
   point is well-scoped and the recommended answer is actionable for Taylor"
 ```
 
@@ -91,7 +91,7 @@ Use the Workflow tool with `parallel()` when available:
 const BEAD_IDS = [...]; // from Phase 2
 await parallel(
   BEAD_IDS.map(id => () =>
-    agent(`Run /brief-prep on bead-id "${id}". reviewer_persona: "QUIMBY
+    agent(`Run /brief-prep on bead-id "${id}". reviewer_persona: "Mayor session
 onboarding reviewer checking that this decision point is well-scoped and
 the recommended answer is actionable for Taylor". No tests apply — this
 is a policy/standing-rule bead.`,
@@ -129,7 +129,7 @@ bd list --status closed --type decision --limit 10 --json \
 ```
 
 No active step required from this skill — the brief pipeline handles
-persistence. The Mayor's next QUIMBY session starts with those verdicts
+persistence. The Mayor's next Mayor session starts with those verdicts
 already on the record.
 
 ## Comparison with grill-with-docs

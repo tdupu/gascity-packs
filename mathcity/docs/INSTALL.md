@@ -9,7 +9,7 @@
 > **Deeper references** (for operators who already have a running city):
 > - [CITY-OPERATION-REFERENCE.md](./CITY-OPERATION-REFERENCE.md) — architecture and command surface
 > - [CITY-RESTART-CHECKLIST.md](./CITY-RESTART-CHECKLIST.md) — step-by-step restart/verify
-> - [QUIMBY-ONBOARDING.md](./QUIMBY-ONBOARDING.md) — hard-won operational truths from 11 sessions
+> - [MAYOR-ONBOARDING.md](./MAYOR-ONBOARDING.md) — hard-won operational truths from 11 sessions
 
 ---
 
@@ -694,5 +694,5 @@ The following commands appear in old notes but do **not** exist in the current b
 
 - **Operator reference:** [CITY-OPERATION-REFERENCE.md](./CITY-OPERATION-REFERENCE.md) — full system architecture, pool mechanics, and command surface
 - **Restart checklist:** [CITY-RESTART-CHECKLIST.md](./CITY-RESTART-CHECKLIST.md) — step-by-step phases from cold city to verified brief pipeline
-- **QUIMBY onboarding:** [QUIMBY-ONBOARDING.md](./QUIMBY-ONBOARDING.md) — hard-won operational truths from 11 Mayor sessions
+- **Mayor onboarding:** [MAYOR-ONBOARDING.md](./MAYOR-ONBOARDING.md) — hard-won operational truths from 11 Mayor sessions
 - **Dogfood workflow:** [DOGFOOD-WORKFLOW.md](./DOGFOOD-WORKFLOW.md) — the `~/gt` ↔ `~/repos` duality and how pack changes go live

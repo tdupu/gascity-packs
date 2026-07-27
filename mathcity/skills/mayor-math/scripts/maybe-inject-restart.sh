@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PreToolUse hook: reads tool input JSON from stdin.
-# If skill == "mayor-math-restart", renders and outputs the QUIMBY restart context.
+# If skill == "mayor-math-restart", renders and outputs the Mayor restart context.
 # For all other skills, exits silently.
 
 RENDER="$(dirname "$0")/render-restart.sh"
