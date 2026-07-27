@@ -375,9 +375,9 @@ check_producer_repair_self_exclusion() {
   path="$(brief_path)"
   require_file "$path"
   require_text "$path" '^producer_contract:[[:space:]]*brief-producer-repair\.v1\b' "repair brief missing self-exclusion producer_contract"
-  require_text "$path" '^repair_source_formula:[[:space:]]*[A-Za-z0-9._-]+' "repair brief missing repair_source_formula"
-  require_text "$path" '^repair_failed_gate:[[:space:]]*[A-Za-z0-9._-]+' "repair brief missing repair_failed_gate"
-  require_text "$path" '^repair_failure_fingerprint:[[:space:]]*[A-Za-z0-9._-]+' "repair brief missing repair_failure_fingerprint"
+  require_text "$path" '^repair_source_formula:[[:space:]]*"?[A-Za-z0-9._-]+"?[[:space:]]*$' "repair brief missing repair_source_formula"
+  require_text "$path" '^repair_failed_gate:[[:space:]]*"?[A-Za-z0-9._-]+"?[[:space:]]*$' "repair brief missing repair_failed_gate"
+  require_text "$path" '^repair_failure_fingerprint:[[:space:]]*"?[A-Za-z0-9._-]+"?[[:space:]]*$' "repair brief missing repair_failure_fingerprint"
 }
 
 case "$COMMAND" in
