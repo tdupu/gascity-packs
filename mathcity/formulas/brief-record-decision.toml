@@ -26,6 +26,15 @@ enum = ["approve", "reject", "revise", "defer"]
 description = "Short reason or decision note."
 default = ""
 
+[vars.no_brainer_leak]
+description = "Whether Taylor marked this surfaced brief as an obvious case that should have been filtered."
+default = "false"
+enum = ["true", "false"]
+
+[vars.no_brainer_leak_reason]
+description = "Taylor's reason when no_brainer_leak=true."
+default = ""
+
 [vars.artifact_root]
 description = "Brief pipeline artifact root."
 # Rig-relative: resolves against the rig root (see assets/brief-pipeline/paths.toml).
@@ -67,6 +76,76 @@ authorizer, one-line rationale, date (plus confidence/category for
 auto-executions) — then close the brief bead. Do NOT create a separate
 decision bead for the brief. The `.toml` decision record written above is a
 redundancy channel (B2.8: files are cache), not the canonical record.
+
+If Taylor marked this surfaced brief as a no-brainer leak, also write the
+durable leak event and replay cache:
+
+```bash
+if [ "{{no_brainer_leak}}" = "true" ]; then
+  mkdir -p "{{artifact_root}}/no-brainer-leaks"
+  leak_reason_raw=$(cat <<'LEAK_REASON_EOF'
+{{no_brainer_leak_reason}}
+LEAK_REASON_EOF
+)
+  leak_reason_toml=$(printf '%s' "$leak_reason_raw" | jq -Rs .)
+  source_bead="${SOURCE_BEAD:-}"
+  brief_bead="${BRIEF_BEAD:-}"
+  previous_state="${G9_CLASSIFIER_STATE:-}"
+  cat > "{{artifact_root}}/no-brainer-leaks/$(date +%Y-%m-%d)-{{brief_slug}}.toml" <<EOF
+[leak]
+brief_slug = "{{brief_slug}}"
+brief_bead = "$brief_bead"
+source_bead = "$source_bead"
+ordinary_verdict = "{{decision}}"
+no_brainer_leak = true
+reason = $leak_reason_toml
+
+[classifier]
+previous_state = "$previous_state"
+
+[safety]
+server_touching = ${SERVER_TOUCHING:-false}
+user_skill_touching = ${USER_SKILL_TOUCHING:-false}
+latex_execution_sensitive = ${LATEX_EXECUTION_SENSITIVE:-false}
+
+[repair]
+status = "unreviewed"
+candidate_fingerprint = ""
+EOF
+
+  event_payload=$(jq -n \
+    --arg slug "{{brief_slug}}" \
+    --arg verdict "{{decision}}" \
+    --arg reason "$leak_reason_raw" \
+    --arg brief "$brief_bead" \
+    --arg source "$source_bead" \
+    --arg previous "$previous_state" \
+    '{brief_slug:$slug, ordinary_verdict:$verdict, reason:$reason, brief_bead:$brief, source_bead:$source, previous_classifier_state:$previous, repair_status:"unreviewed"}')
+  event_id=$(bd create "no-brainer leak: {{brief_slug}}" \
+    --type event \
+    --event-category no_brainer_leak \
+    --event-target "${brief_bead:-{{brief_slug}}}" \
+    --event-payload "$event_payload" \
+    --metadata "$event_payload" \
+    --silent)
+  [ -n "$event_id" ] || { echo "failed to create durable no_brainer_leak event bead" >&2; exit 1; }
+  if [ -n "$brief_bead" ]; then
+    bd dep relate "$event_id" "$brief_bead"
+  fi
+  if [ -n "$source_bead" ]; then
+    bd dep relate "$event_id" "$source_bead"
+  fi
+fi
+```
+
+Populate `brief_bead` when the brief bead id is known; populate `source_bead`
+from the same manifest/metadata lookup used for the decision record. Copy
+`previous_state` from the G9 `classifier_state` evidence line when present.
+Copy safety flags from frontmatter/gate evidence when present; otherwise keep
+the explicit empty-string or `false` defaults so missing evidence is visible.
+The Beads event bead is the durable append-only event; the TOML file is the
+replay cache. Do not rewrite an existing bead's description, notes, or metadata
+for this signal.
 """
 
 [steps.check]
@@ -132,4 +211,3 @@ max_attempts = 1
 mode = "exec"
 path = ".gc/scripts/checks/brief-manifest-current.sh"
 timeout = "1m"
-

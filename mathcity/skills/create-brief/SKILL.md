@@ -45,7 +45,7 @@ user_skill_touching_override: <bool>     # as-wjv mechanical test — see [[brie
 
 The FIRST content after the frontmatter MUST be "What is being decided." A brief file violating the Decision-at-Top INVARIANT is malformed: rewrite before depositing; [[brief-prep]] Phase 4 auto-rejects it.
 
-**`## Gate Evidence` section (required in both shapes):** one explicit entry per gate of the active `assets/brief-pipeline/gates.toml` profile, keyed by `evidence_key`, each `PASS`/`FAIL`/`BLOCKED`/`N/A` with every `N/A` citing its surface check; G14 uses the literal tri-state `PASSED`/`NOT APPLICABLE`/`REQUIRED`. The shuffle's apply-gates is fail-closed — a brief without this section is structurally guaranteed rejection (see [[brief-prep]] Phase 3 for the full spec).
+**`## Gate Evidence` section (required in both shapes):** one explicit entry per gate of the active `assets/brief-pipeline/gates.toml` profile, keyed by `evidence_key`, each `PASS`/`FAIL`/`BLOCKED`/`N/A` with every `N/A` citing its surface check; G14 uses the literal tri-state `PASSED`/`NOT APPLICABLE`/`REQUIRED`. G9 evidence must use the `classifier_state=...` syntax required by `brief-prep`; free-form "no-brainer considered" prose is malformed and the shuffle must fail closed. The shuffle's apply-gates is fail-closed — a brief without this section is structurally guaranteed rejection (see [[brief-prep]] Phase 3 for the full spec).
 
 ## Gates (HARD — a brief file that fails any of these is not stack-eligible)
 
@@ -67,10 +67,10 @@ Some dispositions are pre-authorized to skip Taylor adjudication. This skill doe
 
 - **Classification** comes from [[catch-no-brainer]] (he-lele 5-criterion, cats A–D; cat-E and user-skill-touching are negative classifiers).
 - **Safety overrides** (`server_touching`, `user_skill_touching_override`) are computed mechanically per [[brief-prep]] §"Safety overrides" and recorded in frontmatter. Either being `true` forbids auto-approval regardless of category.
-- **Auto-approval** additionally requires the auto-merge kill-switch (`~/gt/.beads/auto_merge_enabled`, default OFF/missing=false; Mayor or Taylor authority only) per `project_brief_pipeline_workflow.md` §4, with dry-run + executed JSONL records.
+- **Auto-approval** additionally requires the N5 kill-switch hierarchy to be clear: `~/gt/.beads/auto_merge_enabled` first, then `<rig_root>/.beads/auto_merge_enabled`. Auto-execute is the default; a switch file that exists and reads `false` halts automation. Absent or `true` proceeds, provided the known-category, confidence, and stop-gate checks pass.
 - Everything else → **stack-insert** ranked by `unlock_count` for Taylor adjudication.
 
-The mechanical policy itself lives in the gate registry and the gate-keep architecture (`project_gate_keep_architecture.md`: X-policy + X-gate + improve-X trinities). As gate-keep lands, this section delegates to it; until then, treat "pre-authorized" as: no-brainer category match AND both overrides false AND kill-switch true — otherwise Taylor decides.
+The mechanical policy itself lives in the gate registry and the gate-keep architecture (`project_gate_keep_architecture.md`: X-policy + X-gate + improve-X trinities). As gate-keep lands, this section delegates to it; until then, treat "pre-authorized" as: known no-brainer category match, confidence at or above threshold, both overrides false, and no engaged kill switch — otherwise Taylor decides.
 
 ## Delivery — clerk channel, NOT the Mayor's terminal
 

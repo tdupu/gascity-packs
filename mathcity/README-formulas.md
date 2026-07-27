@@ -2,7 +2,7 @@
 
 **Single canonical index of every formula in the mathcity pack.**
 
-26 formulas in `mathcity/formulas/`. This file is the ONE complete list. When in doubt, **this file wins**.
+28 formulas in `mathcity/formulas/`. This file is the ONE complete list. When in doubt, **this file wins**.
 
 **Maintenance (single source of truth):**
 - `formula-creator-math` appends the new formula's row here as a required step before filing the brief.
@@ -13,7 +13,7 @@ _Regenerate/verify with `/update-README`._
 
 ---
 
-## Formulas — `mathcity/formulas/`  (26)
+## Formulas — `mathcity/formulas/`  (28)
 
 | Formula | Shape | What it does |
 |---|---|---|
@@ -34,6 +34,8 @@ _Regenerate/verify with `/update-README`._
 | `decision-enforce` | do-work | Enforce the bd-decision-canonical principle at formula call sites. |
 | `file-or-sendback-route` | do-work | Post-decision file-or-sendback gate: log the routing choice for a decided brief. |
 | `formula-creator-math` | methodology | Create a new mathcity formula TOML, enforcing the mandatory briefed-terminal-step convention. |
+| `lost-bead-classification-rollup` | do-work | Group lost-bead classifications by fingerprint and prepare downstream filter-rule proposals. |
+| `lost-bead-upstream-repair-rollup` | do-work | Create upstream repair-brief candidates from repeated lost-bead fingerprints. |
 | `math-brief-prep` | do-work | Batch brief-prep cycle: fan-out produce across pending source beads, then file. |
 | `no-brainer-classify` | do-work | Classify and optionally process no-brainer briefs. |
 | `on-merge-brief-record` | do-work | Post-merge brief-record duty: inspect recently closed beads and file brief records for those that lacked one. |

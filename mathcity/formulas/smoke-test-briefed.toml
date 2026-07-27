@@ -16,6 +16,7 @@ Steps:
                            and a recommended disposition (pass / conditional / fail)
 
 Does NOT modify the artifact under test — read-only audit only.
+Does NOT rewrite the source bead — progress is recorded as linked event beads.
 Does NOT gate on Taylor adjudication of the artifact itself; that is separate.
 """
 formula = "smoke-test-briefed"
@@ -45,7 +46,7 @@ required = true
 pattern = "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
 
 [vars.source_bead]
-description = "Optional: bead ID that tracks the artifact. Used to record test results as bead notes."
+description = "Optional: bead ID that tracks the artifact. Used to link append-only event beads for smoke-test progress. Never rewrite this bead's notes or description."
 default = ""
 
 [vars.brief_slug]
@@ -110,11 +111,27 @@ test -r "{{artifact_path}}" || { echo "ARTIFACT NOT FOUND: {{artifact_path}}"; e
   `bash {{artifact_path}} --help 2>&1; echo "exit: $?"` if `--help` is safe.
   Smoke test = syntax check + help invocation.
 
-Record the selected strategy:
+Record the selected strategy as an append-only linked event bead:
 ```bash
-bd update {{source_bead}} --notes "smoke-test-briefed classify-artifact: type={{artifact_type}}, strategy=<one-line description>"
+if [ -n "{{source_bead}}" ]; then
+  strategy_summary="<one-line description>"
+  event_meta="$(jq -n \
+    --arg formula "smoke-test-briefed" \
+    --arg step "classify-artifact" \
+    --arg artifact_type "{{artifact_type}}" \
+    --arg strategy "$strategy_summary" \
+    '{source_formula:$formula, source_step:$step, artifact_type:$artifact_type, strategy:$strategy}')"
+  event_id="$(bd create "smoke-test-briefed classify-artifact for {{source_bead}}" \
+    --type event \
+    --priority 3 \
+    --event-kind smoke_test \
+    --event-target "{{source_bead}}" \
+    --metadata "$event_meta" \
+    --silent)"
+  bd dep relate "$event_id" "{{source_bead}}"
+fi
 ```
-(Skip bd update if `source_bead` is empty.)
+(Skip the event if `source_bead` is empty.)
 """
 
 [[steps]]
@@ -143,11 +160,26 @@ Also write `{{test_root}}/{{test_slug}}/README.md` with:
 mkdir -p "{{test_root}}/{{test_slug}}"
 ```
 
-Record the test path:
+Record the test path as an append-only linked event bead:
 ```bash
-bd update {{source_bead}} --notes "smoke-test-briefed generate-test: written to {{test_root}}/{{test_slug}}/smoke_test.sh"
+if [ -n "{{source_bead}}" ]; then
+  test_path="{{test_root}}/{{test_slug}}/smoke_test.sh"
+  event_meta="$(jq -n \
+    --arg formula "smoke-test-briefed" \
+    --arg step "generate-test" \
+    --arg test_path "$test_path" \
+    '{source_formula:$formula, source_step:$step, test_path:$test_path}')"
+  event_id="$(bd create "smoke-test-briefed generate-test for {{source_bead}}" \
+    --type event \
+    --priority 3 \
+    --event-kind smoke_test \
+    --event-target "{{source_bead}}" \
+    --metadata "$event_meta" \
+    --silent)"
+  bd dep relate "$event_id" "{{source_bead}}"
+fi
 ```
-(Skip if source_bead is empty.)
+(Skip the event if source_bead is empty.)
 """
 
 [[steps]]
@@ -166,11 +198,27 @@ EXIT_CODE=${PIPESTATUS[0]}
 echo "exit_code: $EXIT_CODE" >> "{{test_root}}/{{test_slug}}/results.txt"
 ```
 
-Record outcome:
+Record outcome as an append-only linked event bead:
 ```bash
-bd update {{source_bead}} --notes "smoke-test-briefed run-test: exit_code=$EXIT_CODE, output at {{test_root}}/{{test_slug}}/results.txt"
+if [ -n "{{source_bead}}" ]; then
+  results_path="{{test_root}}/{{test_slug}}/results.txt"
+  event_meta="$(jq -n \
+    --arg formula "smoke-test-briefed" \
+    --arg step "run-test" \
+    --arg exit_code "$EXIT_CODE" \
+    --arg results_path "$results_path" \
+    '{source_formula:$formula, source_step:$step, exit_code:$exit_code, results_path:$results_path}')"
+  event_id="$(bd create "smoke-test-briefed run-test for {{source_bead}}" \
+    --type event \
+    --priority 3 \
+    --event-kind smoke_test \
+    --event-target "{{source_bead}}" \
+    --metadata "$event_meta" \
+    --silent)"
+  bd dep relate "$event_id" "{{source_bead}}"
+fi
 ```
-(Skip bd update if source_bead is empty.)
+(Skip the event if source_bead is empty.)
 
 If exit_code != 0, do NOT stop — continue to record-results and file-brief
 so Taylor sees the failure evidence. The brief will recommend a FAIL disposition.
@@ -233,9 +281,17 @@ The brief MUST contain:
 - `source_formula: smoke-test-briefed`
 - `source_step: file-brief`
 - `routing_path: "{{routing_path}}"`
+- `review_gate: approved`
+- `unlock_count: <int>`
+- `priority: P0|P1|P2|P3|P4`
+- `server_touching: false`
+- `user_skill_touching_override: false`
 - `recommended_verdict: A` (pass), `C` (conditional — minor issues), or `R` (fail)
 - Full contents of `{{test_root}}/{{test_slug}}/TESTING.md` embedded inline
 - Pass/fail status of each smoke-test step
+- A complete `## Gate Evidence` section for the active gate profile, including
+  this machine-readable G9 line:
+  `G9 No-brainer-filter: PASS - classifier_state=known_non_no_brainer; classified_at=<ISO-8601-utc>; category=none; confidence=none; stop_gates_clear=false; reason=Taylor smoke-test evidence review required; proposed_registry_extension=none`
 
 Template:
 
@@ -248,6 +304,11 @@ producer_contract: brief-producer.v1
 source_formula: smoke-test-briefed
 source_step: file-brief
 routing_path: "{{routing_path}}"
+review_gate: approved
+unlock_count: <int>
+priority: P2
+server_touching: false
+user_skill_touching_override: false
 recommended_verdict: <A|C|R>
 ---
 
@@ -261,6 +322,13 @@ recommended_verdict: <A|C|R>
 
 <One-paragraph summary of what was tested and what the outcome was.>
 
+## Gate Evidence
+
+G9 No-brainer-filter: PASS - classifier_state=known_non_no_brainer; classified_at=<ISO-8601-utc>; category=none; confidence=none; stop_gates_clear=false; reason=Taylor smoke-test evidence review required; proposed_registry_extension=none
+
+Include every other required gate from the active profile as `PASS`, `FAIL`,
+`BLOCKED`, or justified `N/A` before filing to `.pile/`.
+
 ## TESTING.md
 
 <Full contents of {{test_root}}/{{test_slug}}/TESTING.md>
@@ -272,8 +340,23 @@ recommended_verdict: <A|C|R>
 
 After writing:
 ```bash
-bd update {{source_bead}} --notes "smoke-test-briefed file-brief: brief filed at {{brief_slug}}.md — awaiting Taylor verdict"
+if [ -n "{{source_bead}}" ]; then
+  event_meta="$(jq -n \
+    --arg formula "smoke-test-briefed" \
+    --arg step "file-brief" \
+    --arg brief_slug "{{brief_slug}}" \
+    --arg brief_path "$BRIEF_PATH" \
+    '{source_formula:$formula, source_step:$step, brief_slug:$brief_slug, brief_path:$brief_path, status:"awaiting_taylor_verdict"}')"
+  event_id="$(bd create "smoke-test-briefed file-brief for {{source_bead}}" \
+    --type event \
+    --priority 3 \
+    --event-kind smoke_test \
+    --event-target "{{source_bead}}" \
+    --metadata "$event_meta" \
+    --silent)"
+  bd dep relate "$event_id" "{{source_bead}}"
+fi
 gc runtime drain-ack
 ```
-(Skip bd update if source_bead is empty; still run drain-ack.)
+(Skip the event if source_bead is empty; still run drain-ack.)
 """

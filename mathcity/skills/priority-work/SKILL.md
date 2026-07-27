@@ -69,6 +69,29 @@ Spawn the agent in the background (Agent tool with `run_in_background` semantics
 - Explicit done condition: update the bead's notes with results, set `status=in_review` (or reassign per the bead's flow), NEVER `bd close` unless the bead's flow says workers close their own
 - Escalation path: if blocked, file an escalation via `~/repos/gascity-packs/mathcity/assets/scripts/escalate.sh` and stop — do not guess
 
+Record the dispatch as a linked `dispatch-provenance.v1` event bead. The event
+is canonical for downstream lost-bead filters; metadata fields on the source
+bead are convenience hints only.
+
+```toml
+schema = "dispatch-provenance.v1"
+source_bead = "<bead-id>"
+dispatch_command = "<Agent background run or gc sling command>"
+formula = "priority-work"
+verified_assignee = true
+assignee_state = "dispatched_to_named_target"
+classification_hint = "healthy"
+fingerprint = "priority_named_target_dispatch"
+observed_at = "YYYY-MM-DDTHH:MM:SSZ"
+```
+
+If a named target fails to claim or acknowledge the work after the agreed
+verification window, create the same event with `verified_assignee=false`,
+`assignee_state="empty_after_60s"`,
+`classification_hint="immediate_strand"`, and
+`fingerprint="empty_assignee_after_verified_sling"`, then escalate instead of
+waiting silently.
+
 ### Step 4 — Record and release
 
 You are done at dispatch. Record in the current conversation:

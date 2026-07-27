@@ -6,7 +6,7 @@ description: >-
   brief in the stack with every gate satisfied. Enforces the Decision-at-Top
   INVARIANT from [[present-it]] (§1 of the brief MUST be "What is being decided"
   — before origin, math, timeline, or gates). Branches on catch-no-brainer
-  output: cat-A/B/C/D with safety-overrides-clear → compact-form brief;
+  output: known registry category with safety-overrides-clear → compact-form brief;
   everything else → full-form 7-section brief. Trigger on "brief-prep X",
   "prepare a brief for X", "run the brief pipeline on X", "deposit a brief on
   X", or whenever the user wants a polecat-style brief-prep with full
@@ -117,6 +117,12 @@ that makes it not applicable.
 tri-state token `PASSED` / `NOT APPLICABLE` / `REQUIRED` (T7,
 gates.toml G14). An informal "N/A" on G14 is auto-throwback — write
 `NOT APPLICABLE` verbatim plus the one-sentence reason.
+
+**G9 (No-brainer-filter) must be machine-readable.** Write exactly one classifier-state line:
+
+`G9 No-brainer-filter: PASS - classifier_state=<known_no_brainer|known_non_no_brainer|candidate|capability_blocker|safety_blocked>; classified_at=<ISO-8601-utc>; category=<id|none>; confidence=<float|none>; stop_gates_clear=<true|false>; reason=<text-or-none>; proposed_registry_extension=<text-or-none>`
+
+For `known_no_brainer`, `category` must match `assets/brief-pipeline/no-brainer-categories.toml`, `confidence` must be at least 0.85, and `stop_gates_clear=true`. For `known_non_no_brainer`, include a reason. For `candidate`, include `proposed_registry_extension`. For `capability_blocker`, include a blocker reason. For `safety_blocked`, include `stop_gate=G5`, `stop_gate=G5b`, or `stop_gate=L4`.
 
 **Compute unlock_count** (1-2 bd queries per [[project_brief_stack_workflow]]):
 
@@ -233,7 +239,7 @@ In all rejection cases: file a follow-up bead with metadata `brief_prep_blocked_
 
 ## Safety overrides (REJECT no-brainer auto-merge regardless of classification)
 
-Two SAFETY OVERRIDES take precedence over the no-brainer classifier's result and fire BEFORE the auto-merge kill-switch consultation (see "Order at gate-check time" below for the exact sequence). If either fires, the brief is NOT auto-mergeable regardless of category match (he-lele A/B/C/D); it routes to Taylor for explicit adjudication.
+Two SAFETY OVERRIDES take precedence over the no-brainer classifier's result and fire BEFORE the N5 kill-switch hierarchy is consulted (see "Order at gate-check time" below for the exact sequence). If either fires, the brief is NOT auto-mergeable regardless of category match (he-lele A/B/C/D); it routes to Taylor for explicit adjudication. If both overrides clear, automation is still halted by any city-wide or rig-level `auto_merge_enabled` flag that exists and reads `false`; absent or `true` proceeds, provided the category, confidence, and stop-gate checks pass.
 
 These overrides are NEGATIVE classifiers consumed by downstream pipeline components (catch-no-brainer skill [[he-6wej]], shuffler [[he-p2jv]], pile-processor [[he-x3se]]). brief-prep DECLARES the override via the `server_touching` / `user_skill_touching_override` frontmatter booleans (set in Phase 3); downstream ENFORCES.
 
@@ -268,10 +274,10 @@ Rationale: user-skill files are loaded by every polecat session globally. An err
 
 ### Order at gate-check time
 
-1. No-brainer category match (he-lele A/B/C/D classifier)
+1. Known no-brainer category match with confidence at or above threshold
 2. **Override 1 (server-touching)** — REJECTS auto-merge if match (cat-E)
 3. **Override 2 (user-skill-touching)** — REJECTS auto-merge if match
-4. Auto-merge kill-switch (`~/gt/.beads/auto_merge_enabled` per [[he-9czp]] v3) — only consulted if steps 2 + 3 pass
+4. N5 kill-switch hierarchy — only consulted if steps 2 + 3 pass: check `~/gt/.beads/auto_merge_enabled` first, then `<rig_root>/.beads/auto_merge_enabled`. Auto-execute is the default; a switch file that exists and reads `false` halts automation, while absent or `true` proceeds.
 
 ## Hard rules
 
@@ -305,6 +311,6 @@ Rationale: user-skill files are loaded by every polecat session globally. An err
 
 - **v1.0 — overnight-supervisor draft + FP-finder pass 1** (2026-06-23): initial design per he-xgun charge. Two-round FP-loop converged inline.
 - **v1.1 — user-skill-touching SAFETY OVERRIDE** (2026-06-24, per [[as-wjv]]): added "Safety overrides" section codifying both server-touching (he-lele cat-E) and user-skill-touching (as-wjv) negative classifiers; brief-prep now computes `server_touching` and `user_skill_touching_override` frontmatter booleans in Phase 3 for downstream enforcement by catch-no-brainer ([[he-6wej]]) / shuffler ([[he-p2jv]]) / pile-processor ([[he-x3se]]).
-- **v1.2 — better briefs: Decision-at-Top INVARIANT + compact form + capability-blocker awareness** (2026-06-30, per as-niek per Taylor "better briefs" epic): hardened §1 ("What is being decided") from convention to invariant with auto-reject enforcement in Phase 4; adopted the grill-with-docs shape from [[present-it]] (decision-first; §3 assumptions surfaced, §4 alternatives named, §5 risks foregrounded, §6 evidence, §7 gates); added Phase 3 shape-branch selecting between full-form and compact form based on [[catch-no-brainer]] output (compact requires cat-A/B/C/D + `compact_eligible: true` + BOTH safety overrides clear + shape ≠ `capability-blocker`); added `capability-blocker` awareness — briefs where the recommended disposition WOULD be no-brainer if a permission/capability gap were resolved route through "resolve the blocker, then re-classify", never compact; added self-rejection conditions #1 (invariant violated) and #2 (compact misclassified).
+- **v1.2 — better briefs: Decision-at-Top INVARIANT + compact form + capability-blocker awareness** (2026-06-30, per as-niek per Taylor "better briefs" epic): hardened §1 ("What is being decided") from convention to invariant with auto-reject enforcement in Phase 4; adopted the grill-with-docs shape from [[present-it]] (decision-first; §3 assumptions surfaced, §4 alternatives named, §5 risks foregrounded, §6 evidence, §7 gates); added Phase 3 shape-branch selecting between full-form and compact form based on [[catch-no-brainer]] output (compact requires a known registry category + `compact_eligible: true` + BOTH safety overrides clear + shape ≠ `capability-blocker`); added `capability-blocker` awareness — briefs where the recommended disposition WOULD be no-brainer if a permission/capability gap were resolved route through "resolve the blocker, then re-classify", never compact; added self-rejection conditions #1 (invariant violated) and #2 (compact misclassified).
 - **v1.3 — two-skill split recomposition** (2026-07-03, per as-4nu): Phase 3 now drafts per [[create-brief]] (the new gated `.md`-artifact producer); [[present-it]] is terminal-only (context dump in-conversation, no file, no gates, no batch) and supplies only the section structure; migrated residual old-numbering references (§10 → §2/§5/§7, test-evidence declarations → §6) left over from the pre-as-niek 10-section template.
 - **v1.4 — shuffle-conformant output** (2026-07-16, QUIMBY 10 S10 root-cause + gsp beads): the SKILL had drifted from its formula twin — briefs it produced had NO `## Gate Evidence` section and informal G14, so the shuffle's fail-closed apply-gates rejected every one (gt-vx0g3). Phase 3 now requires the Gate Evidence section (one entry per active-profile gate, evidence_key-keyed, G14 literal tri-state); Phase 4 checks it; Phase 5 stamps `review_gate: approved`/`review-failed` alongside `status` (patrol paused — stamp at source); deposit path codified FLAT to `.beads/briefs/.pile/<slug>.md` (P1.17 glob invariant).

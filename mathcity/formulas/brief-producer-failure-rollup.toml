@@ -79,8 +79,22 @@ The batch file must include:
 - failure summaries
 - links to producer-failure event bead ids when available
 
-Create or find one repair-review bead for that batch. Before slinging, run the
-dependency preflight and assignee guard:
+Create or find one repair-review bead for that batch in the target rig store
+`rig:gascity-packs`, not in city HQ. The repair workflow is routed to
+`gascity-packs/gc.run-operator`; slinging a city `gt-*` bead across stores is
+rejected and wedges the workflow. Derive the target rig directory from the live
+city registry:
+
+```bash
+repair_rig_dir="$(gc rig list --json | jq -r '.rigs[] | select(.name=="gascity-packs") | .path')"
+if [ -z "$repair_rig_dir" ]; then
+  echo "I'm sorry, I can't do that — rig:gascity-packs is not registered." >&2
+  echo "Register or resume the gascity-packs rig before launching producer repair review." >&2
+  exit 1
+fi
+```
+
+Before slinging, run the dependency preflight and assignee guard:
 
 ```bash
 for cmd in bd gc jq; do
@@ -91,7 +105,7 @@ for cmd in bd gc jq; do
   }
 done
 
-assignee="$(bd show "$repair_bead" --json --readonly | jq -r '.[0].assignee // .assignee // ""')"
+assignee="$(bd -C "$repair_rig_dir" show "$repair_bead" --json --readonly | jq -r '.[0].assignee // .assignee // ""')"
 if [ -n "$assignee" ]; then
   echo "ALREADY DISPATCHED — bead $repair_bead has active assignee: $assignee; aborting producer repair sling" >&2
   exit 1
@@ -101,17 +115,20 @@ fi
 Sling:
 
 ```bash
-gc sling gascity-packs/gc.run-operator "$repair_bead" --on brief-producer-repair \
+repair_dispatch_json="$(gc sling gascity-packs/gc.run-operator "$repair_bead" --on brief-producer-repair \
   --var source_formula="$source_formula" \
   --var failed_gate="$failed_gate" \
   --var failure_fingerprint="$failure_fingerprint" \
   --var failure_batch="$batch_path" \
-  --var artifact_root="{{artifact_root}}"
+  --var artifact_root="{{artifact_root}}" \
+  --var operator_target="gascity-packs/gc.run-operator" \
+  --json)"
+repair_workflow="$(printf '%s\n' "$repair_dispatch_json" | jq -r '.workflow_id // .bead_id // ""')"
 
 sleep 5
-repair_assignee="$(bd show "$repair_bead" --json --readonly | jq -r '.[0].assignee // .assignee // ""')"
-if [ -z "$repair_assignee" ]; then
-  echo "DISPATCH VERIFY FAILED — bead $repair_bead has no assignee after producer repair sling" >&2
+repair_status="$(bd -C "$repair_rig_dir" show "$repair_workflow" --json --readonly | jq -r '.[0].status // .status // ""')"
+if [ -z "$repair_workflow" ] || [ -z "$repair_status" ]; then
+  echo "DISPATCH VERIFY FAILED — no repair workflow bead after producer repair sling" >&2
   exit 1
 fi
 ```

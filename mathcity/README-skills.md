@@ -2,7 +2,7 @@
 
 **Single canonical cross-pack index of every skill in the mathcity pack family.**
 
-115 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+116 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
 
 **Maintenance (single source of truth — no competing updater):**
 - `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
@@ -84,7 +84,7 @@ _Regenerate/verify with `/update-README`._
 | `profile-magma` | `mathcity-computing.profile-magma` | Wrap the Magma code the user is working on in a profiling harness to find bottlenecks (slow intrinsics, memory hogs) |
 | `update-issue` | `mathcity-computing.update-issue` | Replace a GitHub issue's body with a single up-to-date canonical statement, consolidating all prior body versions into ONE archive comment per issue (folded via HTML <details> blocks) |
 
-### Pack development / hygiene — `subdomains/dev/skills/`  (22)
+### Pack development / hygiene — `subdomains/dev/skills/`  (23)
 
 | Skill | Alias | What it does |
 |---|---|---|
@@ -106,9 +106,10 @@ _Regenerate/verify with `/update-README`._
 | `new-formula-policy` | `mathcity-dev.new-formula-policy` | Propose and apply an amendment to the mathcity formula policy (mathcity/README-formulas.md + formula-creator-math hygiene gate) |
 | `new-hygiene-policy` | `mathcity-dev.new-hygiene-policy` | Propose and apply an amendment to the mathcity hygiene policy (mathcity/subdomains/dev/POLICY.md) |
 | `push-the-fleet` | `mathcity-dev.push-the-fleet` | Saturate the city fleet — finds all ready, unblocked beads across rigs and dispatches them via build-basic-briefed (math-city-work pattern) until active workers reach TARGET (default 10). |
-| `testing-work` | `mathcity-dev.testing-work` | Dispatch a bead to the smoke-test-briefed formula for lightweight test execution with a brief at the end |
 | `skill-creator-math` | `mathcity-dev.skill-creator-math` | Create a new skill in the gascity-packs mathcity pack family (~/repos/gascity-packs/mathcity/ — parent skills/ or a subdomain child pack per ADR 0002) and expose it to plain sessions (agent-skills symlink) and city agents (hand-placed ~/… |
 | `strand-sweep` | `mathcity-dev.strand-sweep` | Find beads and molecules slung but never run — detects immediate strands (empty assignee), dead formula run_target addresses, prose-only-blocked beads bd ready can't see, orphaned wisps (pool absent), and deadlocked molecules via flat step-count. |
+| `switch-city-worker-provider` | `mathcity-dev.switch-city-worker-provider` | Controlled runbook for temporarily switching selected Gas City worker sessions between Claude-backed and Codex-backed providers and rolling them back. |
+| `testing-work` | `mathcity-dev.testing-work` | Dispatch a bead to the smoke-test-briefed formula for lightweight test execution with a brief at the end |
 | `update-README` | `mathcity-dev.update-README` | Keep the mathcity pack family's READMEs and skill exposure in sync after ANY owned-pack change — the pack-dev sibling of improve-package-README (which serves Magma/Sage packages) |
 
 ### LaTeX — `subdomains/latex/skills/`  (6)
@@ -170,4 +171,3 @@ _Regenerate/verify with `/update-README`._
 | `search-mathlib` | `mathcity-proof-assist.search-mathlib` | Search Lean 4 / Mathlib4 declarations via the Loogle search engine — by name, type signature, subexpression, or conclusion pattern |
 | `search-scholar` | `mathcity-proof-assist.search-scholar` | Search Google Scholar / Semantic Scholar for papers via MCP and return citations and metadata |
 | `search-stacks` | `mathcity-proof-assist.search-stacks` | Query the Stacks Project (algebraic geometry / commutative algebra) by tag or keyword via its MCP server |
-

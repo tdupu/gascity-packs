@@ -285,7 +285,7 @@ enabled = false
 
 ### codex-worker
 
-Located at `agents/codex-worker/agent.toml`. A simple Codex worker scoped to the rig, using the `codex` provider with `fallback = true` and `permission_mode = "suggest"`. It is the execution target for `codex-dispatch` pours — used when an independent cross-model perspective is needed on a design decision, a prior agent attempt has failed, or a large-plan analysis warrants a second opinion before committing. It is never fired automatically; all dispatches are explicit.
+Located at `agents/codex-worker/agent.toml`. A simple Codex worker scoped to the rig, using the `codex` provider with `fallback = true` and `permission_mode = "no-approval-unrestricted"` so managed sessions can run their Gas City work loop without waiting at Codex approval prompts and can reach the local Dolt-backed Beads server. It is the execution target for `codex-dispatch` pours — used when an independent cross-model perspective is needed on a design decision, a prior agent attempt has failed, or a large-plan analysis warrants a second opinion before committing. It is never fired automatically; all dispatches are explicit.
 
 ### brief-operator
 

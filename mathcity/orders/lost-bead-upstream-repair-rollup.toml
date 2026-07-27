@@ -1,0 +1,11 @@
+[order]
+description = "Manually roll up classified lost-bead signals into upstream repair decision briefs."
+scope = "city"
+formula = "lost-bead-upstream-repair-rollup"
+trigger = "manual"
+pool = "mathcity.brief-operator"
+timeout = "2m"
+idempotent = true
+
+[vars]
+threshold = "3"

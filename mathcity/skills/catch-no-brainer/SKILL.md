@@ -10,9 +10,13 @@ description: PRELIMINARY v0.2 — classify a brief against the he-lele 5-criteri
 > Allowed side effects: `mkdir -p` + file write in `.pile/.no-brainer/` and `.gates-candidate-pile/`. Nothing else.
 
 ## Purpose
-Triage briefs so non-architecture cleanups bypass Taylor adjudication. Composes by reference (does not re-implement): [[he-lele]] (5-criterion + cat-A/B/C/D), [[he-xkq3]] G5 (cat-E server-touching) + G9 (no-brainer), [[he-9czp]] gate-order, [[he-cnat]] preliminary-skill-first.
+Triage briefs so non-architecture cleanups bypass Taylor adjudication. Composes by reference (does not re-implement): [[he-lele]] (5-criterion legacy classes), [[he-xkq3]] G5 (cat-E server-touching) + G9 (no-brainer), [[he-9czp]] gate-order, [[he-cnat]] preliminary-skill-first.
 
 Also signals [[present-it]] consumers whether the brief may be output in **compact form** (`DECISION` + `CONTEXT` + `RECOMMEND` + `CONFIRM y/n/grill-me-further`) or MUST be full-form.
+
+The he-lele `cat-A`/`cat-B`/`cat-C`/`cat-D` labels are policy-class aliases,
+not emitted category IDs. Emitted category IDs must match
+`assets/brief-pipeline/no-brainer-categories.toml`.
 
 ## Classification rule
 Given a brief at `<path>` (frontmatter + body + diff summary inside the brief):
@@ -25,7 +29,7 @@ Given a brief at `<path>` (frontmatter + body + diff summary inside the brief):
 
    *Rationale:* the shape IS a known no-brainer; only the capability gap blocks the mechanical disposition. Routing as "resolve the blocker, then re-run this classifier" produces cleaner throughput than presenting a full A/B/C/D brief to Taylor. Data point: he-gu79 (n=5+ per [[feedback_no_brainer_class_under_flagged]]).
 
-4. **[[he-lele]] 5-criterion** (all 5 must hold): (1) branch regex `^(polecat|nux|<role>)/(<role>/)?<bead>(@<token>)?$`; (2) parent bead CLOSED with documented supersession (close-reason names a `bd`-resolvable artifact / merged PR / fs path); (3) diff vs `origin/master` touches ONLY scratch/transient files (no `magma/`, `latex/`, `notes.tex`, schema, `DATA/`, package files, `.beads/` except briefs themselves); (4) no downstream beads reference the branch; (5) brief verdict is `DELETE` or `INVESTIGATE`. → emit `{no_brainer:true, category:"stale-branch", compact_eligible:true}` (cat-A WIP-autosave; `cat-B` test-execution, `cat-C` verification-mid-flight, `cat-D` consolidate-mini-beads — see [[he-lele]] for definitions).
+4. **[[he-lele]] 5-criterion** (all 5 must hold): (1) branch regex `^(polecat|nux|<role>)/(<role>/)?<bead>(@<token>)?$`; (2) parent bead CLOSED with documented supersession (close-reason names a `bd`-resolvable artifact / merged PR / fs path); (3) diff vs `origin/master` touches ONLY scratch/transient files (no `magma/`, `latex/`, `notes.tex`, schema, `DATA/`, package files, `.beads/` except briefs themselves); (4) no downstream beads reference the branch; (5) brief verdict is `DELETE` or `INVESTIGATE`. → emit `{no_brainer:true, category:"stale-branch", compact_eligible:true}` (`stale-branch` is the registry ID for the legacy he-lele stale-cleanup class).
 
 5. **DEFER-ratify-existing-HELD** (no-brainer DEFER). **Safety overrides apply first** — if steps 1 or 2 fired, this step is not reached. Trigger: (a) the brief's recommended disposition is `DEFER`; AND (b) the brief body or frontmatter indicates the current state is already HELD/standing (e.g., `status: HELD`, `existing_state: HELD`, or body text `already HELD` / `ratify existing hold` / `no-op: already deferred`); AND (c) the only action required is to ratify (record) that existing state — no new work, no file changes, no server interaction. → emit `{no_brainer:true, category:"defer-ratify-held", compact_eligible:true}` and copy brief into `.pile/.no-brainer/`.
 
@@ -52,7 +56,7 @@ Given a brief at `<path>` (frontmatter + body + diff summary inside the brief):
 ## Output schema (one JSON-line per brief, to stdout)
 ```json
 {"brief_path":"<abs>","bead_id":"<id|null>","no_brainer":true|false|"candidate",
- "category":"stale-branch|cat-A|cat-B|cat-C|cat-D|capability-blocker|defer-ratify-held|close-done-cited-commit|execution-confirmation-proof|null",
+ "category":"stale-branch|capability-blocker|defer-ratify-held|close-done-cited-commit|execution-confirmation-proof|null",
  "reason":"cat-E-server-touching|user-skill-touching-override|resolve <blocker>|null",
  "compact_eligible":true|false,
  "confidence":0.0,
@@ -61,6 +65,8 @@ Given a brief at `<path>` (frontmatter + body + diff summary inside the brief):
 ```
 
 `confidence` is a float in [0.0, 1.0] expressing the classifier's certainty in the emitted `category`. Always emit it — even stop-gate outputs (server-touching, user-skill-touching) emit `confidence:1.0` because those are deterministic rule checks. "Confident" threshold for N2/N5 auto-execution eligibility is `confidence >= 0.85`; below that, treat as non-no-brainer regardless of category. The verdict recorded on the brief bead at auto-execution (B2.9 / N7 — one-bead model: the brief bead IS the decision bead; no separate bead is created) must include this value so the empirical wrong rate α can be estimated from the audit ledger (N8).
+
+Category IDs must be present in `assets/brief-pipeline/no-brainer-categories.toml` unless the output is `candidate` or a stop-gate `no_brainer:false` result. The registry is the machine-readable category contract; `POLICY.md` remains authoritative for rule semantics.
 
 ## Side effects (v0.2)
 - `no_brainer:true` (any category: stale-branch, defer-ratify-held, close-done-cited-commit, execution-confirmation-proof) → `mkdir -p` + copy brief into `.pile/.no-brainer/`. Consumed by pile-processor ([[he-x3se]], not-yet-shipped); until then the file is inert.

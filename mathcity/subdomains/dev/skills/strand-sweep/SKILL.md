@@ -168,6 +168,24 @@ echo "(Rising count = healthy slow-build — do NOT classify as a strand. gs-0cy
 
 ---
 
+## Classification Contract
+
+For each reported candidate, include `lost_class`,
+`recommended_disposition`, `root_cause`, and `fingerprint` from
+`assets/bead-filter/lost-bead-schema.toml`. Persisted classification events
+use `schema = "lost-bead-classification.v1"`.
+
+Default mappings:
+- Rung A empty assignee: `lost_class=immediate_strand`, `recommended_disposition=resling`, `root_cause=no_worker_claimed`, `fingerprint=empty_assignee_after_verified_sling`.
+- Rung B dead target: `lost_class=dead_target`, `recommended_disposition=repair_source`, `root_cause=dead_or_deprecated_target`, `fingerprint=dead_static_run_target`.
+- Rung C prose blocker: `lost_class=hidden_blocker`, `recommended_disposition=encode_dependency`, `root_cause=hidden_human_decision_dependency`, `fingerprint=ready_but_prose_blocked`.
+- Rung D orphaned wisp: `lost_class=orphaned_wisp`, `recommended_disposition=recycle`, `root_cause=no_live_target`, `fingerprint=assigned_pool_absent_from_tmux`.
+- Rung E flat step count: `lost_class=deadlock`, `recommended_disposition=repair_source`, `root_cause=formula_deadlock`, `fingerprint=flat_step_count_after_observation_window`.
+
+The sweep remains read-only; executor skills run only after adjudication. To
+persist a row, create one linked `type=event` bead per classified source bead
+and treat any table/file export as cache.
+
 ## Output table
 
 After all rungs, produce a summary:
