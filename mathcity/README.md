@@ -311,7 +311,7 @@ Located at `agents/codex-worker/agent.toml`. A simple Codex worker scoped to the
 
 ### brief-operator
 
-Located at `agents/brief-operator/agent.toml`. A pack-local, **city-scope** operator that runs the deterministic brief-pipeline FORMULA steps — shuffle bookkeeping, watchdog-refill measurement, decision dispatch, file-or-sendback routing, archive sweeps, and no-brainer classification. It is **persistent** (`min_active_sessions = 1`, `max_active_sessions = 2`) so brief-pipeline orders staff deterministically without relying on on_demand dispatch (open bug gs-7mr). The brief-pipeline orders reference it by the explicit binding-qualified pool `mathcity.brief-operator`. It **never adjudicates a brief and never presents to Taylor** — presentation is the outside clerk's job (`present-briefs`), and adjudication is Taylor's.
+Located at `agents/brief-operator/agent.toml`. A pack-local, **city-scope** operator that runs the deterministic brief-pipeline FORMULA steps — shuffle bookkeeping, watchdog-refill measurement, decision dispatch, file-or-sendback routing, archive sweeps, and no-brainer classification. It is **persistent** (`min_active_sessions = 1`, `max_active_sessions = 12`) so brief-pipeline orders staff deterministically without relying on on_demand dispatch (open bug gs-7mr). The brief-pipeline orders reference it by the explicit binding-qualified pool `mathcity.brief-operator`. It **never adjudicates a brief and never presents to Taylor** — presentation is the outside clerk's job (`present-briefs`), and adjudication is Taylor's.
 
 ---
 

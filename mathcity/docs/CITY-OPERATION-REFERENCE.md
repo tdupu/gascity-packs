@@ -123,7 +123,7 @@ Rules:
 
 | Agent | Pool size | Scope | Role |
 |-------|-----------|-------|------|
-| `mathcity.brief-operator` | min=1, max=2 | city | Runs deterministic brief-pipeline machine steps (shuffle, watchdog, decision dispatch, archive sweeps, no-brainer classification). **Never adjudicates, never presents.** Wake mode: fresh (each claim is a new session). Idle timeout: 2h. |
+| `mathcity.brief-operator` | min=1, max=12 | city | Runs deterministic brief-pipeline machine steps (shuffle, watchdog, decision dispatch, archive sweeps, no-brainer classification). **Never adjudicates, never presents.** Wake mode: fresh (each claim is a new session). Idle timeout: 2h. |
 | `bd.dog` | min=0, max=2 | city | Beads daemon; min=0 means it only starts under load. |
 
 ### Per-Rig Persistent Agents (one per rig)
@@ -678,7 +678,7 @@ With the city running:
 **Is this enough?** For the hello-world smoke test (2 rigs, sequential briefs), yes.
 For high-throughput scenarios (many concurrent brief-preps), `math-brief-prep` fans out
 as many `gc.run-operator` sessions as there are pending briefs — the controller manages
-the queue. The `mathcity.brief-operator` pool at max=2 is the potential bottleneck for
+the queue. The `mathcity.brief-operator` pool at max=12 is the potential bottleneck for
 the city-scope machine steps; `brief-review-patrol` and `brief-shuffle-pile` rig-scope
 steps use `gc.run-operator` (on-demand, unbounded effectively).
 

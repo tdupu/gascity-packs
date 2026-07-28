@@ -106,7 +106,7 @@
   ```
   Look for:
   - `Controller: running`
-  - `mathcity.brief-operator scaled (min=1, max=2)` — one of the two slots should start warming up
+  - `mathcity.brief-operator scaled (min=1, max=12)` — one of the slots should start warming up
   - All rig dispatchers listed (not all need to be running yet)
 
 - [ ] **Wait for brief-operator to come up** (within ~60s)

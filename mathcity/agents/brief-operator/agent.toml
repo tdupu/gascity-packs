@@ -6,6 +6,8 @@ nudge = "Run gc hook --claim --json now; if it returns a brief-pipeline machine 
 idle_timeout = "2h"
 # Persistent city-scope pool so brief-pipeline orders staff deterministically
 # without relying on on_demand dispatch (open bug gs-7mr). At least one
-# session stays warm; scale up to two under load.
+# session stays warm; scale up to twelve under load (raised 2->6 hotfix
+# 2026-07-15, then 6->12 gt-gwb30 2026-07-28 after sustained brief-operator
+# saturation — ALL rigs' brief-pipeline formulas funnel into this one pool).
 min_active_sessions = 1
-max_active_sessions = 2
+max_active_sessions = 12
