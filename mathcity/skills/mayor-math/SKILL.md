@@ -19,12 +19,15 @@ The hard-won gold lives in the mathcity pack (`~/gt/gascity-packs/mathcity/docs/
 
 **Current dispatch pattern:** sling `--on build-basic-briefed` (fires a decision brief at
 the terminal step; `push=false` ships nothing) with `interaction_mode=autonomous` for
-unattended pool runs.
+unattended pool runs. Scope `artifact_root` per bead — never omit it or pass
+the bare rig root, or concurrent runs on the same rig silently overwrite each
+other's stage artifacts (gsp-1bmxuz):
 
 ```
 gc sling <rig>/gc.run-operator <bead> --on build-basic-briefed \
   --var interaction_mode=autonomous --var review_mode=agent \
-  --var drain_policy=separate --var push=false --var open_pr=false
+  --var drain_policy=separate --var push=false --var open_pr=false \
+  --var artifact_root=<rig-root>/.gc-builds/<bead>
 ```
 
 **After slinging:** verify the sling took — `bd show <bead>` must show a non-empty

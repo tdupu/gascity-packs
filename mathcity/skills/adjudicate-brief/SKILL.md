@@ -63,10 +63,15 @@ bd defer <BRIEF_BEAD> --until=<DEFER_UNTIL> \
 
 ### 3. If verdict = approve → dispatch via math-city-work (MANDATORY)
 
+Scope `artifact_root` per bead — never omit it or pass the bare rig root, or
+concurrent runs on the same rig silently overwrite each other's stage
+artifacts (gsp-1bmxuz):
+
 ```bash
 gc sling hecke/gc.run-operator <ARTIFACT> --on build-basic-briefed \
   --var interaction_mode=autonomous --var review_mode=agent \
-  --var drain_policy=separate --var push=false --var open_pr=false
+  --var drain_policy=separate --var push=false --var open_pr=false \
+  --var artifact_root=~/gt/hecke/.gc-builds/<ARTIFACT>
 ```
 
 Verify assignee within ~60s:

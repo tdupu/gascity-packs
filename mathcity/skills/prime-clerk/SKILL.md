@@ -114,11 +114,15 @@ Taylor: "approve" / "A" / "yes" / "ship it"
 → 5. Present the next pre-loaded brief immediately
 ```
 
-The canonical dispatch (from `/math-city-work`):
+The canonical dispatch (from `/math-city-work`) — note artifact_root must be
+scoped per bead, never omitted or passed as the bare rig root (concurrent
+build-basic-briefed runs on the same rig that share an artifact_root
+silently overwrite each other's stage artifacts, gsp-1bmxuz):
 ```bash
 gc sling <rig>/gc.run-operator <artifact-bead> --on build-basic-briefed \
   --var interaction_mode=autonomous --var review_mode=agent \
-  --var drain_policy=separate --var push=false --var open_pr=false
+  --var drain_policy=separate --var push=false --var open_pr=false \
+  --var artifact_root=<rig-root>/.gc-builds/<artifact-bead>
 ```
 
 **Rig detection by artifact prefix:** `he-*` → `hecke`; `gsp-*` →

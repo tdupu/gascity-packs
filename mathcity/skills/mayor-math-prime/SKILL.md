@@ -129,11 +129,15 @@ Taylor: "approve" (or "A", "ship it", "sling it")
 → 3. Verify assignee is non-empty within ~60s (bd show <bead> | grep -i assignee)
 ```
 
-The canonical dispatch command (from `/math-city-work`):
+The canonical dispatch command (from `/math-city-work`) — note artifact_root
+must be scoped per bead, never omitted or passed as the bare rig root
+(concurrent build-basic-briefed runs on the same rig that share an
+artifact_root silently overwrite each other's stage artifacts, gsp-1bmxuz):
 ```bash
 gc sling <rig>/gc.run-operator <artifact-bead> --on build-basic-briefed \
   --var interaction_mode=autonomous --var review_mode=agent \
-  --var drain_policy=separate --var push=false --var open_pr=false
+  --var drain_policy=separate --var push=false --var open_pr=false \
+  --var artifact_root=<rig-root>/.gc-builds/<artifact-bead>
 ```
 
 **⚠️ NEVER copy the "Math-city-work dispatch:" block from inside a brief body.** Briefs authored by Q16 often contain `gc sling <rig>/gastown.polecat <bead>` — **`gastown.polecat` is deprecated vocabulary** and a check-plan-hygiene violation. Always use the canonical build-basic-briefed pattern above, not whatever the brief body suggests.
