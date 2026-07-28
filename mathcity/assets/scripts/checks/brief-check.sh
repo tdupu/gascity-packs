@@ -156,9 +156,33 @@ check_manifest() {
   check_jsonl "$ROOT/stack/.index.jsonl"
 }
 
+claim_item_metadata_value() {
+  # gc.brief.slug / gc.brief.claim_result are written by claim-item onto ITS
+  # OWN step bead, not onto finalize's bead — metadata_value() alone (which
+  # only reads $GC_BEAD_ID, i.e. finalize's own bead when this runs as
+  # finalize's check) can never see them. Cross-step lookup mirrors what
+  # brief-shuffle.toml's process-item/finalize step descriptions already
+  # specify in prose, and the same two-hop pattern used by gascity's own
+  # design-review-approved.sh / implementation-review-approved.sh: resolve
+  # this bead's gc.root_bead_id, then find the sibling claim-item step bead
+  # for the same workflow run via that root id.
+  key="$1"
+  if [ -z "${GC_BEAD_ID:-}" ] || ! command -v gc >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+    return 0
+  fi
+  root_id="$(gc bd show "$GC_BEAD_ID" --json 2>/dev/null |
+    jq -r '.[0].metadata["gc.root_bead_id"] // empty' 2>/dev/null || true)"
+  [ -n "$root_id" ] || return 0
+  gc bd list --all --metadata-field "gc.root_bead_id=$root_id" --json --limit=0 2>/dev/null |
+    jq -r --arg key "$key" '
+      [.[] | select(.metadata["gc.step_ref"] == "brief-shuffle.claim-item")]
+      | .[0].metadata[$key] // empty
+    ' 2>/dev/null || true
+}
+
 check_staging_clear() {
-  slug="$(metadata_value "gc.brief.slug")"
-  claim_result="$(metadata_value "gc.brief.claim_result")"
+  slug="$(claim_item_metadata_value "gc.brief.slug")"
+  claim_result="$(claim_item_metadata_value "gc.brief.claim_result")"
   if [ "$claim_result" = "empty" ] || [ -z "$slug" ]; then
     # Empty-pile no-op route: nothing was ever claimed, nothing to clear.
     return 0
