@@ -16,10 +16,20 @@ Checks:
    `artifact_root=<rig-root>/.gc-builds/<bead-id>` form.
 3. `math-city-work` SKILL.md documents the same scoped form for its
    `build-basic-briefed` branch.
-4. A simulated two-bead dispatch on one rig produces two distinct
-   `artifact_root` values.
-5. Neither simulated scoped value equals the bare rig root.
+4. `mayor-math-prime` SKILL.md documents the scoped
+   `artifact_root=<rig-root>/.gc-builds/<artifact-bead>` form for its
+   `build-basic-briefed` dispatch.
+5. `prime-clerk` SKILL.md documents the scoped
+   `artifact_root=<rig-root>/.gc-builds/<artifact-bead>` form for its
+   `build-basic-briefed` dispatch.
+6. `mayor-math` SKILL.md documents the scoped
+   `artifact_root=<rig-root>/.gc-builds/<bead>` form for its
+   `build-basic-briefed` dispatch.
+7. `adjudicate-brief` SKILL.md documents the scoped
+   `artifact_root=~/gt/hecke/.gc-builds/<ARTIFACT>` form for its
+   `build-basic-briefed` dispatch.
 
-This is a static text/path-arithmetic check — it does not require a live
-city, matching the convention of the other `mathcity/tests/*/smoke_test.sh`
+This is a static text check — each check greps a specific skill doc for a
+specific scoped-artifact_root substring — it does not require a live city,
+matching the convention of the other `mathcity/tests/*/smoke_test.sh`
 fixtures (e.g. `lost-bead-filter`, `producer-failure-rollup-routing`).

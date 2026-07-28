@@ -1,13 +1,18 @@
 #!/bin/sh
-# Static regression test: proves push-the-fleet and math-city-work compute
-# DISTINCT, bead-scoped artifact_root values for two different beads on the
-# same rig, and that neither skill still documents the old bare-rig-root
-# dispatch form. Does not require a live city — pure text-fixture check.
+# Static regression test: proves the six build-basic-briefed dispatch docs
+# (push-the-fleet, math-city-work, mayor-math-prime, prime-clerk, mayor-math,
+# adjudicate-brief) each document a bead-scoped artifact_root form, and that
+# push-the-fleet no longer documents the old bare-rig-root dispatch form.
+# Does not require a live city — pure text-fixture check.
 set -eu
 
 REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 PUSH_SKILL="$REPO_ROOT/mathcity/subdomains/dev/skills/push-the-fleet/SKILL.md"
 WORK_SKILL="$REPO_ROOT/mathcity/skills/math-city-work/SKILL.md"
+MAYOR_PRIME_SKILL="$REPO_ROOT/mathcity/skills/mayor-math-prime/SKILL.md"
+PRIME_CLERK_SKILL="$REPO_ROOT/mathcity/skills/prime-clerk/SKILL.md"
+MAYOR_MATH_SKILL="$REPO_ROOT/mathcity/skills/mayor-math/SKILL.md"
+ADJUDICATE_BRIEF_SKILL="$REPO_ROOT/mathcity/skills/adjudicate-brief/SKILL.md"
 
 fail() {
   echo "I'm sorry, I can't do that - $1" >&2
@@ -16,6 +21,10 @@ fail() {
 
 [ -f "$PUSH_SKILL" ] || fail "missing $PUSH_SKILL"
 [ -f "$WORK_SKILL" ] || fail "missing $WORK_SKILL"
+[ -f "$MAYOR_PRIME_SKILL" ] || fail "missing $MAYOR_PRIME_SKILL"
+[ -f "$PRIME_CLERK_SKILL" ] || fail "missing $PRIME_CLERK_SKILL"
+[ -f "$MAYOR_MATH_SKILL" ] || fail "missing $MAYOR_MATH_SKILL"
+[ -f "$ADJUDICATE_BRIEF_SKILL" ] || fail "missing $ADJUDICATE_BRIEF_SKILL"
 
 CHECKS=0
 PASS=0
@@ -42,20 +51,21 @@ check "push-the-fleet: documents .gc-builds/<bead-id> scoping" \
 check "math-city-work: documents .gc-builds/<bead> scoping for build-basic-briefed" \
   'grep -q "artifact_root=<rig-root>/.gc-builds/<bead>" "$WORK_SKILL"'
 
-# 4. Simulate two concurrent dispatches for two different beads on the same
-#    rig root and assert the resulting artifact_root values differ. This is
-#    the actual collision scenario from gsp-1bmxuz (gsp-ewlwh vs gsp-4qe2a).
-RIG_ROOT="/Users/tdupuy/gt/gascity-packs"
-BEAD_A="gsp-ewlwh"
-BEAD_B="gsp-4qe2a"
-ROOT_A="$RIG_ROOT/.gc-builds/$BEAD_A"
-ROOT_B="$RIG_ROOT/.gc-builds/$BEAD_B"
+# 4. mayor-math-prime documents the per-bead scoped form for build-basic-briefed.
+check "mayor-math-prime: documents .gc-builds/<artifact-bead> scoping for build-basic-briefed" \
+  'grep -q "artifact_root=<rig-root>/.gc-builds/<artifact-bead>" "$MAYOR_PRIME_SKILL"'
 
-check "simulated dispatch: scoped artifact_root differs per bead" \
-  '[ "$ROOT_A" != "$ROOT_B" ]'
+# 5. prime-clerk documents the per-bead scoped form for build-basic-briefed.
+check "prime-clerk: documents .gc-builds/<artifact-bead> scoping for build-basic-briefed" \
+  'grep -q "artifact_root=<rig-root>/.gc-builds/<artifact-bead>" "$PRIME_CLERK_SKILL"'
 
-check "simulated dispatch: neither scoped path equals the bare rig root" \
-  '[ "$ROOT_A" != "$RIG_ROOT" ] && [ "$ROOT_B" != "$RIG_ROOT" ]'
+# 6. mayor-math documents the per-bead scoped form for build-basic-briefed.
+check "mayor-math: documents .gc-builds/<bead> scoping for build-basic-briefed" \
+  'grep -q "artifact_root=<rig-root>/.gc-builds/<bead>" "$MAYOR_MATH_SKILL"'
+
+# 7. adjudicate-brief documents the per-bead scoped form for build-basic-briefed.
+check "adjudicate-brief: documents .gc-builds/<ARTIFACT> scoping for build-basic-briefed" \
+  'grep -q "artifact_root=~/gt/hecke/.gc-builds/<ARTIFACT>" "$ADJUDICATE_BRIEF_SKILL"'
 
 echo ""
 if [ "$PASS" -eq "$CHECKS" ]; then
