@@ -4,12 +4,14 @@ Single-writer shuffler for brief pile to stack promotion.
 This formula is intended for the `brief-shuffle-pile` order. It processes at
 most one pile item per run, applies gate-keep rules, and either promotes it to
 the stack with a manifest append or rejects it into `.pile/.rejected`.
+Lockless since v3 (gsp-89yli): per-item claiming is an atomic mv into
+.staging/, not a persistent .shuffle.lock file.
 """
 formula = "brief-shuffle"
 # v2 (2026-07-16): reject branch no longer dead-ends — files a remediation
 # bead via escalate.sh + emits brief.gate_rejected (Mayor session S10 finding:
 # nothing reads .pile/.rejected/).
-version = 2
+version = 3
 
 [requires]
 formula_compiler = ">=2.0.0"
@@ -29,103 +31,101 @@ description = "Run target for shuffler bookkeeping."
 default = "mathcity.brief-operator"  # retargeted from gc.run-operator (gastown retired 2026-07-09 ba2ff381)
 
 [[steps]]
-id = "acquire-lock"
-title = "Acquire the shuffler lock"
+id = "claim-item"
+title = "Claim one pile item (atomic mv)"
 metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
-Acquire `{{artifact_root}}/.shuffle.lock` before touching `.pile`, `stack`, or
-`stack/.index.jsonl`. If the lock is held by a live run, stop cleanly. If it
-is stale, record why it is stale before taking over.
+Claim exactly one pile item via an atomic filesystem `mv` — this replaces
+the old lock-file acquire step. No lock file is used or checked.
+
+1. Ensure `{{artifact_root}}/.staging/` exists (`mkdir -p`).
+2. RESCUE SWEEP (do this before claiming your own item): list every
+   `{{artifact_root}}/.staging/<slug>/brief.md` entry. For each one, check
+   its directory mtime. If it is older than 30 minutes AND no `gc session
+   list --state active` entry corresponds to the session that claimed it
+   (a dead session cannot be reasoned about further — treat any entry
+   older than 30 minutes with no owning active session as rescuable),
+   atomically `mv -f {{artifact_root}}/.staging/<slug>/brief.md
+   {{artifact_root}}/.pile/<slug>.md` and remove the now-empty
+   `{{artifact_root}}/.staging/<slug>/` directory. This is the ONLY
+   mechanism that recovers a crashed session's claimed item — do this
+   sweep on every run, not just when you notice a problem.
+3. EMPTY-PILE ROUTE (gsp-3al3, unchanged): select the oldest non-hidden
+   `.md` file directly under `{{artifact_root}}/.pile` (not `.pile/.rejected`,
+   not `.pile/.no-brainer`). If none exists, record `selection: none (pile
+   empty)` in this step's notes, set step outcome metadata
+   `gc.brief.claim_result=empty`, and complete this step normally — the
+   downstream steps then pass through as clean no-ops.
+4. If a file was selected, claim it with a single atomic move:
+   `mv -f {{artifact_root}}/.pile/<slug>.md
+   {{artifact_root}}/.staging/<slug>/brief.md` (create the per-slug
+   `.staging/<slug>/` directory first with `mkdir -p`). The `mv` is atomic
+   on POSIX filesystems — if it succeeds, you exclusively own this item;
+   no other session can also claim it, because there is no window where
+   two sessions could both see the file present. Record
+   `gc.brief.claim_result=claimed`,
+   `gc.brief.slug=<slug>`, and
+   `gc.brief.staging_path={{artifact_root}}/.staging/<slug>/brief.md`
+   as step metadata via
+   `gc bd update "<this-step-bead-id>" --set-metadata "gc.brief.slug=<slug>" --set-metadata "gc.brief.staging_path={{artifact_root}}/.staging/<slug>/brief.md" --set-metadata "gc.brief.claim_result=claimed"`
+   so downstream steps can find your exact claimed item without globbing
+   (globbing `.staging/*` under concurrency is ambiguous — other sessions
+   may have their own entries there at the same time).
+
+Never proceed to process-item without first completing the rescue sweep in
+this same run.
 """
 
 [[steps]]
-id = "select-pile-item"
-title = "Select one pile item"
-needs = ["acquire-lock"]
-metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}", "gc.brief.path" = "{{artifact_root}}/.pile" }
-description = """
-Select the oldest non-hidden markdown brief from `{{artifact_root}}/.pile`.
-Process only one item per shuffler run. Leave the item in place until the
-promote/reject write is ready so failed runs are restartable.
-
-EMPTY-PILE ROUTE (gsp-3al3): if `.pile` contains no non-hidden markdown
-briefs, that is a CLEAN outcome, not a failure. Record `selection: none
-(pile empty)` in the step notes and complete this step normally. The
-downstream apply-gates and write-disposition steps then pass through as
-no-ops and release-lock still releases the shuffler lock — never leave the
-graph stranded holding `.shuffle.lock`.
-"""
-
-# No mechanical check here (gsp-3al3): the former brief-pile-nonempty.sh
-# check made an empty pile a FAILED step, deadlocking the graph (apply-gates
-# blocked on the failed dependency and release-lock never ran, leaking the
-# lock and the wisp). An empty pile is now a valid clean completion; the
-# write-disposition check still enforces that a non-empty run produced a
-# promote/reject result.
-
-[[steps]]
-id = "apply-gates"
-title = "Apply gate registry to selected brief"
-needs = ["select-pile-item"]
+id = "process-item"
+title = "Apply gates and write disposition for the claimed item"
+needs = ["claim-item"]
 metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
-Apply the gate registry from `assets/brief-pipeline/gates.toml` to the selected
-brief. Judgment gates must already be present in the brief; the shuffler does
-not invent approvals.
+This replaces the old `apply-gates` + `write-disposition` steps. Read
+`gc.brief.claim_result` from the `claim-item` step bead's metadata.
 
-If any required gate fails or is missing, move the brief to
-`{{artifact_root}}/.pile/.rejected/<slug>/brief.md` with a short rejection
-record. If all gates pass, prepare promotion to stack.
+EMPTY-PILE ROUTE (gsp-3al3, unchanged): if `gc.brief.claim_result=empty`,
+this step is a NO-OP — do not touch gates, do not reject or promote
+anything; note the pass-through and complete immediately.
 
-EMPTY-PILE ROUTE (gsp-3al3): if select-pile-item recorded `selection: none
-(pile empty)`, this step is a NO-OP — do not touch gates, do not reject or
-promote anything; note the pass-through and complete immediately.
-"""
+Otherwise, read `gc.brief.slug` and `gc.brief.staging_path` from the
+claim-item step bead's metadata (`gc bd show "<claim-item-step-bead-id>"
+--json`). Apply the gate registry from `assets/brief-pipeline/gates.toml`
+to the brief at `gc.brief.staging_path`. Judgment gates must already be
+present in the brief; this step does not invent approvals.
 
-[[steps]]
-id = "write-disposition"
-title = "Promote or reject the selected brief"
-needs = ["apply-gates"]
-metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
-description = """
-For `Disposition: promote`, move the brief to
-`{{artifact_root}}/stack/<slug>.md` and append one JSON object to
-`{{artifact_root}}/stack/.index.jsonl` with EXACTLY these keys (the drain
-reader brief-drain-manifest.sh keys on `slug`, `gate_profile`, and
-`unlock_count`; the others are consumed downstream):
+For `Disposition: promote`:
+1. Move the item out of staging into stack:
+   `mv -f {{artifact_root}}/.staging/<slug>/brief.md
+   {{artifact_root}}/stack/<slug>.md`, then remove the now-empty
+   `{{artifact_root}}/.staging/<slug>/` directory.
+2. Append one JSON object to `{{artifact_root}}/stack/.index.jsonl` with
+   EXACTLY the keys `slug`, `path`, `source`, `unlock_count`,
+   `created_at`, `gate_profile` (unchanged shape from before — see the
+   existing formula's write-disposition description for the field
+   definitions, they have not changed). Guard the append with a SHORT
+   `flock` around ONLY this append, not the whole step:
+   `(flock 9; printf '%s\n' "$JSON_LINE" >>
+   {{artifact_root}}/stack/.index.jsonl) 9>{{artifact_root}}/.manifest.lock`.
+   This lock is fast and bounded (one JSON line write), unlike the old
+   whole-run `.shuffle.lock` — it cannot strand the pipeline even if held
+   briefly by a concurrent promote.
 
-- `slug` — brief slug
-- `path` — `{{artifact_root}}/stack/<slug>.md`
-- `source` — the source bead id (brief-record-decision copies this into the
-  decision record's `source_bead`; the whole approve dispatch depends on it)
-- `unlock_count` — integer, drain sort key
-- `created_at` — RFC3339 promote time
-- `gate_profile` — e.g. `no_brainer` or a full-brief profile
+For `Disposition: reject` or `Disposition: blocked`:
+1. Move the item out of staging into
+   `{{artifact_root}}/.pile/.rejected/<slug>/brief.md` with a short
+   rejection record, then remove the now-empty
+   `{{artifact_root}}/.staging/<slug>/` directory.
+2. A rejection MUST NOT dead-end there — perform BOTH send-back actions
+   (unchanged from before):
+   - File a remediation bead: `.gc/scripts/escalate.sh --title
+     "[brief-shuffle] gate-rejected: <slug>" --body "<failed gates +
+     remediation guidance>" --priority 2`.
+   - Emit `gc event emit brief.gate_rejected --subject <slug>`.
 
-The `status` key is NOT written here; brief-record-decision adds it later
-(values `decided`/`archived`).
-
-For `Disposition: reject` or `Disposition: blocked`, move the brief under
-`{{artifact_root}}/.pile/.rejected/<slug>/` and do not append to the stack
-manifest. A rejection MUST NOT dead-end there (`.rejected/` has no reader) —
-perform BOTH send-back actions:
-
-1. File a remediation bead (the same mechanism brief-review-patrol uses):
-   `.gc/scripts/escalate.sh --title "[brief-shuffle] gate-rejected: <slug>"
-   --body "<failed gates + remediation guidance from the rejection record>"
-   --priority 2`. The bead IS the send-back-to-work.
-2. Emit `gc event emit brief.gate_rejected --subject <slug>` so future
-   routing can act on rejections without another shuffle edit.
-
-(Full auto re-prep routing — reprep-vs-close by rejection type, with a
-reject→reprep→reject loop guard — is judgment-bearing and tracked as a
-separate follow-up bead; do NOT improvise it here.)
-
-EMPTY-PILE ROUTE (gsp-3al3): if select-pile-item recorded `selection: none
-(pile empty)`, this step is a NO-OP — write nothing and complete immediately.
-The check below passes on a genuinely empty run (empty pile with no
-promote/reject result) while still failing a non-empty run that produced no
-disposition.
+(Full auto re-prep routing is judgment-bearing and tracked as a separate
+follow-up bead; do NOT improvise it here — unchanged from before.)
 """
 
 [steps.check]
@@ -137,17 +137,21 @@ path = ".gc/scripts/checks/brief-shuffle-result-required.sh"
 timeout = "2m"
 
 [[steps]]
-id = "release-lock"
-title = "Release the shuffler lock"
-needs = ["write-disposition"]
+id = "finalize"
+title = "Confirm staging cleared, no lock to release"
+needs = ["process-item"]
 metadata = { "gc.run_target" = "{{operator_target}}", "gc.brief.root" = "{{artifact_root}}" }
 description = """
-Release `{{artifact_root}}/.shuffle.lock`. If the selected item was promoted,
-ensure `stack/.index.jsonl` is still valid JSONL and sorted consumers can
-select by unlock count.
-
-This step runs on BOTH routes (promote/reject AND the empty-pile no-op
-route, gsp-3al3): the lock must always be released when the run ends.
+This replaces `release-lock`. There is no lock to release in the atomic-mv
+design. Confirm the item you claimed is fully cleared out of
+`.staging/`: `{{artifact_root}}/.staging/<slug>/` (the slug from
+`gc.brief.slug`, or n/a on the empty-pile route) must no longer exist. If
+the selected item was promoted, confirm `stack/.index.jsonl` is still
+valid JSONL. This step runs on every route (promote, reject, and the
+empty-pile no-op) — always confirm staging clearance so a failed
+finalize (rather than a stranded lock) is the only thing that can leave
+evidence of an incomplete run, and that evidence self-heals via the next
+run's rescue sweep.
 """
 
 [steps.check]
@@ -155,5 +159,5 @@ max_attempts = 1
 
 [steps.check.check]
 mode = "exec"
-path = ".gc/scripts/checks/brief-manifest-current.sh"
+path = ".gc/scripts/checks/brief-staging-clear.sh"
 timeout = "1m"
