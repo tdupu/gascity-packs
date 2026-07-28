@@ -45,7 +45,7 @@ user_skill_touching_override: <bool>     # as-wjv mechanical test — see [[brie
 
 The FIRST content after the frontmatter MUST be "What is being decided." A brief file violating the Decision-at-Top INVARIANT is malformed: rewrite before depositing; [[brief-prep]] Phase 4 auto-rejects it.
 
-**`## Gate Evidence` section (required in both shapes):** one explicit entry per gate of the active `assets/brief-pipeline/gates.toml` profile, keyed by `evidence_key`, each `PASS`/`FAIL`/`BLOCKED`/`N/A` with every `N/A` citing its surface check; G14 uses the literal tri-state `PASSED`/`NOT APPLICABLE`/`REQUIRED`. G9 evidence must use the `classifier_state=...` syntax required by `brief-prep`; free-form "no-brainer considered" prose is malformed and the shuffle must fail closed. The shuffle's apply-gates is fail-closed — a brief without this section is structurally guaranteed rejection (see [[brief-prep]] Phase 3 for the full spec).
+**`## Gate Evidence` section (required in both shapes):** one explicit entry per gate of the active `assets/brief-pipeline/gates.toml` profile, keyed by `evidence_key`, each `PASS`/`FAIL`/`BLOCKED`/`N/A` with every `N/A` citing its surface check; G14 uses the literal tri-state `PASSED`/`NOT APPLICABLE`/`REQUIRED`. G9 evidence must use the `classifier_state=...` syntax required by `brief-prep`; free-form "no-brainer considered" prose is malformed and the shuffle must fail closed. The shuffle's `process-item` step is fail-closed — a brief without this section is structurally guaranteed rejection (see [[brief-prep]] Phase 3 for the full spec).
 
 ## Gates (HARD — a brief file that fails any of these is not stack-eligible)
 

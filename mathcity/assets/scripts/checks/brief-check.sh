@@ -156,6 +156,18 @@ check_manifest() {
   check_jsonl "$ROOT/stack/.index.jsonl"
 }
 
+check_staging_clear() {
+  slug="$(metadata_value "gc.brief.slug")"
+  claim_result="$(metadata_value "gc.brief.claim_result")"
+  if [ "$claim_result" = "empty" ] || [ -z "$slug" ]; then
+    # Empty-pile no-op route: nothing was ever claimed, nothing to clear.
+    return 0
+  fi
+  if [ -e "$ROOT/.staging/$slug" ]; then
+    fail "staging entry not cleared: $ROOT/.staging/$slug still exists after finalize"
+  fi
+}
+
 check_stack_index_path() {
   configured="assets/brief-pipeline/paths.toml"
   [ -f "$configured" ] || fail "missing paths.toml: $configured"
@@ -388,6 +400,7 @@ case "$COMMAND" in
   pile-nonempty) check_pile_nonempty ;;
   shuffle-result) check_shuffle_result ;;
   manifest-current) check_manifest ;;
+  staging-clear) check_staging_clear ;;
   stack-index-path) check_stack_index_path ;;
   no-direct-stack-producers) check_no_direct_stack_producers ;;
   decision-record) check_decision_record ;;

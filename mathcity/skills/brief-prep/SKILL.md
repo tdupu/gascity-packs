@@ -102,7 +102,7 @@ user_skill_touching_override: <bool>     # see "Safety overrides" below
 ```
 
 **Write the `## Gate Evidence` section (REQUIRED — the shuffle rejects
-without it).** The shuffle's apply-gates step applies
+without it).** The shuffle's `process-item` step applies
 `assets/brief-pipeline/gates.toml` with `fail_closed = true`: any gate of the
 active profile that fails **or is missing** an entry under the literal
 heading `Gate Evidence` rejects the brief. Mirror the formula twin
