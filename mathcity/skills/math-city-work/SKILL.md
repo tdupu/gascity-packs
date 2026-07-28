@@ -91,6 +91,23 @@ name that Step A did not actually return.
 
 ## Sling command (replace `<formula>` with your selection above)
 
+**If `<formula>` is `build-basic-briefed`**, it runs the full
+requirements → plan → decompose factory, and each stage writes an artifact
+under `artifact_root`. Always scope it per bead — never pass the bare rig
+root, and never omit it and let it fall back to the rig root either.
+Concurrent builds on the same rig that share an artifact_root silently
+overwrite each other's `implementation-plan.md` / `requirements.md` /
+`decomposition.md` (confirmed data loss, gsp-1bmxuz):
+
+```bash
+gc sling <rig>/gc.run-operator <bead> --on build-basic-briefed \
+  --var interaction_mode=autonomous --var review_mode=agent \
+  --var drain_policy=separate --var push=false --var open_pr=false \
+  --var artifact_root=<rig-root>/.gc-builds/<bead>
+```
+
+**For every other `*-briefed` formula**, the plain form is unchanged:
+
 ```bash
 gc sling <rig>/gc.run-operator <bead> --on <formula> \
   --var interaction_mode=autonomous --var review_mode=agent \
