@@ -99,7 +99,15 @@ unblocked queue. Only dispatch from rigs where work actually exists.
 
 **Rig → working dir → artifact_root mapping:**
 
-| Rig prefix | Working dir | artifact_root |
+**⚠️ artifact_root MUST be scoped per bead, never passed as the bare rig
+root.** Concurrent `build-basic-briefed` runs on the same rig that share an
+artifact_root silently overwrite each other's `implementation-plan.md` /
+`requirements.md` / `decomposition.md` (confirmed data loss, gsp-1bmxuz —
+gsp-ewlwh's plan was overwritten by gsp-4qe2a's design-author because both
+resolved to the same unsuffixed path). Always append `/.gc-builds/<bead-id>`
+to the rig root below before passing `--var artifact_root=...`.
+
+| Rig prefix | Working dir | Rig root |
 |---|---|---|
 | `gsp-` | `~/gt/gascity-packs` | `/Users/tdupuy/gt/gascity-packs` |
 | `he-` | `~/gt/hecke` | `/Users/tdupuy/gt/hecke` |
@@ -107,6 +115,9 @@ unblocked queue. Only dispatch from rigs where work actually exists.
 | `jac-` | `~/gt/jacobi` | `/Users/tdupuy/gt/jacobi` |
 | `lm-` | `~/gt/lmfdb` | `/Users/tdupuy/gt/lmfdb` |
 | `mca-` | `~/gt/magma_clifford_algebras` | `/Users/tdupuy/gt/magma_clifford_algebras` |
+
+For bead `<bead-id>` on rig root `<rig-root>`, the scoped value is:
+`<rig-root>/.gc-builds/<bead-id>`
 
 Detect rig from the bead ID prefix (first 2–4 chars before the first `-`).
 
@@ -140,7 +151,7 @@ gc sling <rig>/gc.run-operator <bead-id> --on build-basic-briefed \
   --var drain_policy=separate \
   --var push=false \
   --var open_pr=false \
-  --var artifact_root=<rig-artifact-root>
+  --var artifact_root=<rig-root>/.gc-builds/<bead-id>
 ```
 
 Dispatch in parallel batches (multiple `gc sling` calls at once) — the
