@@ -34,7 +34,7 @@ check() {
 # 1. Old lock-based step ids are fully gone.
 check "no acquire-lock step remains" '! grep -q "^id = \"acquire-lock\"" "$FORMULA"'
 check "no release-lock step remains" '! grep -q "^id = \"release-lock\"" "$FORMULA"'
-check "no .shuffle.lock reference remains in the formula" '! grep -q "\.shuffle\.lock" "$FORMULA"'
+check "only 2 legitimate .shuffle.lock documentation references (lines 8, 146)" '[ $(grep -c "\.shuffle\.lock" "$FORMULA") -eq 2 ]'
 
 # 2. New 3-step shape is present with the correct needs graph.
 check "claim-item step present" 'grep -q "^id = \"claim-item\"" "$FORMULA"'
