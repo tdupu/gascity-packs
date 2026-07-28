@@ -62,8 +62,12 @@ the old lock-file acquire step. No lock file is used or checked.
 3. EMPTY-PILE ROUTE (gsp-3al3, unchanged): select the oldest non-hidden
    `.md` file directly under `{{artifact_root}}/.pile` (not `.pile/.rejected`,
    not `.pile/.no-brainer`). If none exists, record `selection: none (pile
-   empty)` in this step's notes, set step outcome metadata
-   `gc.brief.claim_result=empty`, and complete this step normally — the
+   empty)` in this step's notes and persist the step outcome metadata with
+   the same kind of explicit command the claimed route uses below:
+   `gc bd update "<this-step-bead-id>" --set-metadata
+   "gc.brief.claim_result=empty"`. Do not merely note the intended value —
+   downstream steps read this key back via bead metadata, not from notes,
+   so it must actually be set. Then complete this step normally — the
    downstream steps then pass through as clean no-ops.
 4. If a file was selected, claim it with a single atomic move:
    `mv -f {{artifact_root}}/.pile/<slug>.md
@@ -120,7 +124,11 @@ root-bead-id + step-ref lookup other multi-step gascity formulas use
 
 EMPTY-PILE ROUTE (gsp-3al3, unchanged): if `gc.brief.claim_result=empty`,
 this step is a NO-OP — do not touch gates, do not reject or promote
-anything; note the pass-through and complete immediately.
+anything; note the pass-through and complete immediately. If
+`gc.brief.claim_result` cannot be resolved to either `claimed` or `empty`
+(e.g. the claim-item step bead can't be found by the lookup above, or the
+field comes back blank), treat that the same as the empty-pile route: do
+not guess or invent work, just no-op and complete immediately.
 
 Otherwise, read `gc.brief.slug` and `gc.brief.staging_path` from that
 same claim-item step bead's metadata (already fetched above — no second
@@ -189,12 +197,17 @@ claimed is fully cleared out of `.staging/`:
 n/a on the empty-pile route where `gc.brief.claim_result=empty`) must no
 longer exist — check that ONE specific claimed-slug directory by exact
 path, never glob `.staging/*` (other sessions may have their own
-concurrent entries there at the same time). If the selected item was
-promoted, confirm `stack/.index.jsonl` is still valid JSONL. This step
-runs on every route (promote, reject, and the empty-pile no-op) — always
-confirm staging clearance so a failed finalize (rather than a stranded
-lock) is the only thing that can leave evidence of an incomplete run, and
-that evidence self-heals via the next run's rescue sweep.
+concurrent entries there at the same time). If `gc.brief.claim_result`
+cannot be resolved to either `claimed` or `empty` (e.g. the claim-item
+step bead can't be found, or the field is blank), treat it as the
+empty-pile route: there is no specific slug to check, so confirm nothing
+and complete as a no-op rather than guessing at a slug or inventing work.
+If the selected item was promoted, confirm `stack/.index.jsonl` is still
+valid JSONL. This step runs on every route (promote, reject, and the
+empty-pile no-op) — always confirm staging clearance so a failed finalize
+(rather than a stranded lock) is the only thing that can leave evidence of
+an incomplete run, and that evidence self-heals via the next run's rescue
+sweep.
 """
 
 [steps.check]
