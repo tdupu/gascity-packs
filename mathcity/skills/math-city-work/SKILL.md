@@ -97,7 +97,12 @@ under `artifact_root`. Always scope it per bead — never pass the bare rig
 root, and never omit it and let it fall back to the rig root either.
 Concurrent builds on the same rig that share an artifact_root silently
 overwrite each other's `implementation-plan.md` / `requirements.md` /
-`decomposition.md` (confirmed data loss, gsp-1bmxuz):
+`decomposition.md` (confirmed data loss, gsp-1bmxuz). Note the residual:
+scoping per bead-id does not protect against re-dispatching the SAME bead
+while a prior run's artifacts are still present (a manual retry, or two
+different dispatchers picking the same bead) — that still needs the
+verify-assignee / don't-re-dispatch-already-running-beads guard to avoid
+overwriting a prior run's artifacts in place:
 
 ```bash
 gc sling <rig>/gc.run-operator <bead> --on build-basic-briefed \
