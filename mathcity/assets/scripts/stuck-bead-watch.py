@@ -41,13 +41,20 @@ _RELATE_ATTEMPTS = 3
 # P6.1 (fail loud, never silent/frozen): every subprocess call must be
 # time-bounded, or a hung `gc`/`bd` invocation freezes this 90s-cooldown
 # order indefinitely -- turning the CT1.8 safety net into its own stuck
-# patrol. Observed gc/bd latency in this city is sub-2s even under Dolt
-# degradation (mail health advisories this session: 1-6s); 15s gives ~7x
-# headroom for a genuinely slow-but-alive call while staying well inside
-# the order's own 60s `timeout` budget across the up-to-6 sequential calls
-# a single run can make (preflight + 3x gc bd list + gc session list +
-# bd create/dep relate).
-SUBPROCESS_TIMEOUT_SECONDS = 15
+# patrol. Originally set to 15s off mail-reported Dolt health advisories
+# (1-6s latency this session). REVISED 2026-07-28 (QUIMBY 33, gt-jzb8n
+# live-verification pass): directly timed `gc dolt health` at 14.44s/
+# 14.92s/15.99s across 3 consecutive real runs -- the 15s value was
+# already at/over that observed latency, causing the preflight call
+# itself to spuriously time out under real (not even degraded-per-the-
+# health-advisory-threshold) conditions. 30s keeps comfortable headroom
+# above the highest directly-observed run while staying well inside the
+# order's own 60s `timeout` budget for the single preflight call (the
+# other up-to-5 sequential calls a run can make -- 3x gc bd list + gc
+# session list + bd create/dep relate -- are not all gated behind this
+# same 30s ceiling simultaneously in the common case: preflight fails
+# fast on to `fail()` before those run at all if Dolt is genuinely down).
+SUBPROCESS_TIMEOUT_SECONDS = 30
 
 
 def fail(message: str) -> None:
