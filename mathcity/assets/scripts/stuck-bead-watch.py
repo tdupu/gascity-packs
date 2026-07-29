@@ -22,6 +22,22 @@ DEFAULT_GRACE_WINDOWS = {
 }
 DEFAULT_MIN_AGE_SECONDS = 3 * 60
 
+# CT1.8 (mathcity/subdomains/dev/POLICY-city.md): routed work is anything
+# carrying ANY of these metadata keys, including formula/order-internal
+# step beads -- not just gc.routed_to.
+ROUTED_METADATA_KEYS = ("gc.routed_to", "gc.run_target", "gc.execution_routed_to")
+
+# lost-bead-schema.toml's dispatch_sources enum has no entry for a raw
+# gc.routed_to/run_target/execution_routed_to VALUE (pool/worker names like
+# "mathcity.brief-operator" aren't in it) -- every bead this detector finds
+# is, by construction, formula/order-routed work, so "formula" is the
+# correct schema-valid classification. The actual worker/pool target is
+# preserved separately under [stuck_bead_watch], outside the
+# schema-validated root_cause block.
+SUSPECTED_SOURCE = "formula"
+
+_RELATE_ATTEMPTS = 3
+
 
 def fail(message: str) -> None:
     print(f"stuck-bead-watch: {message}", file=sys.stderr)
@@ -52,7 +68,7 @@ def find_stuck_candidates(
         if bead.get("status") not in ("open", "in_progress"):
             continue
         metadata = bead.get("metadata") or {}
-        if not metadata.get("gc.routed_to"):
+        if not any(metadata.get(key) for key in ROUTED_METADATA_KEYS):
             continue
         created_at = bead.get("created_at")
         if not created_at:
@@ -86,6 +102,25 @@ def clear_cache_entry(cache_dir: Path, bead_id: str) -> None:
         path.unlink()
 
 
+def _escalation_marker_path(cache_dir: Path, bead_id: str, fingerprint: str) -> Path:
+    return cache_dir / "escalated" / f"{bead_id}__{fingerprint}.json"
+
+
+def read_escalation_marker(cache_dir: Path, bead_id: str, fingerprint: str) -> dict | None:
+    path = _escalation_marker_path(cache_dir, bead_id, fingerprint)
+    if not path.exists():
+        return None
+    return json.loads(path.read_text())
+
+
+def write_escalation_marker(
+    cache_dir: Path, bead_id: str, fingerprint: str, event_id: str, linked: bool
+) -> None:
+    path = _escalation_marker_path(cache_dir, bead_id, fingerprint)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"event_id": event_id, "linked": linked}))
+
+
 def _default_bd_create_event(title: str, description: str) -> str:
     result = subprocess.run(
         ["bd", "create", "-t", "event", "--title", title, "--description", description, "--silent"],
@@ -109,6 +144,10 @@ def classify_and_escalate(
     bd_dep_relate=_default_bd_dep_relate,
 ) -> str:
     bead_id = bead["id"]
+    metadata = bead.get("metadata") or {}
+    routed_key = next((k for k in ROUTED_METADATA_KEYS if metadata.get(k)), ROUTED_METADATA_KEYS[0])
+    routed_target = metadata.get(routed_key, "unknown")
+
     assignee = bead.get("assignee")
     if assignee:
         lost_class = "immediate_strand"
@@ -120,6 +159,16 @@ def classify_and_escalate(
         evidence = ["post-sling verify-assignee never became non-empty within the grace window"]
         fingerprint = "empty_assignee_after_verified_sling"
         reason = "ROUTED_UNCLAIMED"
+
+    # Idempotency (finding #3): a bead can re-enter the waiting room on a
+    # later tick under the SAME underlying condition (same fingerprint).
+    # Don't emit a second event for it -- reuse whatever this exact
+    # (bead_id, fingerprint) pair already produced, whether or not the
+    # link succeeded last time.
+    marker = read_escalation_marker(cache_dir, bead_id, fingerprint)
+    if marker and marker.get("linked"):
+        clear_cache_entry(cache_dir, bead_id)
+        return marker["event_id"]
 
     toml_body = f'''schema = "lost-bead-classification.v1"
 bead_id = "{bead_id}"
@@ -137,23 +186,49 @@ reversible = true
 
 [root_cause]
 class = "no_worker_claimed"
-suspected_source = "{(bead.get('metadata') or {}).get('gc.routed_to', 'unknown')}"
+suspected_source = "{SUSPECTED_SOURCE}"
 repair_candidate = true
 fingerprint = "{fingerprint}"
 
 [stuck_bead_watch]
 reason = "{reason}"
+routed_metadata_key = "{routed_key}"
+routed_target = "{routed_target}"
 '''
 
     classification_root.mkdir(parents=True, exist_ok=True)
     (classification_root / f"{bead_id}.toml").write_text(toml_body)
 
-    event_id = bd_create_event(
-        f"stuck-bead-watch: {bead_id} stuck past grace window",
-        toml_body,
-    )
-    bd_dep_relate(event_id, bead_id)
-    clear_cache_entry(cache_dir, bead_id)
+    if marker:
+        # A prior run already created the event but couldn't link it
+        # (bd dep relate failed after exhausting retries). Reuse that
+        # event -- do NOT create a second one -- and just retry the link.
+        event_id = marker["event_id"]
+    else:
+        event_id = bd_create_event(
+            f"stuck-bead-watch: {bead_id} stuck past grace window",
+            toml_body,
+        )
+
+    linked = False
+    for _ in range(_RELATE_ATTEMPTS):
+        try:
+            bd_dep_relate(event_id, bead_id)
+            linked = True
+            break
+        except Exception:
+            continue
+
+    write_escalation_marker(cache_dir, bead_id, fingerprint, event_id, linked)
+    if linked:
+        clear_cache_entry(cache_dir, bead_id)
+    else:
+        print(
+            f"stuck-bead-watch: WARNING event {event_id} for {bead_id} was created "
+            "but bd dep relate did not succeed after retries -- will retry the "
+            "link (not create a duplicate event) on the next run",
+            file=sys.stderr,
+        )
     return event_id
 
 
@@ -161,15 +236,21 @@ def _gc_bd_list_routed() -> list[dict]:
     # --has-metadata-key is a server-side filter AND the only way to get
     # assignee/metadata included in the response — the default `gc bd list
     # --json` (no metadata filter) omits both fields entirely (verified
-    # live 2026-07-28). Filtering server-side on gc.routed_to also avoids
-    # pulling every open bead city-wide on every 90s tick.
-    result = subprocess.run(
-        ["gc", "bd", "list", "--all", "--has-metadata-key", "gc.routed_to", "--json", "--limit=0"],
-        capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        fail(f"gc bd list failed: {result.stderr.strip()}")
-    return json.loads(result.stdout)
+    # live 2026-07-28). Filtering server-side on each of the 3 CT1.8 routed
+    # keys also avoids pulling every open bead city-wide on every 90s tick.
+    # --has-metadata-key takes one key at a time, so query once per key and
+    # merge by id (a bead carrying more than one routed key is deduped).
+    merged: dict[str, dict] = {}
+    for key in ROUTED_METADATA_KEYS:
+        result = subprocess.run(
+            ["gc", "bd", "list", "--all", "--has-metadata-key", key, "--json", "--limit=0"],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            fail(f"gc bd list failed for --has-metadata-key {key}: {result.stderr.strip()}")
+        for bead in json.loads(result.stdout):
+            merged[bead["id"]] = bead
+    return list(merged.values())
 
 
 def _gc_session_list_active() -> list[dict]:
