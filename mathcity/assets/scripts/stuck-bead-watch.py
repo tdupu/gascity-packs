@@ -38,10 +38,34 @@ SUSPECTED_SOURCE = "formula"
 
 _RELATE_ATTEMPTS = 3
 
+# P6.1 (fail loud, never silent/frozen): every subprocess call must be
+# time-bounded, or a hung `gc`/`bd` invocation freezes this 90s-cooldown
+# order indefinitely -- turning the CT1.8 safety net into its own stuck
+# patrol. Observed gc/bd latency in this city is sub-2s even under Dolt
+# degradation (mail health advisories this session: 1-6s); 15s gives ~7x
+# headroom for a genuinely slow-but-alive call while staying well inside
+# the order's own 60s `timeout` budget across the up-to-6 sequential calls
+# a single run can make (preflight + 3x gc bd list + gc session list +
+# bd create/dep relate).
+SUBPROCESS_TIMEOUT_SECONDS = 15
+
 
 def fail(message: str) -> None:
     print(f"stuck-bead-watch: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def _run(cmd: list[str], **kwargs):
+    """subprocess.run wrapper that fails loud (P6.1) on a hang instead of
+    letting a TimeoutExpired propagate as an unhandled traceback."""
+    try:
+        return subprocess.run(cmd, timeout=SUBPROCESS_TIMEOUT_SECONDS, **kwargs)
+    except subprocess.TimeoutExpired:
+        fail(
+            f"command timed out after {SUBPROCESS_TIMEOUT_SECONDS}s: {' '.join(cmd)}\n"
+            "Check `gc dolt health` -- a hung gc/bd call usually means Dolt is "
+            "degraded or unreachable."
+        )
 
 
 def _parse_ts(value: str) -> datetime:
@@ -122,7 +146,7 @@ def write_escalation_marker(
 
 
 def _default_bd_create_event(title: str, description: str) -> str:
-    result = subprocess.run(
+    result = _run(
         ["bd", "create", "-t", "event", "--title", title, "--description", description, "--silent"],
         capture_output=True, text=True, check=True,
     )
@@ -132,7 +156,7 @@ def _default_bd_create_event(title: str, description: str) -> str:
 def _default_bd_dep_relate(event_id: str, bead_id: str) -> None:
     # P1.19 — "append a new linked bead": bidirectional relates_to, not just a
     # prose bead_id reference inside the TOML body.
-    subprocess.run(["bd", "dep", "relate", event_id, bead_id], capture_output=True, text=True, check=True)
+    _run(["bd", "dep", "relate", event_id, bead_id], capture_output=True, text=True, check=True)
 
 
 def classify_and_escalate(
@@ -242,7 +266,7 @@ def _gc_bd_list_routed() -> list[dict]:
     # merge by id (a bead carrying more than one routed key is deduped).
     merged: dict[str, dict] = {}
     for key in ROUTED_METADATA_KEYS:
-        result = subprocess.run(
+        result = _run(
             ["gc", "bd", "list", "--all", "--has-metadata-key", key, "--json", "--limit=0"],
             capture_output=True, text=True,
         )
@@ -254,7 +278,7 @@ def _gc_bd_list_routed() -> list[dict]:
 
 
 def _gc_session_list_active() -> list[dict]:
-    result = subprocess.run(
+    result = _run(
         ["gc", "session", "list", "--state", "active", "--json"],
         capture_output=True, text=True,
     )
@@ -265,7 +289,7 @@ def _gc_session_list_active() -> list[dict]:
 
 
 def _preflight() -> None:
-    result = subprocess.run(["gc", "dolt", "health"], capture_output=True, text=True)
+    result = _run(["gc", "dolt", "health"], capture_output=True, text=True)
     if result.returncode != 0:
         print(
             "I'm sorry, I can't do that — Dolt is unreachable.\n"

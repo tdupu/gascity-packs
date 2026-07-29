@@ -344,3 +344,52 @@ def test_watchdog_output_passes_the_real_lost_bead_filter_validator():
         classifications, provenance = lbf.load_records(classification_root)
         assert len(classifications) == 1
         assert classifications[0]["bead_id"] == "gt-g1"
+
+
+# --- P6.1 fail-loud on subprocess hang (Codex review, 2026-07-28 17:37) ---
+# A hung `gc`/`bd` call must not freeze this 90s-cooldown order indefinitely
+# -- it must fail loud with SystemExit(1) and an actionable message, never
+# an unhandled TimeoutExpired traceback and never a silent/partial result.
+
+def test_gc_session_list_active_fails_loud_on_timeout(monkeypatch):
+    import subprocess as _subprocess
+
+    def _raise_timeout(cmd, **kwargs):
+        raise _subprocess.TimeoutExpired(cmd=cmd, timeout=kwargs.get("timeout"))
+
+    monkeypatch.setattr(sbw.subprocess, "run", _raise_timeout)
+    try:
+        sbw._gc_session_list_active()
+        assert False, "expected SystemExit"
+    except SystemExit as exc:
+        assert exc.code == 1
+
+
+def test_gc_bd_list_routed_fails_loud_on_timeout(monkeypatch):
+    import subprocess as _subprocess
+
+    def _raise_timeout(cmd, **kwargs):
+        raise _subprocess.TimeoutExpired(cmd=cmd, timeout=kwargs.get("timeout"))
+
+    monkeypatch.setattr(sbw.subprocess, "run", _raise_timeout)
+    try:
+        sbw._gc_bd_list_routed()
+        assert False, "expected SystemExit"
+    except SystemExit as exc:
+        assert exc.code == 1
+
+
+def test_run_wrapper_passes_configured_timeout_to_subprocess(monkeypatch):
+    seen = {}
+
+    def _fake_run(cmd, **kwargs):
+        seen["timeout"] = kwargs.get("timeout")
+        return _subprocess_completed(cmd)
+
+    def _subprocess_completed(cmd):
+        import subprocess as _subprocess
+        return _subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(sbw.subprocess, "run", _fake_run)
+    sbw._run(["true"])
+    assert seen["timeout"] == sbw.SUBPROCESS_TIMEOUT_SECONDS
