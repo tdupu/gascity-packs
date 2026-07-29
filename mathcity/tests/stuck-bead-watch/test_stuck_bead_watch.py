@@ -393,3 +393,42 @@ def test_run_wrapper_passes_configured_timeout_to_subprocess(monkeypatch):
     monkeypatch.setattr(sbw.subprocess, "run", _fake_run)
     sbw._run(["true"])
     assert seen["timeout"] == sbw.SUBPROCESS_TIMEOUT_SECONDS
+
+
+# --- gt-jzb8n regression guard: classification_root must resolve to the ---
+# --- default rollup input path lost-bead-classification-rollup.toml     ---
+# --- reads from, both at the script's own argparse default and in the   ---
+# --- order wrapper's exec command -- a live-run test against the real   ---
+# --- gt-vxhen bead (2026-07-28, QUIMBY 33) proved write-path/event/link ---
+# --- logic already correct; this guard exists so a future edit to      ---
+# --- either default can't silently drift them apart again.             ---
+_DEFAULT_CLASSIFICATION_ROOT = ".beads/lost-bead-classifications"
+
+
+def test_argparse_default_classification_root_matches_rollup_formula_default():
+    parser_defaults = {}
+    import argparse as _argparse
+    orig_init = _argparse.ArgumentParser.add_argument
+
+    def _capture(self, *args, **kwargs):
+        if args and args[0] == "--classification-root":
+            parser_defaults["value"] = kwargs.get("default")
+        return orig_init(self, *args, **kwargs)
+
+    _argparse.ArgumentParser.add_argument = _capture
+    try:
+        sbw.main(["--help"])
+    except SystemExit:
+        pass
+    finally:
+        _argparse.ArgumentParser.add_argument = orig_init
+
+    assert str(parser_defaults["value"]) == _DEFAULT_CLASSIFICATION_ROOT
+
+
+def test_order_toml_exec_command_passes_matching_classification_root():
+    order_path = Path(__file__).resolve().parents[2] / "orders" / "stuck-bead-watch.toml"
+    exec_line = [
+        line for line in order_path.read_text().splitlines() if line.strip().startswith("exec")
+    ][0]
+    assert f"--classification-root {_DEFAULT_CLASSIFICATION_ROOT}" in exec_line
