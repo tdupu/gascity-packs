@@ -56,5 +56,5 @@ Create the canonical brief as `bd create --type decision`, link it to every cont
 The brief asks whether to promote the repeated hand label into a downstream lost-bead filter rule.
 Include the bead examples, fingerprint, proposed rule text, replay command, false-positive risk, and exact non-goal.
 If `{{output_path}}` is empty, record `no downstream filter candidate at threshold` and exit cleanly.
-This step must not run `bd close`, `bd update`, `bd defer`, `bd supersede`, or `gc sling`.
+After creating every decision bead, verify each related edge with `bd dep list "$BRIEF_ID" --readonly` and verify the markdown printout plus manifest cache row exist under `{{artifact_root}}/.pile/`. Then close this step with a reason naming the manifest path and decision bead IDs. If any verification fails, leave this step open and report the failing command/output; do not close the workflow root or finalizer yourself.
 """

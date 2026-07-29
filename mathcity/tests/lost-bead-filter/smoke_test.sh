@@ -158,6 +158,16 @@ fi
 expect_ok "downstream formula parses" "$PYTHON_BIN" -c "import tomllib; tomllib.load(open('$ROOT/formulas/lost-bead-classification-rollup.toml','rb'))"
 expect_ok "upstream formula parses" "$PYTHON_BIN" -c "import tomllib; tomllib.load(open('$ROOT/formulas/lost-bead-upstream-repair-rollup.toml','rb'))"
 
+if grep -F 'This step must not run `bd close`' "$ROOT/formulas/lost-bead-classification-rollup.toml" >/dev/null 2>&1; then
+  record "downstream file-brief has evidence-first self-close contract" fail "file-brief still forbids closing its own step"
+elif grep -F "close this step" "$ROOT/formulas/lost-bead-classification-rollup.toml" >/dev/null 2>&1 \
+  && grep -F "bd dep list" "$ROOT/formulas/lost-bead-classification-rollup.toml" >/dev/null 2>&1 \
+  && grep -F "manifest cache row" "$ROOT/formulas/lost-bead-classification-rollup.toml" >/dev/null 2>&1; then
+  record "downstream file-brief has evidence-first self-close contract" ok
+else
+  record "downstream file-brief has evidence-first self-close contract" fail "missing close instruction, dependency verification, or manifest verification"
+fi
+
 for path in \
   "$ROOT/skills/bead-check/SKILL.md" \
   "$ROOT/subdomains/dev/skills/strand-sweep/SKILL.md" \
