@@ -90,9 +90,13 @@ authoritative pass/fail text):
   idling a slot while eligible work queues)? Is every sling either running or
   a durable queued bead — no dropped/forgotten work (CT1.2)? Backpressure
   surfaced not silently accumulated (CT1.3)? No starvation (CT1.4)? Agents run
-  hooked work without a nudge (CT1.5); patrols back off when idle (CT1.7).
+  hooked work without a nudge (CT1.5); patrols back off when idle (CT1.7);
+  routed work is conserved until progress, intentional disposition, or a
+  stuck/lost signal (CT1.8).
   *Live check:* compare running-molecule count per rig against configured
-  N(R); scan for queued beads with zero consumer sessions.
+  N(R); scan for queued beads with zero consumer sessions; scan routed
+  open/in-progress beads for no live claimant and no linked stuck/lost
+  signal past their bound.
 - **CT2 — Idempotent & convergent dispatch.** Pre-sling assignee check
   (CT2.1 / P1.21); near-duplicate intake merged with a visible "MERGED with
   <id>" (CT2.2); supersession converges to exactly one live plan (CT2.3).
@@ -111,7 +115,9 @@ authoritative pass/fail text):
   interrupts leave a resumption brief + partial work + released claim (CT6.2).
 - **CT7 — Artifacts & briefs.** Every dispatch returns artifact + judging
   brief with criteria fixed at/before dispatch (CT7.1); producer ≠ judge
-  (CT7.2); artifacts carry provenance (CT7.3).
+  (CT7.2); artifacts carry provenance (CT7.3); E2E claims declare launch
+  provenance, natural-claim bounds, expected metadata, non-goals, and strict
+  PASS/PARTIAL/BLOCKED-SUBSTRATE/INVALID-SPEC/FAIL result labels (CT7.4).
 - **CT8 — Resource economy.** Token-economy choices stated (CT8.1); high-tier
   plans/reviews, low-tier mechanical execution, tier recorded (CT8.2);
   budgets metered, overruns halt loudly (CT8.3).
@@ -129,9 +135,9 @@ authoritative pass/fail text):
   stop-and-ask (CT12.2); boundary violations fail loud, never silent-succeed
   (CT12.3); destructive ops verify the target against the boundary (CT12.4).
 
-Silent-failure paths (CT1.2, CT1.3, CT5.3, CT8.3, CT10.2, CT11.1, CT12.3)
-inherit P6.1 (fail loud) — a silently dropped/hidden state is a hard finding
-even under a Draft policy.
+Silent-failure paths (CT1.2, CT1.3, CT1.8, CT5.3, CT8.3, CT10.2, CT11.1,
+CT12.3) inherit P6.1 (fail loud) — a silently dropped/hidden state is a hard
+finding even under a Draft policy.
 
 ## Step 3 — gitleaks (always blocking)
 

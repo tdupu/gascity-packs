@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Status | **Draft** — compiled 2026-07-23 from Taylor's city-behavior directives; rules marked **PROPOSED** are Claude suggestions not yet adopted and require a grilling pass |
-| Date | 2026-07-23 |
+| Date | 2026-07-28 |
 | Decided | Taylor Dupuy (directives, 2026-07-23 session); PROPOSED rules pending |
 | Applies to | The running gt city instance: dispatch, scheduling, molecules, formulas, and every rig the city manages |
 | Rule prefix | **CT** (City Operations) — reserved in [rule-prefix-registry.md](../../docs/rule-prefix-registry.md); distinct from the Computing domain's `C` prefix |
@@ -151,6 +151,19 @@ document from `C<n>.<m>` to `CT<n>.<m>`. IDs are now safe to cite elsewhere.
   grows on repeated empty passes and resets to immediate on a mutating
   event. Fail: a patrol polling a fixed short interval indefinitely
   regardless of load, burning cycles/tokens on empty checks → **revise**.
+
+- **CT1.8 Routed work is conserved until it progresses or is surfaced as
+  stuck.** Every bead routed for execution — including formula/order-internal
+  step beads carrying `gc.routed_to`, `gc.run_target`, or
+  `gc.execution_routed_to` — must reach one of three observable states within
+  a bounded time: naturally claimed and progressing; deliberately closed,
+  deferred, or blocked with evidence; or surfaced as a stuck/lost-bead signal
+  linked to the original bead. Internal formula steps are not noise for this
+  rule. Pass: every routed open/in-progress bead has a live claimant,
+  intentional non-runnable disposition, or linked stuck/lost classification
+  event within the configured bound. Fail: a routed bead remains open or
+  in-progress with no live claimant and no stuck/lost signal past the bound
+  → **fail**.
 
 ## Pillar CT2 — Idempotent & convergent dispatch
 
@@ -355,6 +368,23 @@ formula, through the front door.*
   what inputs". Fail: an artifact whose origin cannot be reconstructed →
   **revise**.
 
+- **CT7.4 E2E claims require launch provenance and strict result labels.**
+  Before an end-to-end test is launched, the test record declares its launch
+  surface (`/math-city-work`, direct `gc sling --formula`, recurring order,
+  manual skill, or other), exact command and variables, expected root
+  metadata (`gc.formula_name`, `gc.routed_to`, `gc.run_target`,
+  `gc.root_bead_id`), expected first runnable step and target pool, natural
+  claim bound, and what the run proves and does not prove. Results use only:
+  `PASS` (declared path used, metadata matched, natural claim within bound,
+  expected output), `PARTIAL` (component logic passed but the declared E2E
+  path did not naturally complete), `BLOCKED-SUBSTRATE` (Dolt, supervisor,
+  dispatcher, capacity, or similar substrate blocked the run), `INVALID-SPEC`
+  (missing/wrong launch provenance or observed launch differed), or `FAIL`
+  (declared path ran naturally and produced wrong behavior). Pass: every E2E
+  claim carries the predeclared contract and one exact result label. Fail:
+  an E2E claim is made from manual force-claims, missing provenance, or
+  softer vocabulary such as "basically works" → **revise**.
+
 ## Pillar CT8 — Resource economy
 
 *Tokens are the city's fuel; spend them where judgment lives.*
@@ -553,6 +583,8 @@ ground, not a restatement of an existing rule under different vocabulary.
   queues (CT1.1).
 - No sling is ever lost — queued durably or running, nothing in between
   (CT1.2).
+- No routed bead, including internal formula/order steps, remains open with
+  no live claimant and no stuck/lost signal past its bound (CT1.8).
 - No duplicate compute from duplicate dispatch — pre-sling check, merge at
   intake, converge on supersession (CT2.1–CT2.3 / P1.21).
 - No multi-step work without a PERT decomposition under an epic (CT3.1–CT3.2).
@@ -563,6 +595,9 @@ ground, not a restatement of an existing rule under different vocabulary.
 - No interruption that loses completed steps; no abandonment without a
   resumption brief (CT6.1–CT6.2).
 - No work closed without artifact + brief + verdict (CT7.1).
+- No E2E claim without a predeclared launch surface, natural-claim bound,
+  expected metadata, and strict PASS/PARTIAL/BLOCKED-SUBSTRATE/INVALID-SPEC/
+  FAIL result label (CT7.4).
 - No high-tier tokens on mechanical steps; no low-tier planning; tier
   recorded (CT8.1–CT8.2).
 - No plan executes without an adversarial, non-author review (CT9.1); no
@@ -579,7 +614,9 @@ ground, not a restatement of an existing rule under different vocabulary.
 ## Verdict vocabulary
 
 Reuses the standard vocabulary (approve / revise / reject / defer) exactly
-as defined in [POLICY.md](./POLICY.md) — no parallel vocabulary.
+as defined in [POLICY.md](./POLICY.md) for plan, artifact, and policy
+verdicts — no parallel verdict vocabulary. CT7.4's E2E result labels are
+test-outcome labels, not artifact or review verdicts.
 
 ## Open questions (for the grilling pass)
 
@@ -651,6 +688,9 @@ as defined in [POLICY.md](./POLICY.md) — no parallel vocabulary.
   reliability-as-a-dial (already reflected in CT9.2)
 
 ## Change log
+
+### 2026-07-28 — CT1.8 and CT7.4 added: routed work conservation and E2E launch provenance
+Added a runtime conservation invariant for routed beads, including formula/order-internal steps, and required E2E tests to declare launch provenance, natural-claim bounds, and strict result labels before claims are made. Triggered by gt-608un/gt-v0nja direct formula E2E roots leaving gt-gon21/gt-q103k open and unclaimed without an automatic stuck/lost signal.
 
 ### 2026-07-23 — Substrate citations for 4 rules (Option B)
 Grounded four rules in the real gc substrate field names rather than
