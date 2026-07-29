@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+# mathcity/assets/scripts/stuck-bead-watch.py
+"""Detect routed beads that never made progress; escalate past a
+priority-scaled grace window into the existing lost-bead-classification
+pipeline. Pure-Python, stdlib only — no LLM/session cost per tick.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+DEFAULT_GRACE_WINDOWS = {
+    0: 5 * 60,
+    1: 10 * 60,
+    2: 20 * 60,
+    3: 45 * 60,
+    4: 45 * 60,
+}
+DEFAULT_MIN_AGE_SECONDS = 3 * 60
+
+
+def fail(message: str) -> None:
+    print(f"stuck-bead-watch: {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+def _parse_ts(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def grace_window_seconds(priority: int, windows: dict[int, int]) -> int:
+    return windows.get(priority, windows.get(4, 45 * 60))
+
+
+def find_stuck_candidates(
+    beads: list[dict],
+    sessions: list[dict],
+    now: datetime,
+    min_age_seconds: int,
+) -> list[dict]:
+    live_session_names = {
+        s.get("session_name") or s.get("name")
+        for s in sessions
+        if s.get("state") == "active"
+    }
+    candidates = []
+    for bead in beads:
+        if bead.get("status") not in ("open", "in_progress"):
+            continue
+        metadata = bead.get("metadata") or {}
+        if not metadata.get("gc.routed_to"):
+            continue
+        created_at = bead.get("created_at")
+        if not created_at:
+            continue
+        age_seconds = (now - _parse_ts(created_at)).total_seconds()
+        if age_seconds < min_age_seconds:
+            continue
+        assignee = bead.get("assignee")
+        if assignee and assignee in live_session_names:
+            continue
+        candidates.append(bead)
+    return candidates
+
+
+def read_cache_entry(cache_dir: Path, bead_id: str) -> dict | None:
+    path = cache_dir / f"{bead_id}.json"
+    if not path.exists():
+        return None
+    return json.loads(path.read_text())
+
+
+def write_cache_entry(cache_dir: Path, bead_id: str, first_seen_stuck: str) -> None:
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    path = cache_dir / f"{bead_id}.json"
+    path.write_text(json.dumps({"first_seen_stuck": first_seen_stuck}))
+
+
+def clear_cache_entry(cache_dir: Path, bead_id: str) -> None:
+    path = cache_dir / f"{bead_id}.json"
+    if path.exists():
+        path.unlink()
+
+
+def _default_bd_create_event(title: str, description: str) -> str:
+    result = subprocess.run(
+        ["bd", "create", "-t", "event", "--title", title, "--description", description, "--silent"],
+        capture_output=True, text=True, check=True,
+    )
+    return result.stdout.strip()
+
+
+def _default_bd_dep_relate(event_id: str, bead_id: str) -> None:
+    # P1.19 — "append a new linked bead": bidirectional relates_to, not just a
+    # prose bead_id reference inside the TOML body.
+    subprocess.run(["bd", "dep", "relate", event_id, bead_id], capture_output=True, text=True, check=True)
+
+
+def classify_and_escalate(
+    bead: dict,
+    cache_dir: Path,
+    classification_root: Path,
+    observed_at: str,
+    bd_create_event=_default_bd_create_event,
+    bd_dep_relate=_default_bd_dep_relate,
+) -> str:
+    bead_id = bead["id"]
+    assignee = bead.get("assignee")
+    if assignee:
+        lost_class = "immediate_strand"
+        evidence = [f"assignee '{assignee}' has no matching active session at escalation time"]
+        fingerprint = "orphaned_claim_dead_session"
+        reason = "ASSIGNEE_DEAD"
+    else:
+        lost_class = "immediate_strand"
+        evidence = ["post-sling verify-assignee never became non-empty within the grace window"]
+        fingerprint = "empty_assignee_after_verified_sling"
+        reason = "ROUTED_UNCLAIMED"
+
+    toml_body = f'''schema = "lost-bead-classification.v1"
+bead_id = "{bead_id}"
+observed_at = "{observed_at}"
+observer = "stuck-bead-watch"
+
+[finding]
+lost_class = "{lost_class}"
+evidence = {json.dumps(evidence)}
+
+[disposition]
+recommendation = "resling"
+rationale = "The bead is still valid, but no live worker holds the dispatch after the priority-scaled grace window."
+reversible = true
+
+[root_cause]
+class = "no_worker_claimed"
+suspected_source = "{(bead.get('metadata') or {}).get('gc.routed_to', 'unknown')}"
+repair_candidate = true
+fingerprint = "{fingerprint}"
+
+[stuck_bead_watch]
+reason = "{reason}"
+'''
+
+    classification_root.mkdir(parents=True, exist_ok=True)
+    (classification_root / f"{bead_id}.toml").write_text(toml_body)
+
+    event_id = bd_create_event(
+        f"stuck-bead-watch: {bead_id} stuck past grace window",
+        toml_body,
+    )
+    bd_dep_relate(event_id, bead_id)
+    clear_cache_entry(cache_dir, bead_id)
+    return event_id
+
+
+def _gc_bd_list_routed() -> list[dict]:
+    # --has-metadata-key is a server-side filter AND the only way to get
+    # assignee/metadata included in the response — the default `gc bd list
+    # --json` (no metadata filter) omits both fields entirely (verified
+    # live 2026-07-28). Filtering server-side on gc.routed_to also avoids
+    # pulling every open bead city-wide on every 90s tick.
+    result = subprocess.run(
+        ["gc", "bd", "list", "--all", "--has-metadata-key", "gc.routed_to", "--json", "--limit=0"],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        fail(f"gc bd list failed: {result.stderr.strip()}")
+    return json.loads(result.stdout)
+
+
+def _gc_session_list_active() -> list[dict]:
+    result = subprocess.run(
+        ["gc", "session", "list", "--state", "active", "--json"],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        fail(f"gc session list failed: {result.stderr.strip()}")
+    data = json.loads(result.stdout)
+    return data.get("sessions", data if isinstance(data, list) else [])
+
+
+def _preflight() -> None:
+    result = subprocess.run(["gc", "dolt", "health"], capture_output=True, text=True)
+    if result.returncode != 0:
+        print(
+            "I'm sorry, I can't do that — Dolt is unreachable.\n"
+            "Run 'gc dolt start' and retry.\n"
+            "(stuck-bead-watch needs Dolt to read bead/session state.)",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cache-dir", type=Path, default=Path(".beads/stuck-bead-watch"))
+    parser.add_argument("--classification-root", type=Path, default=Path(".beads/lost-bead-classifications"))
+    parser.add_argument("--min-age-seconds", type=int, default=DEFAULT_MIN_AGE_SECONDS)
+    parser.add_argument("--grace-p0", type=int, default=DEFAULT_GRACE_WINDOWS[0])
+    parser.add_argument("--grace-p1", type=int, default=DEFAULT_GRACE_WINDOWS[1])
+    parser.add_argument("--grace-p2", type=int, default=DEFAULT_GRACE_WINDOWS[2])
+    parser.add_argument("--grace-p3", type=int, default=DEFAULT_GRACE_WINDOWS[3])
+    parser.add_argument("--grace-p4", type=int, default=DEFAULT_GRACE_WINDOWS[4])
+    args = parser.parse_args(argv)
+
+    windows = {0: args.grace_p0, 1: args.grace_p1, 2: args.grace_p2, 3: args.grace_p3, 4: args.grace_p4}
+
+    _preflight()
+    now = datetime.now(timezone.utc)
+    observed_at = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    beads = _gc_bd_list_routed()
+    sessions = _gc_session_list_active()
+    candidates = find_stuck_candidates(beads, sessions, now, args.min_age_seconds)
+    candidate_ids = {c["id"] for c in candidates}
+
+    escalated = []
+    entered_waiting_room = []
+
+    for bead in candidates:
+        entry = read_cache_entry(args.cache_dir, bead["id"])
+        if entry is None:
+            write_cache_entry(args.cache_dir, bead["id"], observed_at)
+            entered_waiting_room.append(bead["id"])
+            continue
+        first_seen = _parse_ts(entry["first_seen_stuck"])
+        elapsed = (now - first_seen).total_seconds()
+        window = grace_window_seconds(bead.get("priority", 4), windows)
+        if elapsed >= window:
+            event_id = classify_and_escalate(bead, args.cache_dir, args.classification_root, observed_at)
+            escalated.append((bead["id"], event_id))
+
+    if args.cache_dir.exists():
+        for cache_file in args.cache_dir.glob("*.json"):
+            bead_id = cache_file.stem
+            if bead_id not in candidate_ids:
+                clear_cache_entry(args.cache_dir, bead_id)
+
+    print(f"stuck-bead-watch: {len(candidates)} candidates, "
+          f"{len(entered_waiting_room)} entered waiting room, "
+          f"{len(escalated)} escalated")
+    for bead_id, event_id in escalated:
+        print(f"  escalated {bead_id} -> event bead {event_id}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

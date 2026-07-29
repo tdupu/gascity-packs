@@ -256,6 +256,7 @@ Orders wire formulas to triggers.
 | `no-brainer-process` | manual | Classifies and auto-executes no-brainer candidates. Mode fix applied 2026-07-14 (gt-d3h6e): `[vars] mode = "guarded-execute"` now set; auto-execution fires once controller starts. Kill-switch: absent `auto_merge_enabled` = ON. |
 | `on-merge-brief-record` | event (`bead.closed`) | Files a brief-record after the refinery closes a bead carrying `needs-decision`. Rig-scoped because work beads are rig-local. |
 | `post-decision-file-or-sendback` | event (`brief.decided`) | Routes the decided brief: FILE (re-brief a successor bead) or SEND-BACK (archive). Never reassigns or merges. |
+| `stuck-bead-watch` | cooldown 90s | Detects routed beads (`gc.routed_to` metadata set, incl. formula/order-internal step beads) that never made progress; after a priority-scaled grace window (P0=5m/P1=10m/P2=20m/P3-4=45m), feeds them into the `lost-bead-classification-rollup` pipeline above via a linked `type=event` bead. Runs `exec` (pure Python, no LLM/pool-session cost per tick). Named workaround (P1.17) for a missing gascity-core per-dispatch liveness hook — see `gt-c4g63`. |
 
 ---
 
