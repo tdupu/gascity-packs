@@ -14,8 +14,15 @@ source.
 
 ## Inputs
 
-- `lost-bead-classification.v1` records.
-- `dispatch-provenance.v1` records when available.
+- `lost-bead-classification.v1` records. Each of these becomes a real, linked
+  `type=event` bead (created via `bd create`, linked to its source bead with
+  `bd dep add ... --type related`) — this is durable, dep-list-verifiable
+  evidence.
+- `dispatch-provenance.v1` records when available. These are **cache-file
+  only** — filesystem TOML records under the classification/provenance cache
+  directory, never materialized as a separate bd bead. A decision brief that
+  cites provenance is summarizing the cache files, not linking to a
+  "provenance event bead" — no such bead type exists.
 - A classification/provenance cache directory, defaulting to
   `.beads/lost-bead-classifications`.
 - The schemas under `assets/bead-filter/`.

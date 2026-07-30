@@ -17,8 +17,26 @@ The system has four parts:
 ## Safety Model
 
 Filters are allowed to classify, cache derived evidence, create decision briefs,
-or create repair-review work. They are not allowed to silently close beads,
-merge branches, defer work, patch formulas, or override human-only gates.
+or create repair-review work. They are not allowed to silently or unverified-ly
+close beads, merge branches, defer work, patch formulas, or override
+human-only gates.
+
+The downstream and upstream rollup formulas' own worker steps (`file-brief` in
+`lost-bead-classification-rollup.toml` and `lost-bead-upstream-repair-rollup.toml`)
+are the one deliberate exception: they close themselves, but only after
+verifying — with live commands, not assumption — that their output artifacts
+and dependency links actually exist (`bd dep list "$BRIEF_ID" --readonly` plus a
+markdown/manifest existence check). This is *evidence-verified* self-close, not
+silent close. If verification fails, the step must stay open and report the
+failing command, never close the workflow root or finalizer on its own.
+
+These formulas are `graph.v2` workflows: a `workflow-finalize` step only closes
+the workflow root after every `blocks`-type dependency step is already closed.
+A worker step written to forbid its own close with no evidence-verified
+escape hatch will never let the workflow terminate — the finalizer waits
+forever with no timeout. Any new filter formula step that forbids self-close
+must include an equivalent verified-completion path, or route through a
+controller-side completion signal instead.
 
 The main invariants are:
 
