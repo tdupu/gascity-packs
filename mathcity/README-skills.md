@@ -2,7 +2,7 @@
 
 **Single canonical cross-pack index of every skill in the mathcity pack family.**
 
-116 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+117 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
 
 **Maintenance (single source of truth — no competing updater):**
 - `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
@@ -11,7 +11,7 @@
 
 _Regenerate/verify with `/update-README`._
 
-### Parent pack — `mathcity/skills/`  (46)
+### Parent pack — `mathcity/skills/`  (47)
 
 | Skill | Alias | What it does |
 |---|---|---|
@@ -61,6 +61,7 @@ _Regenerate/verify with `/update-README`._
 | `refine-bead-manifest` | `mathcity.refine-bead-manifest` | Convert a bead manifest into a partition B of work beads + one brief per b', where every bead in S is acted on by exactly one b'; approving b' triggers the corresponding dispatch action via math-city-work |
 | `revise-artifact` | `mathcity.revise-artifact` | Apply a set of action items to an artifact (SKILL.md, plan, code, LaTeX, theorem, etc.) and produce a revised version |
 | `simple-work` | `mathcity.simple-work` | Dispatch a bounded, well-scoped task via simple-work-briefed (execute → file brief → finalize) when the work is a single operation (script run, repair, verification) and does not need the full build-basic-briefed lifecycle |
+| `wake-city` | `mathcity.wake-city` | Actually WAKE a stalled Gas City — diagnose WHY the fleet is dead (tmux down, Dolt down, suspended rig, dead dispatcher, session- vs weekly-limit zombies), apply the correct revival per cause, and VERIFY work resumes; unlike nudge-city, handles weekly-limit-dead zombies (close-to-free-slot) and fails loud on capacity blocks |
 | `xkcd-927` | `mathcity.xkcd-927` | Reconcile or fix an issue that is spread across several beads / plans / PERTs / policy docs that duplicate, contradict, or prose-supersede each other — by CONSOLIDATING into the single existing source of truth, NEVER by writing a fresh a… |
 
 ### Brief-system — `subdomains/brief-system/skills/`  (2)
