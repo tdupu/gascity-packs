@@ -14,17 +14,17 @@ description: >
   hand-slinging (that is the anti-pattern this skill exists to replace).
 ---
 
-# math-city-work — feed the machine the correct way
+# math-city-work
 
-The canonical dispatch skill for the math-city Mayor. It codifies the
-S14-verified doctrine so no future Mayor session re-derives it (or re-panics over a
-healthy-but-slow fleet — see `bd recall great-regression-misdiagnosis-s14`).
+The dispatch skill for the mathcity Mayor. All "work" factors through this skill and it is important to keep it up to date. 
+
+(See: `bd recall great-regression-misdiagnosis-s14`).
 
 ## Pre-flight (fleet must be up)
 
-Verify the fleet is actually alive BEFORE dispatching — and verify it the
-reliable way, not via `gc status` (its runtime probe times out and reports a
-false "stopped/0", bug **gs-0cy2**):
+Verify the fleet is actually alive BEFORE dispatching 
+
+(note:`gc status` is not always reliable. Its runtime probe times out and reports a false "stopped/0", bug **gs-0cy2**)
 
 ```bash
 tmux -L gt ls >/dev/null 2>&1 || {
@@ -39,23 +39,26 @@ gc dolt health >/dev/null 2>&1 || {
 }
 ```
 
-## Rule 0 — FEED THE MACHINE, DON'T HAND-SLING
+## Rule 0
 
 The Mayor's job is **queue health + unblocking**, not manual dispatch. Make
 the bead **ready and unblocked** (deps closed, priority set, rig correct); the
-dispatcher auto-pulls ready work. Do **not** sling work items one-by-one as a
-matter of course — that was the Mayor session-13 misfire. Hand-dispatch is only for a
-specific bead you deliberately want built now.
+dispatcher auto-pulls ready work. 
 
-## Formula selection — enumerate, then use judgement (do NOT hardcode)
+Do **not** sling work items one-by-one as a matter of course. Hand-dispatch is only for a specific bead you deliberately want built now. "Work on this now". If you are unsure /check-bead-policy, /check-city-policy for desired behavior.
 
-The set of `*-briefed` formulas **grows and changes**. This skill deliberately
-does NOT carry a fixed list to route against — a hardcoded switch falls out of
-date the moment a new briefed formula lands (`smoke-test-briefed` was exactly
-that miss). Selecting the formula is a **reasoning task for you**, not a lookup.
+(see Mayor session-13 misfire. )
 
-**Step A — enumerate the LIVE set at dispatch time.** Read what actually
-exists right now; never assume the examples below are the complete set:
+## Formula selection — enumerate, then use judgement
+
+The set of `*-briefed` formulas **grows and changes**. 
+
+This skill deliberately does NOT carry a fixed list to route against — a hardcoded switch falls out of
+date the moment a new briefed formula lands. (see:`smoke-test-briefed` was exactly that miss). 
+
+Selecting the formula is a **reasoning task for you**, DO NOT HARDCODE LISTS.
+
+**Step A — enumerate the LIVE set at dispatch time.** 
 
 ```bash
 gc formula list 2>/dev/null | grep -i briefed        # authoritative: current catalog names
@@ -63,31 +66,12 @@ gc formula list 2>/dev/null | grep -i briefed        # authoritative: current ca
 ls -1 ~/gt/gascity-packs/mathcity/formulas/*briefed* 2>/dev/null
 ```
 
+The lists will show various types of formulas which can be used. Some are for simple tasks, some are for experiments, some are general purpose, some come from superpowers etc. 
+
 **Step B — read the bead and judge which enumerated formula fits.** Look at
-`bd show <bead>` — its type, scope, file blast-radius, whether it needs design,
-whether it is itself a test — and reason about which of the *currently
-enumerated* briefed formulas is the right vehicle. The points below are
-**signals to weigh, not an exhaustive routing table**; new briefed formulas
-will introduce right answers this skill cannot predict, so always reason
-against Step A's actual output, not this list:
+`bd show <bead>`
 
-- The bead already carries a decision **brief**, or you are unsure which cycle
-  fits → **`work-briefed`** (the router — it decides simple vs. full for you).
-  This is the safe default and the well-tested auto-dispatch path.
-- A **very easy, bounded** change — Haiku-level single-file edit, a one-shot
-  script run, a small patch, a condition check → **`simple-work-briefed`**.
-- **Planning / design-first** work (an epic or large bead that needs a PERT,
-  decomposition, design doc, or requirements before anyone implements) →
-  **`planning-briefed`** (routes to Opus-tier `gc.design-author`).
-- **Testing** an artifact (formula, skill, Magma intrinsic, script) →
-  **`smoke-test-briefed`**.
-- Genuinely **complex, multi-file, full-cycle** build work needing the
-  requirements → plan → decompose → implement → review → finalize factory →
-  **`build-basic-briefed`**.
-
-If none of the enumerated formulas cleanly fits, fall back to **`work-briefed`**
-and let the router decide — do not force a poor match, and never pass a formula
-name that Step A did not actually return.
+The formula needs to be dispatched in a way that generates a briefs at the end of it so the user can adjudicate on the work that is produced. 
 
 ## Sling command — the work-dispatch formulas
 
@@ -185,13 +169,46 @@ Then link it to the source bead with `bd dep relate <event-bead> <bead>`.
   "No brief yet" ≠ "broken." A real bug exists only if a molecule *closes* its
   publish step and **no** brief lands on the stack.
 
+## QUARANTINED BEAD ≠ SLOW BUILD (a real terminal failure, escalate — don't wait)
+
+An empty/unclaimed assignee past the verify-assignee window has **two**
+distinct causes that look identical from `bd show` alone — don't assume it's
+just queue depth:
+
+- **Queue depth (benign):** the rig's ready queue is long relative to its
+  `max_active_sessions` cap. Check `bd ready --limit 0 | wc -l` against the
+  rig's configured session cap (`city.toml` `[[patches.agent]]` blocks) — a
+  large ratio fully explains a multi-minute claim delay on its own.
+- **Control-dispatcher quarantine (a real bug, not a wait-it-out case):** the
+  control-dispatcher's own workflow-finalize step can hit a transient
+  `cannot close blocked issue` race and — due to a gascity core bug
+  (`gs-*` bug filed 2026-08-04, see `gsp-j7tik1`) — permanently quarantine
+  the bead instead of retrying it, closing it with `outcome=fail` and label
+  `gc:control-quarantined`. This looks like "still pending" but is actually
+  **already dead** — no future tick will revive it.
+
+**Distinguish the two:**
+```bash
+bd show <bead-or-root> --json 2>/dev/null | grep -i "control-quarantined\|outcome"
+tmux -L gt capture-pane -t <rig>--core__control-dispatcher -p 2>&1 | grep -i "quarantined bead=<id>"
+```
+If either hits, this is **not** a slow build — the workflow is terminally
+dead and needs a fresh re-dispatch (after confirming the underlying block
+actually cleared), not more waiting. Escalate/report rather than re-checking
+on a timer.
+
+Note artifact_root must be scoped per bead, never omitted or passed as the bare rig root
+(concurrent build-basic-briefed runs on the same rig that share an
+artifact_root silently overwrite each other's stage artifacts, gsp-1bmxuz):
+
+
+
 ## Provenance (source of truth)
 
-- Policy: `gsp-fhdnu` (build-basic-briefed = preferred feed formula; work-briefed = routing wrapper)
-- Bug: `gs-0cy2` (gc status probe-timeout false "stopped/0")
-- Doctrine: `he-uz9fg` (verify-assignee + slow-build≠strand doc fix)
+- Policy: `gsp-fhdnu`
+- Bug: `gs-0cy2` 
+- Bug: `gsp-j7tik1`
+- Doctrine: `he-uz9fg` 
 - Full story: `bd recall great-regression-misdiagnosis-s14`
 
-Recommended model: **Sonnet** (dispatch + verify — mechanical with light
-judgment). Use **Opus** or **Fable** only if the formula selection requires
-architectural judgment.
+Use **Opus** or **Fable** if the formula selection requires judgment.

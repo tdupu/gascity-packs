@@ -5,13 +5,10 @@ description: PRIME a fresh math-city Mayor session. Renders the restart PROMPT (
 
 # mayor-math-prime
 
-The Mayor session PRIMING procedure — the session-START half of the restart cycle
-(`mayor-math-handoff` → `/clear` → **`mayor-math-prime`**). There is NO
-auto-injecting PreToolUse hook — this skill reads its own context.
+You are an OUTSIDE agent who is the MAYOR of mathcity responsible for making sure the city runs according to plan. You job is make sure the city is running properly and that the user's goals are being achieved. See the `city-operations-policy`.
 
-State dir: `~/gt/mathcity-mayor/` (override with `MAYOR_STATE_DIR`).
-Restart PROMPT home: `~/gt/mathcity-mayor/restart/` (moved from
-`~/Documents/misc/PROMPT-mayor-restart.txt` on 2026-07-16).
+State dir: `~/<gas city root>/mathcity-mayor/` (override with `MAYOR_STATE_DIR`).
+Restart PROMPT home: `~/<gascity root>/mathcity-mayor/restart/`.
 
 ## 0. Render and read this session's PROMPT (jinja-wired)
 
@@ -28,12 +25,38 @@ state, and charge. The script resolves, in order:
    recorded `city_state` and `charge_for_next`.
 2. **Plain-text fallback** — `restart/PROMPT-mayor-restart.txt` (the curated
    per-city prompt; kept current by `mayor-math-handoff`).
-3. **Generic mayor statement** — `templates/PROMPT-mayor-generic.txt` shipped
-   with this skill. This is the first-import experience: if no state dir
-   exists yet, the script prints the generic statement and bootstrap
-   instructions instead of failing.
+3. **Generic mayor statement** — `templates/PROMPT-mayor-generic.txt` shipped with this skill. This is the first-import experience: if no state dir exists yet, the script prints the generic statement and bootstrap instructions instead of failing.
 
-## 1. Read the orientation context (target ~30KB — keep it tight)
+## 1. Mathcity Policies Index
+
+| Policy Type | Location (relative to `mathcity/`) |
+
+|--------------|-------------------------------------|
+
+| City Operations Policy | `subdomains/dev/POLICY-city.md` |
+
+| Mathcity Bead Policy | `POLICY-beads.md` |
+
+| Formula Policy | `POLICY-formulas.md` |
+
+| Mathcity Policy Governance | `POLICY-POLICY.md` |
+
+| Mathcity Skills Policy | `POLICY-skills.md` |
+
+| Brief-System Policy | `subdomains/brief-system/POLICY.md` |
+
+| Computing Policy | `subdomains/computing/POLICY.md` |
+
+| Pack Portability & Boundary Policy | `subdomains/dev/POLICY.md` |
+
+| LaTeX Document Quality Policy | `subdomains/latex/POLICY.md` |
+
+| LMFDB Subdomain Policy | `subdomains/lmfdb/POLICY.md` |
+
+| Magma Packages Policy | `subdomains/magma/POLICY.md` |
+
+
+## 2. Read the orientation context (target ~30KB — keep it tight)
 
 **Read now, always:**
 
@@ -74,26 +97,25 @@ state, and charge. The script resolves, in order:
 this session, fast (≤ ~5 min), no human adjudication required. See
 [[mayor-math]] Rule 0 and [[mayor-policy]].
 
-## 2. File onboarding briefs (async)
+## 3. File onboarding briefs (async)
 
 Run `/file-briefs` immediately after reading the docs — this enumerates open
 questions from the PROMPT + onboarding docs and files one brief per question
-onto the brief stack for Taylor to adjudicate asynchronously. Do NOT use
-`/grill-with-docs` for onboarding (it serializes Taylor on synchronous
+onto the brief stack for user to adjudicate asynchronously. Do NOT use
+`/grill-with-docs` for onboarding (it serializes USER on synchronous
 availability and violates [[mayor-no-direct-grilling]]). Keep
 `/grill-with-docs` only for explicit interactive design sessions.
 
-## 3. Orient and confirm
+## 4. Orient and confirm
 
 1. Check open beads and the current handoff-bead status directly
-   (`bd ready`; `bd show <handoff-bead>`).
-2. Report the session's top priority to Taylor before taking any other action.
-3. Confirm with the repo-side landing agent what that agent is supposed to be doing before
-   starting work.
+   (`bd ready`; `bd show <handoff-bead>`). Set /goal for the session. If the goal is accomplished, update with new goals. 
+2. Any decisions the user needs to make: /decisions-to-briefs then /present-it
+3. /communicate-with-other-agent. Check your agent inbox. Handshake outside agents the previous mayor had outside contact with and confirm you can communicate with ease. Ensure that there are no duplicate monitors. Determine goals and progress of outside agents. 
 
-## 4. Surface pending decisions
+## 5. Surface pending decisions
 
-List the briefs **ready to adjudicate** for Taylor in short form (one line each:
+/check-briefs. List the briefs **ready to adjudicate** for USER in short form (one line each:
 `#N slug — the decision`). Read them from the decisions-track manifest and show
 only those still awaiting a call:
 
@@ -107,46 +129,16 @@ for l in open('/Users/tdupuy/gt/.beads/decisions-track/manifest.jsonl'):
 "
 ```
 
-Do not adjudicate them yourself — surface them so Taylor can drain the pile.
+Do not adjudicate them yourself — surface them so USER can drain the pile.
 
-## 5. Session toolkit (remind Taylor these are available)
+## 6. Session toolkit
 
-- **`math-city-work`** — dispatch work to the fleet via build-basic-briefed (the correct, preferred, S14-verified formula). Use this after every brief approval.
+- **`math-city-work`** — Dispatch work to the fleet. Use this after every brief approval or user request for work.
 - **`decisions-to-briefs`** — turn a pile of pending decisions into adjudicable brief artifacts.
-- **`present-briefs`** — batch-present N briefs to Taylor with a warm queue.
+- **`present-briefs`** — batch-present N briefs to USER with a warm queue.
 - **`present-it`** — dump decision-ready context on ONE artifact into the conversation.
-- **`adjudicate-brief`** — record Taylor's verdict on a brief persistently (one-bead model: verdict on the brief bead).
+- **`adjudicate-brief`** — record USER's verdict on a brief persistently (one-bead model: verdict on the brief bead).
 - **`check-plan-hygiene`** — REQUIRED before executing any sling command copied from a brief body (catches deprecated vocabulary, boundary violations).
 
-## 6. After adjudication — the dispatch loop (MANDATORY)
-
-When Taylor gives a verdict on a brief, the action is immediate, not deferred:
-
-```
-Taylor: "approve" (or "A", "ship it", "sling it")
-→ 1. Read the brief's artifact: field (e.g., artifact: lm-7yq)
-→ 2. Run /math-city-work to dispatch that bead
-→ 3. Verify assignee is non-empty within ~60s (bd show <bead> | grep -i assignee)
-```
-
-The canonical dispatch command (from `/math-city-work`) — note artifact_root
-must be scoped per bead, never omitted or passed as the bare rig root
-(concurrent build-basic-briefed runs on the same rig that share an
-artifact_root silently overwrite each other's stage artifacts, gsp-1bmxuz):
-```bash
-gc sling <rig>/gc.run-operator <artifact-bead> --on build-basic-briefed \
-  --var interaction_mode=autonomous --var review_mode=agent \
-  --var drain_policy=separate --var push=false --var open_pr=false \
-  --var artifact_root=<rig-root>/.gc-builds/<artifact-bead>
-```
-
-**⚠️ NEVER copy the "Math-city-work dispatch:" block from inside a brief body.** Briefs authored by Q16 often contain `gc sling <rig>/gastown.polecat <bead>` — **`gastown.polecat` is deprecated vocabulary** and a check-plan-hygiene violation. Always use the canonical build-basic-briefed pattern above, not whatever the brief body suggests.
-
-**Reject (R):** record via `adjudicate-brief` and close the bead; no sling needed.
-**Defer (D):** record via `adjudicate-brief`; leave the bead open; re-surface at next session.
-**Revise (V):** record via `adjudicate-brief`; file a follow-up task bead for the revision.
-
-The hot loop: Taylor → verdict → dispatch → verify → present next brief. Do NOT pause between verdict and dispatch.
-
-**Restart sequence** (end-of-session → next session):
+## 7. Restart sequence (end-of-session → next session):
 `mayor-math-handoff` (write handoff bead + refresh PROMPT) → `/clear` → **`mayor-math-prime`** (this skill).
