@@ -25,9 +25,9 @@ Rule prefix: **BP** (reserved in `mathcity/docs/rule-prefix-registry.md` per PP5
 
 ## Pillar 0 — Pre-creation redundancy gate (BP0.x)
 
-Governs what must happen BEFORE a new bead is created and dispatched via `math-city-work`. This is the pre-hook that prevents the dispatch queue from accumulating parallel beads addressing the same problem.
+Governs what must happen BEFORE a new bead is created and dispatched via `mathcity.work`. This is the pre-hook that prevents the dispatch queue from accumulating parallel beads addressing the same problem.
 
-- **BP0.1 Redundancy check before dispatch-bead creation.** Before running `bd create` for any bead that will immediately be slung via `math-city-work` (or otherwise enter the dispatch queue), the creator MUST run `mathcity.new-beads-policy` (alias: `/new-beads-policy`) to check for semantic overlap with existing open beads.
+- **BP0.1 Redundancy check before dispatch-bead creation.** Before running `bd create` for any bead that will immediately be slung via `mathcity.work` (or otherwise enter the dispatch queue), the creator MUST run `mathcity.new-beads-policy` (alias: `/new-beads-policy`) to check for semantic overlap with existing open beads.
 
 - **BP0.2 Three-verdict system.** The `new-beads-policy` check emits one of three verdicts:
   - **PROCEED** — no meaningful overlap; creation is safe.
@@ -46,7 +46,7 @@ Governs what must happen BEFORE a new bead is created and dispatched via `math-c
 - **BP0.6 Hygiene.** `check-math-bead-hygiene` MAY flag a bead as BP0-suspect if it duplicates the title of an existing open bead by >80% lexical similarity. This is a soft flag, not a hard violation (semantic overlap is the test, not lexical).
 
 - **Skill:** `mathcity.new-beads-policy` (at `~/gt/gascity-packs/mathcity/skills/new-beads-policy/SKILL.md`).
-- **Cross-references:** [[math-city-work]] §Step 0, [[xkcd-927]], [[bead-flight-precheck]] (post-creation pre-sling gate).
+- **Cross-references:** [[mathcity.work]] §Step 0, [[xkcd-927]], [[bead-flight-precheck]] (post-creation pre-sling gate).
 
 ---
 
@@ -366,5 +366,5 @@ A future `check-bead-policy` skill never emits **reject** (reject applies only t
 | --- | --- | --- |
 | 2026-07-20 | Added Pillar 10 (BP10.1–BP10.9): Dolt Migration Safety for Beads 1.1.0 (303e263fe). Governs multi-clone migration protocol introduced by the Remote-Migrate Gate. PP2.6 hot-fix path; retroactive proposal due within 7 days. | Taylor Q21 directive: migration plan for active gsp/agent_skills fork crisis. Full plan: `~/gt/.beads/decisions-track/77-gt-y1gwuy-beads-migration-plan.md`. Trinity incomplete: `check-beads-policy` / `new-beads-policy` for BP10 not yet scaffolded. |
 | 2026-07-12 | Initial draft (BP1–BP4) | Taylor decree: distinguish mathematical research from technical investigation; codify memory routing and old-bead reaping. NOTE: `mathcity/docs/rule-prefix-registry.md` does not yet exist, so the BP prefix is provisionally claimed here pending registry creation (PP5.2). BP2.4 flags a needed B3.7 amendment via `new-brief-policy`. Trinity incomplete: `check-bead-policy` / `new-bead-policy` skills not yet scaffolded (PP1.1). |
-| 2026-07-19 | Added Pillar 0 (BP0.1–BP0.6): Pre-creation redundancy gate for dispatch beads. Introduces `new-beads-policy` skill (mathcity.new-beads-policy) as mandatory pre-hook before `math-city-work` dispatch-bead creation. xkcd-927 is the test; three-verdict system (PROCEED/MERGE/DROP). | Taylor Q19 directive: "pre-hook that checks for redundancy in the set of all beads currently written for dispatch." Filed as gt-hpga8f. |
+| 2026-07-19 | Added Pillar 0 (BP0.1–BP0.6): Pre-creation redundancy gate for dispatch beads. Introduces `new-beads-policy` skill (mathcity.new-beads-policy) as mandatory pre-hook before `mathcity.work` dispatch-bead creation. xkcd-927 is the test; three-verdict system (PROCEED/MERGE/DROP). | Taylor Q19 directive: "pre-hook that checks for redundancy in the set of all beads currently written for dispatch." Filed as gt-hpga8f. |
 | 2026-07-12 | Added Pillars 5–9 (BP5–BP9): Mathematical Items Lifecycle System — research-bead anti-spike rules and interim ARCHIVED protocol (BP5, codifying the he-66vr field precedent), literature-review beads (BP6), LaTeX beads and the atomize/bundle rule (BP7), mathematical claim beads with `claim_status` metadata (BP8), classifier routing across catch-no-brainer / brief pipeline / direct dispatch (BP9). Registry note resolved: BP prefix now reserved in `mathcity/docs/rule-prefix-registry.md`. | Outside-agent initial pass at the math-items lifecycle, per Taylor's request: ensure research never gets spiked (mistyped as `spike` OR silently dying with no progress / no CLOSED / no ARCHIVED — the state-gap identified via he-66vr). Companion tools drafted: `check-math-bead-hygiene` (read-only BP5–BP9 auditor) and `new-math-bead-policy` (well-formed math-bead creator) in `~/repos/agent-skills/skills/`; these partially satisfy the PP1.1 trinity for the math-item subset — full `check-bead-policy` / `new-bead-policy` still pending. Still Draft; governs nothing until Taylor adopts (PP2.1/PP2.2). BP9.1 flags a needed `catch-no-brainer` safety-override extension. |

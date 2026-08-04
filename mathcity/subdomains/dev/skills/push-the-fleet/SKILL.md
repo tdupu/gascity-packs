@@ -5,7 +5,7 @@ description: >
   "push the fleet", "fire more things", "get N things running", "dispatch
   everything ready", or "I want 10 things being worked on at a time". Finds
   all ready beads across rigs and dispatches them via build-basic-briefed
-  (math-city-work pattern, policy gsp-fhdnu) until the active worker count
+  (mathcity.work pattern, policy gsp-fhdnu) until the active worker count
   reaches TARGET. Never slows down to ask for confirmation — it dispatches
   and reports.
 ---
@@ -15,7 +15,7 @@ description: >
 Saturate the fleet. Dispatch every ready, unblocked bead via
 `build-basic-briefed` until active workers ≥ TARGET (default: 10).
 
-This skill is the batch version of `math-city-work`: same formula, same
+This skill is the batch version of `mathcity.work`: same formula, same
 vars, same verify-assignee doctrine — but it sweeps the whole queue instead
 of one bead.
 
@@ -62,7 +62,7 @@ Last updated: <YYYY-MM-DD>
 <!-- Keywords or bead IDs to never auto-dispatch -->
 ```
 
-## Pre-flight (same as math-city-work)
+## Pre-flight (same as mathcity.work)
 
 ```bash
 tmux -L gt ls >/dev/null 2>&1 || {
@@ -170,7 +170,7 @@ bd show <molecule-bead> | grep -i assignee   # must be NON-EMPTY
 
 If a molecule still has no assignee after 60s, the slot may be full. Report
 it — do not silently assume success. An open root bead is NOT a strand (see
-gs-0cy2 and `math-city-work` slow-build doctrine); wait before escalating.
+gs-0cy2 and `mathcity.work` slow-build doctrine); wait before escalating.
 
 ## Step 6 — Report
 
@@ -204,7 +204,7 @@ is a "no more unblocked work" state, not a failure.
 
 ## Composes with
 
-- `math-city-work` — single-bead dispatch (this skill is the batch form)
+- `mathcity.work` — single-bead dispatch (this skill is the batch form)
 - `adjust-workers` — raise worker cap when slot count limits throughput
 - `hourly-check` — periodic fleet health that surfaces when queue depth > 0
   but active workers = 0

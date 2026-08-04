@@ -1,9 +1,9 @@
 ---
-name: math-city-work
+name: work
 description: >
   Feed a bead (or a set of ready beads) into the math-city fleet the correct,
   S14-verified way. Use whenever the Mayor wants to dispatch work:
-  "math-city-work", "feed the machine", "feed this bead to the fleet",
+  "mathcity.work", "feed the machine", "feed this bead to the fleet",
   "dispatch this the right way", "sling <bead> the preferred way", "put this
   through the fleet", or "get the fleet working on <bead>". Encodes the
   feed-don't-hand-sling doctrine, formula selection (work-briefed default,
@@ -14,7 +14,7 @@ description: >
   hand-slinging (that is the anti-pattern this skill exists to replace).
 ---
 
-# math-city-work
+# mathcity.work
 
 The dispatch skill for the mathcity Mayor. All "work" factors through this skill and it is important to keep it up to date. 
 

@@ -42,7 +42,7 @@ Run `mathcity/assets/scripts/checks/lost-bead-filter-check.sh {{classification_r
 Run `mathcity/assets/scripts/lost-bead-filter.py rollup-upstream --input {{classification_root}} --threshold {{threshold}} --output {{output_path}}`.
 Ignore records whose `root_cause.repair_candidate` is false.
 Group by dispatch source, formula or target, root-cause class, and fingerprint.
-Unknown provenance must be grouped as `UNKNOWN_PROVENANCE` and must not be attributed to `math-city-work`.
+Unknown provenance must be grouped as `UNKNOWN_PROVENANCE` and must not be attributed to `mathcity.work`.
 If validation fails, stop with the script's nonzero exit and do not file a brief.
 """
 

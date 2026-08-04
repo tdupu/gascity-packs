@@ -8,20 +8,20 @@ description: >
   stages). Trigger phrases: "dispatch this as simple work", "sling this as
   simple-work-briefed", "run this one-off and get a brief", "this is a
   bounded task, use simple-work", "simple-work-briefed", "two-step briefed".
-  NOT for multi-step builds with code review (use math-city-work /
+  NOT for multi-step builds with code review (use mathcity.work /
   build-basic-briefed). NOT for adjudicating briefs (use adjudicate-brief).
 ---
 
 # simple-work — dispatch a bounded task with a brief at the end
 
-Lightweight alternative to `math-city-work` / `build-basic-briefed` for
+Lightweight alternative to `mathcity.work` / `build-basic-briefed` for
 tasks that are single, bounded operations. The `simple-work-briefed` formula
 has three steps: **execute → file brief → finalize**. No requirements, plan,
 decompose, or review overhead.
 
-## When to use this instead of math-city-work
+## When to use this instead of mathcity.work
 
-| Use `simple-work` | Use `math-city-work` |
+| Use `simple-work` | Use `mathcity.work` |
 |---|---|
 | Run a one-off repair script | Build a feature branch end-to-end |
 | Verification / smoke-test pass | Multi-step implementation with review |
@@ -31,7 +31,7 @@ decompose, or review overhead.
 
 **Decision rule:** if you can describe the full task in 3–5 sentences and it
 fits in one polecat session, use `simple-work`. If it needs planning or
-decomposition, use `math-city-work`.
+decomposition, use `mathcity.work`.
 
 ## Pre-flight (fleet must be up)
 
@@ -157,6 +157,6 @@ gc sling hecke/gc.run-operator he-van4p --on simple-work-briefed \
 ## Provenance
 
 - Formula: `simple-work-briefed` (gc formula show simple-work-briefed)
-- Preferred formula for full builds: `build-basic-briefed` (policy gsp-fhdnu → see math-city-work skill)
+- Preferred formula for full builds: `build-basic-briefed` (policy gsp-fhdnu → see mathcity.work skill)
 - Fleet liveness ground truth: `tmux -L gt ls` + `bd show <molecule> | head -5`
 - Verify-assignee doctrine: `he-uz9fg`

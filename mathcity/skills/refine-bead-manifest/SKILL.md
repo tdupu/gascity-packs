@@ -4,7 +4,7 @@ description: |
   Given a bead manifest (S beads), produce a partition B of work beads to
   dispatch + one brief per b' in B. Every bead in S is "acted on" by exactly
   one b' in B. Approving b' triggers the corresponding action (dispatch,
-  close-moot, triage, etc.) via math-city-work. The output is a pile of
+  close-moot, triage, etc.) via mathcity.work. The output is a pile of
   briefs under ~/gt/.beads/decisions-track/ + a summary table.
   Use after /create-bead-manifest when you want to convert a triage snapshot
   into an actionable dispatch plan that Taylor can approve batch-by-batch.
@@ -60,10 +60,10 @@ B is a small set of "work beads" (likely 3–8), each covering a natural cluster
 
 | b' in B | Covers S-beads with Action | Recommended b' type | On approval |
 |---------|---------------------------|---------------------|-------------|
-| `CLOSE-MOOT` | 🗑️ CLOSE_MOOT | task | Force-close all moot beads (with reasons) via math-city-work |
-| `DISPATCH-NOW` | 🚀 DISPATCH_NOW | task | Sling all DISPATCH_NOW beads immediately via math-city-work |
+| `CLOSE-MOOT` | 🗑️ CLOSE_MOOT | task | Force-close all moot beads (with reasons) via mathcity.work |
+| `DISPATCH-NOW` | 🚀 DISPATCH_NOW | task | Sling all DISPATCH_NOW beads immediately via mathcity.work |
 | `BUG-CONVOY` | 🐛 DISPATCH_BUG | task | Create a bug-fix convoy + sling all bug beads into it |
-| `DISPATCH-BATCH` | 📦 DISPATCH | task | Queue all DISPATCH beads for the fleet via math-city-work (batch) |
+| `DISPATCH-BATCH` | 📦 DISPATCH | task | Queue all DISPATCH beads for the fleet via mathcity.work (batch) |
 | `TRIAGE-P1` | ⚠️ TRIAGE_P1 | decision | Present TRIAGE_P1 beads to Taylor one-by-one for verdict |
 | `TRIAGE-OLD` | 🕰️ TRIAGE_OLD | decision | Present TRIAGE_OLD beads: close/defer/re-dispatch each |
 | `TRIAGE-VERIFY` | 🔍 TRIAGE_VERIFY | decision | Verify each TRIAGE_VERIFY bead is still live; re-dispatch or close |
@@ -89,7 +89,7 @@ bd create "<b'-title>" --type task --priority P2 \
 Acts on S-beads: <comma-separated list of bead IDs>
 
 ## On Approval
-<one-paragraph description of what math-city-work does when this bead is dispatched>
+<one-paragraph description of what mathcity.work does when this bead is dispatched>
 
 ## Partition
 Every s acted on by this b' will be: <dispatched | closed | triaged | tracked>

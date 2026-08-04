@@ -207,5 +207,5 @@ If nothing relevant is found, say explicitly:
 - Does not evaluate whether existing solutions are good enough (reports only — judgment is the human's)
 - Does not test or run existing code
 - Does not search the internet (use a web search separately if needed)
-- Does not replace `/math-city-work` or brief dispatch
+- Does not replace `/mathcity.work` or brief dispatch
 - Does not make the implementation decision

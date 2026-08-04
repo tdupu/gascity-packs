@@ -59,7 +59,7 @@ rules:
 - Verdict vocabulary: approve / revise / reject / defer (defer = timed
   bead defer, no verdict recorded, bead stays open).
 
-## The skill pipeline — present-briefs → adjudicate-brief → math-city-work
+## The skill pipeline — present-briefs → adjudicate-brief → mathcity.work
 
 Your brief-cycle runs through three skills. Do not improvise any other
 presentation, recording, or dispatch channel.
@@ -80,13 +80,13 @@ presentation, recording, or dispatch channel.
   (`"Fork launched: <bead> → <verdict>. Session free."`), then stop.
   All bd commands and sling dispatch run inside the fork — the calling
   session does not wait and does not run bd commands itself.
-- **DISPATCH — `math-city-work`.** After an **approve** verdict, the clerk
+- **DISPATCH — `mathcity.work`.** After an **approve** verdict, the clerk
   dispatches the artifact directly — no mayor routing required. Run
-  `/math-city-work` with the artifact bead ID immediately after recording.
+  `/mathcity.work` with the artifact bead ID immediately after recording.
   See §After adjudication below.
 
 **The flow:**
-`present-briefs` (present + record) → Taylor approves → **`math-city-work`**
+`present-briefs` (present + record) → Taylor approves → **`mathcity.work`**
 (clerk dispatches directly) → verify assignee non-empty within ~60s → present
 next brief.
 
@@ -108,13 +108,13 @@ When Taylor approves a brief, act immediately:
 Taylor: "approve" / "A" / "yes" / "ship it"
 → 1. Record verdict via adjudicate-brief (or present-briefs has already done it)
 → 2. Read the brief's `artifact:` field (e.g., artifact: he-p4x5)
-→ 3. Run /math-city-work to dispatch that bead directly
+→ 3. Run /mathcity.work to dispatch that bead directly
 → 4. Verify assignee is non-empty within ~60s:
      bd show <artifact-bead> | grep -i assignee
 → 5. Present the next pre-loaded brief immediately
 ```
 
-The canonical dispatch (from `/math-city-work`) — note artifact_root must be
+The canonical dispatch (from `/mathcity.work`) — note artifact_root must be
 scoped per bead, never omitted or passed as the bare rig root (concurrent
 build-basic-briefed runs on the same rig that share an artifact_root
 silently overwrite each other's stage artifacts, gsp-1bmxuz):
@@ -129,13 +129,13 @@ gc sling <rig>/gc.run-operator <artifact-bead> --on build-basic-briefed \
 `gascity-packs`; `gt-*` → check the bead's home rig. For
 `gascity-packs` publish-path artifacts the role may be `gc.publisher`
 rather than `gc.run-operator` — check the brief's §7 for the
-expected publisher role. When in doubt let `/math-city-work` build
+expected publisher role. When in doubt let `/mathcity.work` build
 the command.
 
 **Never copy a sling command from inside a brief body.** Q16-era briefs
 often contain `gc sling <rig>/gastown.polecat` — `gastown.polecat` is
 deprecated. Always use the `build-basic-briefed` pattern above, or let
-`/math-city-work` build the command for you.
+`/mathcity.work` build the command for you.
 
 **Reject (R):** record via `adjudicate-brief`, close the bead; no sling.
 **Defer (D):** record via `adjudicate-brief`; leave bead open; re-surface next session.
@@ -159,13 +159,13 @@ deprecated. Always use the `build-basic-briefed` pattern above, or let
    slung `brief-record-decision`): writes verdict onto the brief bead,
    closes it (B2.2), rings `brief.decided`. Never improvise a second
    recording channel.
-5. **On approve: dispatch immediately** via `/math-city-work` (clerk does
+5. **On approve: dispatch immediately** via `/mathcity.work` (clerk does
    this directly — no mayor routing needed). Verify assignee within ~60s.
 6. Loop to the next brief or stop when Taylor does.
 
 ## Hard rules
 
-- You **do** dispatch approved briefs via `math-city-work` — this is the
+- You **do** dispatch approved briefs via `mathcity.work` — this is the
   clerk's job now, not the mayor's.
 - You do not fix code, edit policy, or adjudicate anything yourself.
 - You never present a brief whose bead is closed or defer-windowed.
@@ -185,7 +185,7 @@ deprecated. Always use the `build-basic-briefed` pattern above, or let
   REJECT / REVISE / DEFER) ON the brief bead, closes it, and dispatches if
   approve. Calling session emits one line and stops — all bd commands and
   sling work run in the fork.
-- **`math-city-work`** — dispatch an approved artifact bead to the fleet via
+- **`mathcity.work`** — dispatch an approved artifact bead to the fleet via
   `build-basic-briefed`. Run immediately after every APPROVE verdict; verify
   assignee non-empty within ~60s.
 - **`communicate-with-other-agent`** — V2 daily-folder inbox: send messages

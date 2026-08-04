@@ -55,7 +55,7 @@ attempted, say why (superseded, blocked, deprioritized). These rows feed the
 **Additional work log** — list things worked on that were NOT in the
 `charge_for_next`. One line each:
 - `<what>: <why it was needed or picked up>` (e.g. `"WS-B critical-review
-  revision: design docs needed a second pass before math-city-work dispatch"`)
+  revision: design docs needed a second pass before mathcity.work dispatch"`)
 
 This reveals scope creep, emergent blockers, and objectives that were too
 coarse or too granular.

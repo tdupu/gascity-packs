@@ -178,7 +178,7 @@ cd ~/gt/hecke && bd ready 2>&1 | head -20
 ```
 
 Report count of ready beads per rig. Many READY beads + no active
-implementation workers = dispatch gap (run `/math-city-work` on the highest
+implementation workers = dispatch gap (run `/mathcity.work` on the highest
 priority item).
 
 ## Output format

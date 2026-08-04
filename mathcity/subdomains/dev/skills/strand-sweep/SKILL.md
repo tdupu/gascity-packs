@@ -206,7 +206,7 @@ If no strands found: `"Strand-sweep clean — 0 strands found across N rungs."`
 
 ## Compose with
 
-- **`/math-city-work`** — re-dispatch a Rung A strand (re-sling with verify-assignee gate)
+- **`/mathcity.work`** — re-dispatch a Rung A strand (re-sling with verify-assignee gate)
 - **`/city-status`** — get a broader fleet snapshot before acting on Rung D findings
 - **`/check-formula-hygiene`** — deep-audit a specific formula after a Rung B finding
 - **`formula-compiler` bead (gsp-nihd4)** — tracks the substrate fix for Rung B (adding creation-time validation to formula-creator-math)

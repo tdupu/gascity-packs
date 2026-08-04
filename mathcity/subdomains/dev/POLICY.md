@@ -257,7 +257,7 @@ recreate what you're running; upstream must remain pullable.*
   race) must rely on `bd update --claim` atomicity at the substrate level —
   only the first claimant proceeds; the second sees a claim failure and backs
   off with a visible log entry. The post-sling verify-assignee gate (from
-  `math-city-work` doctrine, bead `he-uz9fg`) remains mandatory and is NOT
+  `mathcity.work` doctrine, bead `he-uz9fg`) remains mandatory and is NOT
   superseded by this pre-sling check — both gates are required.
   *Allowed exceptions (precise):* (a) re-slinging is explicitly authorized by
   Taylor in a current-session directive that names the bead and the reason for
@@ -655,7 +655,7 @@ bead has no active non-stale assignee before dispatching. Active assignee →
 abort cleanly with visible signal ("ALREADY DISPATCHED"); do not re-sling.
 Competing workers that race past the pre-sling check resolve via `bd update
 --claim` atomicity (second claimant backs off). Post-sling verify-assignee gate
-(math-city-work doctrine) remains mandatory alongside this rule. Triggered by:
+(mathcity.work doctrine) remains mandatory alongside this rule. Triggered by:
 Taylor directive 2026-07-23 Mayor session Q27: "Dispatching work should be idempotent.
 If we deploy the same work twice the city structure should be such that it
 doesn't matter. We will not do extra compute, we will not do duplicate compute.

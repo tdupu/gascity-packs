@@ -133,7 +133,7 @@ Do not adjudicate them yourself — surface them so USER can drain the pile.
 
 ## 6. Session toolkit
 
-- **`math-city-work`** — Dispatch work to the fleet. Use this after every brief approval or user request for work.
+- **`mathcity.work`** — Dispatch work to the fleet. Use this after every brief approval or user request for work.
 - **`decisions-to-briefs`** — turn a pile of pending decisions into adjudicable brief artifacts.
 - **`present-briefs`** — batch-present N briefs to USER with a warm queue.
 - **`present-it`** — dump decision-ready context on ONE artifact into the conversation.

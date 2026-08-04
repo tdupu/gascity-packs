@@ -370,7 +370,7 @@ formula, through the front door.*
 
 - **CT7.4 E2E claims require launch provenance and strict result labels.**
   Before an end-to-end test is launched, the test record declares its launch
-  surface (`/math-city-work`, direct `gc sling --formula`, recurring order,
+  surface (`/mathcity.work`, direct `gc sling --formula`, recurring order,
   manual skill, or other), exact command and variables, expected root
   metadata (`gc.formula_name`, `gc.routed_to`, `gc.run_target`,
   `gc.root_bead_id`), expected first runnable step and target pool, natural

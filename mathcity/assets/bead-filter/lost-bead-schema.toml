@@ -43,7 +43,7 @@ root_causes = [
 ]
 
 dispatch_sources = [
-  "math-city-work",
+  "mathcity.work",
   "simple-work",
   "priority-work",
   "gc-sling",

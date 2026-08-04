@@ -14,7 +14,7 @@ Checks:
    `artifact_root=<rig-artifact-root>` dispatch form.
 2. `push-the-fleet` SKILL.md documents the scoped
    `artifact_root=<rig-root>/.gc-builds/<bead-id>` form.
-3. `math-city-work` SKILL.md documents the same scoped form for its
+3. `mathcity.work` SKILL.md documents the same scoped form for its
    `build-basic-briefed` branch.
 4. `mayor-math-prime` SKILL.md documents the scoped
    `artifact_root=<rig-root>/.gc-builds/<artifact-bead>` form for its

@@ -4,7 +4,7 @@ observed_at = "2026-07-25T00:00:00Z"
 observer = "fixture"
 
 [dispatch]
-source = "math-city-work"
+source = "mathcity.work"
 created_at = "2026-07-25T00:00:00Z"
 rig = "gascity-packs"
 target = "gascity-packs/gc.run-operator"

@@ -76,6 +76,6 @@ bash mathcity/tests/lost-bead-filter/smoke_test.sh
 
 In the July 2026 E2E pass, static upstream behavior passed: known-source strand
 failures route to the verify-assignee gate, unknown provenance remains
-unattributed, and unknown provenance does not blame `math-city-work`. The live
+unattributed, and unknown provenance does not blame `mathcity.work`. The live
 upstream workflow still needs to run after the downstream live workflow
 finishes.

@@ -109,7 +109,7 @@ reversible = true
 
 [root_cause]
 class = "no_worker_claimed"
-suspected_source = "math-city-work"
+suspected_source = "mathcity.work"
 repair_candidate = true
 fingerprint = "empty_assignee_after_verified_sling"
 ```
