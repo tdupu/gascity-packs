@@ -2,7 +2,7 @@
 description = "Remove orphaned prepare-item-worktree checkouts for CLOSED beads (do-work/implementation-base never tear these down)"
 trigger = "cooldown"
 interval = "30m"
-exec = "bash mathcity/subdomains/dev/scripts/reap-prepare-item-worktrees.sh"
+exec = "bash $PACK_DIR/scripts/reap-prepare-item-worktrees.sh"
 scope = "city"
 timeout = "180s"
 # Stopgap for gsp-qsw4qh: prepare-worktree.md (gascity-packs/gascity/formulas,
