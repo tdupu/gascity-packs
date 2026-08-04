@@ -57,6 +57,7 @@ notes and metadata. Crash-safe: `gc bd mol current` resumes at the right step.
   Slack thread."""
 formula = "mol-pr-from-issue"
 phase = "vapor"
+pour = true
 version = 1
 
 [requires]
@@ -74,6 +75,10 @@ default = "false"
 [vars.auto_push]
 description = "Positive signal authorizing polecat push + open-PR after eligibility gate. Default false. Required-positive — absence treated as halt-at-branch-ready regardless of skip_open_pr."
 default = "false"
+
+[vars.pr_work_dir]
+description = "Absolute path to the isolated PR git worktree. Every git-using step cd's here and refuses to run (halt_chain) if it is empty, not a git checkout, or not the checkout root — so the pipeline never mutates the caller's default work_dir (e.g. a live rig checkout)."
+required = true
 
 [[steps]]
 id = "pr-start"
@@ -93,13 +98,33 @@ and scoped to this macro formula.
 **1. Find the root bead and confirm we're in a git repo:**
 ```bash
 ROOT_ID=$(gc bd mol current --json | jq -r '.molecule_id')
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
-    echo "Not in a git repository — cannot plan."
+# --- pr_work_dir guard: cd into the isolated PR worktree and refuse to run in any
+#     other checkout BEFORE any git mutation (see [vars.pr_work_dir]). ---
+PR_WORK_DIR="{{pr_work_dir}}"
+if [ -z "$PR_WORK_DIR" ]; then
     gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
-                         --set-metadata "summary_for_human=Cannot plan issue #{{issue_number}}: not in a git checkout. No PR opened."
-    gc bd close "$ROOT_ID" --reason "not a git checkout"
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir is required for mol-pr-from-issue."
+    gc bd close "$ROOT_ID" --reason "missing pr_work_dir"
+    exit 1
+fi
+cd "$PR_WORK_DIR" || {
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir not accessible: $PR_WORK_DIR."
+    gc bd close "$ROOT_ID" --reason "invalid pr_work_dir"
     exit 1
 }
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir not inside a git checkout: $PR_WORK_DIR."
+    gc bd close "$ROOT_ID" --reason "pr_work_dir not a git checkout"
+    exit 1
+}
+if [ "$REPO_ROOT" != "$PR_WORK_DIR" ]; then
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Refusing to run issue #{{issue_number}}: pr_work_dir=$PR_WORK_DIR but git root=$REPO_ROOT."
+    gc bd close "$ROOT_ID" --reason "pr_work_dir root mismatch"
+    exit 1
+fi
 cd "$REPO_ROOT"
 REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
 ```
@@ -144,11 +169,37 @@ Follow mol-pr-start's six step bodies in order (copy-with-prune from
      themes (silent errors, parallel call-path siblings, golden snapshot
      drift, etc.). Update the plan in-place where a theme applies.
 
-**3. Create the branch.**
-Read the branch name from the plan's "Branch" section, then:
+**3. Create the branch (based on the upstream default branch).**
+`origin` may be a contributor fork whose main has diverged from upstream, so
+resolve the upstream base from the fork's GitHub parent (falling back to this
+repo's own `nameWithOwner` + default branch, fetched by URL, when there is no
+parent — i.e. this repo already IS upstream). Read the branch name from the
+plan's "Branch" section, then:
 ```bash
-git checkout -B "<branch-name>" origin/main
+# Compute the upstream base WITHOUT adding/renaming any git remote — remotes are
+# shared across linked worktrees, so `git remote add` would mutate the shared repo
+# config. Fetch by explicit URL and use FETCH_HEAD. Falls back to this repo when
+# there is no parent (this repo already IS upstream). `gh repo view --json parent`
+# exposes owner.login + name (NOT a nameWithOwner field), so construct owner/name; FAIL
+# LOUD if a parent exists but cannot resolve (never silently treat a real fork as its
+# own upstream). Only fall back to this repo when there is genuinely NO parent.
+BASE_REPO=$(gh repo view --json parent --jq 'if .parent then (.parent.owner.login + "/" + .parent.name) else "NO_PARENT" end')
+if [ "$BASE_REPO" = "NO_PARENT" ]; then
+  BASE_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+elif ! printf '%s' "$BASE_REPO" | grep -Eq '^[^/]+/[^/]+$'; then
+  echo "[pr-from-issue] FATAL: repo has a parent but upstream owner/name did not resolve (got: '$BASE_REPO')" >&2
+  exit 1
+fi
+BASE_BRANCH=$(gh repo view "$BASE_REPO" --json defaultBranchRef --jq '.defaultBranchRef.name // "main"')
+BASE_URL="https://github.com/${BASE_REPO}.git"
+git fetch --quiet "$BASE_URL" "refs/heads/${BASE_BRANCH:-main}"
+BASE_SHA=$(git rev-parse FETCH_HEAD)
+echo "[pr-from-issue] upstream base: repo=${BASE_REPO} branch=${BASE_BRANCH} sha=${BASE_SHA}"
+git checkout -B "<branch-name>" "$BASE_SHA"
 ```
+`$BASE_SHA` is the upstream base SHA for this whole run: use it — not `origin/main`
+— for every diff/count gate in the later steps (recompute it the same way in the
+gate step). Publishing still pushes the branch to the fork remote (open-pr step).
 
 **4. Implement per the plan.**
 mol-pr-start's contract says "no code is written" — this step extends
@@ -244,7 +295,33 @@ Copy-with-prune from
 **1. Find the root bead and resolve the branch:**
 ```bash
 ROOT_ID=$(gc bd mol current --json | jq -r '.molecule_id')
-REPO_ROOT=$(git rev-parse --show-toplevel)
+# --- pr_work_dir guard: cd into the isolated PR worktree and refuse to run in any
+#     other checkout BEFORE any git mutation (see [vars.pr_work_dir]). ---
+PR_WORK_DIR="{{pr_work_dir}}"
+if [ -z "$PR_WORK_DIR" ]; then
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir is required for mol-pr-from-issue."
+    gc bd close "$ROOT_ID" --reason "missing pr_work_dir"
+    exit 1
+fi
+cd "$PR_WORK_DIR" || {
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir not accessible: $PR_WORK_DIR."
+    gc bd close "$ROOT_ID" --reason "invalid pr_work_dir"
+    exit 1
+}
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir not inside a git checkout: $PR_WORK_DIR."
+    gc bd close "$ROOT_ID" --reason "pr_work_dir not a git checkout"
+    exit 1
+}
+if [ "$REPO_ROOT" != "$PR_WORK_DIR" ]; then
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Refusing to run issue #{{issue_number}}: pr_work_dir=$PR_WORK_DIR but git root=$REPO_ROOT."
+    gc bd close "$ROOT_ID" --reason "pr_work_dir root mismatch"
+    exit 1
+fi
 cd "$REPO_ROOT"
 BRANCH=$(git branch --show-current)
 DEFAULT=$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p' || echo "main")
@@ -386,7 +463,33 @@ through to `open-pr`, whose top-of-step check soft-halts at branch-ready
 ROOT_ID=$(gc bd mol current --json | jq -r '.molecule_id')
 AUTO_PUSH="{{auto_push}}"
 ISSUE_NUM={{issue_number}}
-REPO_ROOT=$(git rev-parse --show-toplevel)
+# --- pr_work_dir guard: cd into the isolated PR worktree and refuse to run in any
+#     other checkout BEFORE any git mutation (see [vars.pr_work_dir]). ---
+PR_WORK_DIR="{{pr_work_dir}}"
+if [ -z "$PR_WORK_DIR" ]; then
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir is required for mol-pr-from-issue."
+    gc bd close "$ROOT_ID" --reason "missing pr_work_dir"
+    exit 1
+fi
+cd "$PR_WORK_DIR" || {
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir not accessible: $PR_WORK_DIR."
+    gc bd close "$ROOT_ID" --reason "invalid pr_work_dir"
+    exit 1
+}
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir not inside a git checkout: $PR_WORK_DIR."
+    gc bd close "$ROOT_ID" --reason "pr_work_dir not a git checkout"
+    exit 1
+}
+if [ "$REPO_ROOT" != "$PR_WORK_DIR" ]; then
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Refusing to run issue #{{issue_number}}: pr_work_dir=$PR_WORK_DIR but git root=$REPO_ROOT."
+    gc bd close "$ROOT_ID" --reason "pr_work_dir root mismatch"
+    exit 1
+fi
 cd "$REPO_ROOT"
 BRANCH=$(git branch --show-current)
 ```
@@ -418,6 +521,28 @@ halt_gate() {
     gc bd close "$ROOT_ID" --reason "auto-push gate halt: ${gate}"
     exit 0
 }
+
+# Recompute the same upstream base SHA the branch step used, WITHOUT adding/renaming
+# any git remote (remotes are shared across linked worktrees). Fetch by explicit URL
+# and use FETCH_HEAD. `gh repo view --json parent` exposes owner.login + name (NOT a
+# nameWithOwner field), so construct owner/name; FAIL LOUD if a parent exists but cannot
+# resolve. Only fall back to this repo when there is genuinely NO parent.
+BASE_REPO=$(gh repo view --json parent --jq 'if .parent then (.parent.owner.login + "/" + .parent.name) else "NO_PARENT" end')
+if [ "$BASE_REPO" = "NO_PARENT" ]; then
+  BASE_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+elif ! printf '%s' "$BASE_REPO" | grep -Eq '^[^/]+/[^/]+$'; then
+  echo "[pr-from-issue] FATAL: repo has a parent but upstream owner/name did not resolve (got: '$BASE_REPO')" >&2
+  exit 1
+fi
+BASE_BRANCH=$(gh repo view "$BASE_REPO" --json defaultBranchRef --jq '.defaultBranchRef.name // "main"')
+BASE_URL="https://github.com/${BASE_REPO}.git"
+git fetch --quiet "$BASE_URL" "refs/heads/${BASE_BRANCH:-main}"
+# Use the branch's actual ancestry base (merge-base), NOT the live upstream tip, so
+# the gate compares against the same base the branch was cut from even if upstream
+# advanced after branch creation.
+UPSTREAM_TIP=$(git rev-parse FETCH_HEAD)
+BASE_SHA=$(git merge-base HEAD "$UPSTREAM_TIP")
+echo "[pr-from-issue] gate base: repo=${BASE_REPO} branch=${BASE_BRANCH} upstream_tip=${UPSTREAM_TIP} merge_base=${BASE_SHA}"
 ```
 
   a. **kill-switch** (checked first so the gate fails fast when disarmed):
@@ -433,9 +558,9 @@ halt_gate() {
   fi
   ```
 
-  b. **diff-size** — `git diff origin/main...HEAD --numstat` added+removed ≤ 500:
+  b. **diff-size** — `git diff "${BASE_SHA}"...HEAD --numstat` added+removed ≤ 500:
   ```bash
-  DIFF_LOC=$(git diff origin/main...HEAD --numstat | awk '{a+=$1; r+=$2} END {print (a+r)+0}')
+  DIFF_LOC=$(git diff "${BASE_SHA}"...HEAD --numstat | awk '{a+=$1; r+=$2} END {print (a+r)+0}')
   if [ "${DIFF_LOC:-0}" -gt 500 ]; then
       halt_gate "diff-size" "${DIFF_LOC} LOC > 500 cap"
   fi
@@ -443,7 +568,7 @@ halt_gate() {
 
   c. **diff-files** — files changed ≤ 8:
   ```bash
-  DIFF_FILES=$(git diff origin/main...HEAD --name-only | wc -l | tr -d ' ')
+  DIFF_FILES=$(git diff "${BASE_SHA}"...HEAD --name-only | wc -l | tr -d ' ')
   if [ "${DIFF_FILES:-0}" -gt 8 ]; then
       halt_gate "diff-files" "${DIFF_FILES} files > 8 cap"
   fi
@@ -462,7 +587,7 @@ halt_gate() {
   BASELINE='^\\.github/|(^|/)secrets/|^\\.beads/|(^|/)migrations/|^hooks/'
   PATTERN="$BASELINE"
   [ -n "${GC_PROTECTED_PATHS:-}" ] && PATTERN="${PATTERN}|${GC_PROTECTED_PATHS}"
-  PROTECTED=$(git diff origin/main...HEAD --name-only | grep -E "$PATTERN" || true)
+  PROTECTED=$(git diff "${BASE_SHA}"...HEAD --name-only | grep -E "$PATTERN" || true)
   if [ -n "$PROTECTED" ]; then
       OFFENDERS=$(echo "$PROTECTED" | tr '\\n' ',' | sed 's/,$//')
       halt_gate "path-protection" "touches protected paths: ${OFFENDERS}"
@@ -472,8 +597,12 @@ halt_gate() {
   e. **issue-label** — none of {breaking-change, requires-design,
   requires-discussion, epic, tracking, arch, discussion-needed, policy}:
   ```bash
-  UPSTREAM_REPO=$(gh repo view --json parent --jq '.parent.nameWithOwner // empty')
-  [ -z "$UPSTREAM_REPO" ] && UPSTREAM_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+  UPSTREAM_REPO=$(gh repo view --json parent --jq 'if .parent then (.parent.owner.login + "/" + .parent.name) else "NO_PARENT" end')
+  if [ "$UPSTREAM_REPO" = "NO_PARENT" ]; then
+      UPSTREAM_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+  elif ! printf '%s' "$UPSTREAM_REPO" | grep -Eq '^[^/]+/[^/]+$'; then
+      halt_gate "issue-label" "parent exists but upstream owner/name did not resolve (got: '$UPSTREAM_REPO')"
+  fi
   LABELS=$(gh issue view "$ISSUE_NUM" --repo "$UPSTREAM_REPO" --json labels --jq '[.labels[].name] | join(",")')
   BLOCKERS=""
   for L in breaking-change requires-design requires-discussion epic tracking arch discussion-needed policy; do
@@ -510,9 +639,9 @@ halt_gate() {
   fi
   ```
 
-  h. **commit-count** — ≤ 5 commits ahead of origin/main:
+  h. **commit-count** — ≤ 5 commits ahead of the upstream base (`${BASE_SHA}`):
   ```bash
-  COMMITS=$(git rev-list origin/main..HEAD --count)
+  COMMITS=$(git rev-list "${BASE_SHA}"..HEAD --count)
   if [ "${COMMITS:-0}" -gt 5 ]; then
       halt_gate "commit-count" "${COMMITS} commits ahead > 5 cap; squash before auto-push"
   fi
@@ -574,6 +703,34 @@ upstream.
 **1. Find the root bead and resolve identifiers:**
 ```bash
 ROOT_ID=$(gc bd mol current --json | jq -r '.molecule_id')
+# --- pr_work_dir guard: cd into the isolated PR worktree and refuse to run in any
+#     other checkout BEFORE any git op (this step pushes/opens the PR). ---
+PR_WORK_DIR="{{pr_work_dir}}"
+if [ -z "$PR_WORK_DIR" ]; then
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir is required for mol-pr-from-issue."
+    gc bd close "$ROOT_ID" --reason "missing pr_work_dir"
+    exit 1
+fi
+cd "$PR_WORK_DIR" || {
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir not accessible: $PR_WORK_DIR."
+    gc bd close "$ROOT_ID" --reason "invalid pr_work_dir"
+    exit 1
+}
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Cannot run issue #{{issue_number}}: pr_work_dir not inside a git checkout: $PR_WORK_DIR."
+    gc bd close "$ROOT_ID" --reason "pr_work_dir not a git checkout"
+    exit 1
+}
+if [ "$REPO_ROOT" != "$PR_WORK_DIR" ]; then
+    gc bd update "$ROOT_ID" --set-metadata "gc.halt_chain=true" \\
+      --set-metadata "summary_for_human=Refusing to run issue #{{issue_number}}: pr_work_dir=$PR_WORK_DIR but git root=$REPO_ROOT."
+    gc bd close "$ROOT_ID" --reason "pr_work_dir root mismatch"
+    exit 1
+fi
+cd "$REPO_ROOT"
 BRANCH=$(git branch --show-current)
 ISSUE_NUM={{issue_number}}
 SKIP_OPEN_PR="{{skip_open_pr}}"
@@ -646,10 +803,15 @@ The local checkout is the contributor's fork. Resolve:
 ```bash
 FORK_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
 FORK_OWNER=$(echo "$FORK_REPO" | cut -d/ -f1)
-UPSTREAM_REPO=$(gh repo view --json parent --jq '.parent.nameWithOwner // empty')
-if [ -z "$UPSTREAM_REPO" ]; then
+# `gh repo view --json parent` exposes owner.login + name (NOT a nameWithOwner field),
+# so construct owner/name; FAIL LOUD if a parent exists but cannot resolve.
+UPSTREAM_REPO=$(gh repo view --json parent --jq 'if .parent then (.parent.owner.login + "/" + .parent.name) else "NO_PARENT" end')
+if [ "$UPSTREAM_REPO" = "NO_PARENT" ]; then
     # Not a fork — open the PR against the same repo.
     UPSTREAM_REPO="$FORK_REPO"
+elif ! printf '%s' "$UPSTREAM_REPO" | grep -Eq '^[^/]+/[^/]+$'; then
+    echo "[pr-from-issue] FATAL: parent exists but upstream owner/name did not resolve (got: '$UPSTREAM_REPO')" >&2
+    exit 1
 fi
 UPSTREAM_BASE=$(gh repo view "$UPSTREAM_REPO" --json defaultBranchRef --jq '.defaultBranchRef.name // "main"')
 ```
