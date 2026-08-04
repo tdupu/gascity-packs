@@ -89,44 +89,32 @@ If none of the enumerated formulas cleanly fits, fall back to **`work-briefed`**
 and let the router decide — do not force a poor match, and never pass a formula
 name that Step A did not actually return.
 
-## Sling command (replace `<formula>` with your selection above)
+## Sling command — the work-dispatch formulas
 
-**If `<formula>` is `build-basic-briefed`**, it runs the full
-requirements → plan → decompose factory, and each stage writes an artifact
-under `artifact_root`. Always scope it per bead — never pass the bare rig
-root, and never omit it and let it fall back to the rig root either.
-Concurrent builds on the same rig that share an artifact_root silently
-overwrite each other's `implementation-plan.md` / `requirements.md` /
-`decomposition.md` (confirmed data loss, gsp-1bmxuz). Note the residual:
-scoping per bead-id does not protect against re-dispatching the SAME bead
-while a prior run's artifacts are still present (a manual retry, or two
-different dispatchers picking the same bead) — that still needs the
-verify-assignee / don't-re-dispatch-already-running-beads guard to avoid
-overwriting a prior run's artifacts in place:
+The `*-briefed` set **grows** — always confirm the live catalog with Step A
+(`gc formula list | grep -i briefed`) before dispatching, and never pass a name
+it did not return. The five below are the Mayor-dispatchable work formulas as of
+this writing (verify against Step A, do not treat as closed). Run every
+`gc sling` **from the bead's rig dir** (e.g. `~/gt/hecke` for `he-*`) so bd
+resolves. Shared defaults on the work formulas — `interaction_mode=autonomous`,
+`review_mode=agent`, `drain_policy=separate`, `push=false`, `open_pr=false` —
+mean nothing ships; a decision brief fires at the terminal slot instead.
 
-```bash
-gc sling <rig>/gc.run-operator <bead> --on build-basic-briefed \
-  --var interaction_mode=autonomous --var review_mode=agent \
-  --var drain_policy=separate --var push=false --var open_pr=false \
-  --var artifact_root=<rig-root>/.gc-builds/<bead>
-```
+⚠️ **`artifact_root` discipline (all builds):** scope it **per bead**
+(`<rig-root>/.gc-builds/<bead>`) — never the bare rig root, never omitted.
+Concurrent builds sharing an `artifact_root` silently overwrite each other's
+`implementation-plan.md` / `requirements.md` / `decomposition.md` (confirmed
+data loss, `gsp-1bmxuz`). Residual: re-dispatching the SAME bead while a prior
+run's artifacts are still present overwrites them in place — that is what the
+verify-assignee gate (next section) guards against.
 
-**For every other `*-briefed` formula**, the plain form is unchanged:
-
-```bash
-gc sling <rig>/gc.run-operator <bead> --on <formula> \
-  --var interaction_mode=autonomous --var review_mode=agent \
-  --var drain_policy=separate --var push=false --var open_pr=false
-```
-
-(Run from the correct rig dir, e.g. `~/gt/hecke` for `he-*`, so bd resolves.)
-
-**`planning-briefed` requires two extra vars:**
-```bash
-gc sling <rig>/gc.run-operator <bead> --on planning-briefed \
-  --var source_bead=<bead> --var brief_slug=<bead>-planning \
-  --var interaction_mode=autonomous --var push=false
-```
+| Formula | When to use it | Usage notes (vars → what they do) | Testing |
+|---|---|---|---|
+| **`work-briefed`** — default router | You're unsure which cycle fits, or the bead already carries a decision brief. Auto-routes to `simple-work-briefed` (bounded) vs `build-basic-briefed` (full cycle) by assessing bead complexity. Safe default. | `--var source_bead=<bead>` (bead to route, **required**); `--var artifact_root=<rig-root>/.gc-builds/<bead>` (**required** — scope per bead); `--var brief_slug=<bead>-brief` (**required** — brief filename stem); `--var model=haiku` (simple-path exec model, ignored on full-path); `--var brief_type=standard`; plus shared defaults. | Created S25 (`gt-i919hq`); routing verified live S27 (`he-7efhhb`). The well-tested auto-dispatch path. |
+| **`build-basic-briefed`** — full factory | Genuinely complex, multi-file work needing requirements → plan → decompose → implement → review → finalize. **Preferred** feed formula (policy `gsp-fhdnu`) because it emits the terminal decision brief. | `--var artifact_root=<rig-root>/.gc-builds/<bead>` (⚠️ **must** scope per bead — see the callout above); `--var interaction_mode=autonomous --var review_mode=agent --var drain_policy=separate`; `--var push=false --var open_pr=false` → brief only, never ships. | Mechanism D2 POC-3 (`gsp-510c`, landed `cebde05`); full `work → build-basic-briefed → brief → pile → shuffle → stack` chain proven **live end-to-end** S10 (convoy `gsp-7x9f`); source-verified S14 (the "great regression" was a misdiagnosis, not a break); filter E2E S31–S33. Strongest evidence of the five. |
+| **`simple-work-briefed`** — bounded one-off | A very easy, bounded change — Haiku-level single-file edit, a one-shot script run, a small patch, a condition check. Files a brief; never pushes/PRs. | `--var task="<exactly what to do, which inputs to read, expected output>"` (**required**); `--var source_bead=<bead>` (**required**); `--var brief_slug=<bead>-brief` (**required**); `--var context="<paths/beads to read first>"` (optional, default empty); `--var model=haiku` (haiku default; `sonnet` for light reasoning, `opus` high-stakes); `--var artifact_root=.beads/briefs`. | Created S25 (`gt-i919hq`). Exercised as `work-briefed`'s simple path; lighter standalone live-run evidence than `build-basic-briefed`. |
+| **`planning-briefed`** — design-first | Planning/design work — an epic or large bead needing a PERT, decomposition, design doc, or requirements before anyone implements. | `--var source_bead=<bead>` (**required**); `--var brief_slug=<bead>-planning` (**required**); `--var interaction_mode=autonomous --var push=false`; `--var plan_type=task-decomposition`; `--var plan_target=gc.design-author` (Opus-tier **fleet address** — NEVER a model name like `opus`/`fable`); `--var context=""`; `--var artifact_root=.beads/briefs`. Pre-flight checks the Opus agent is configured (mode=on_demand, auto-spawned on dispatch). | Created S25-era; `/tmp` artifact-path bug found + fix sent to BART S29 (`gt-esgnqs`). The design-author (Opus) lane works but is **slow** — sessions oscillate asleep↔active, so don't infer death from a snapshot (S7). Lighter E2E evidence. |
+| **`smoke-test-briefed`** — test an artifact | Smoke-testing a mathcity artifact — a formula TOML, a `SKILL.md`, a Magma intrinsic, a `.py`, or a `.sh`. Read-only audit; does NOT modify the artifact under test. | `--var artifact_path=<path>` (**required**); `--var artifact_type=<formula\|skill\|magma\|python\|script>` (**required** — selects the test strategy); `--var test_slug=<slug>` (**required**); `--var source_bead=<bead>` (optional — links a provenance event); `--var brief_slug=<test_slug>-smoke-test`; `--var test_root=mathcity/tests`; `--var operator_target=gc.run-operator`; `--var review_target=gc.review-synthesizer`. Writes the test to `mathcity/tests/<slug>/`, runs it, files a brief with evidence + a reproducibility guide. | Created S26 (`gt-3mi885`); it IS the F6.1 vehicle (POLICY-formulas.md: every new formula/artifact needs a passing smoke test before its deploy brief). Limited accumulated run evidence to date. |
 
 ## MANDATORY — the verify-assignee gate
 
