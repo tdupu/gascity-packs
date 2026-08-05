@@ -25,6 +25,6 @@ description = "Catch ready-but-never-dispatched idle work beads (>3d); emit lost
 scope = "city"
 trigger = "cooldown"
 interval = "15m"
-exec = "python3 $PACK_DIR/assets/scripts/tail-end-detector.py --base-dir . --cache-dir .beads/tail-end-detector --classification-root .beads/lost-bead-classifications --min-idle-days 3 --supersede-age-days 30 --resling-cap 10 --supersede-cap 25"
+exec = "python3 $PACK_DIR/assets/scripts/tail-end-detector.py --base-dir . --cache-dir .beads/tail-end-detector --classification-root .beads/lost-bead-classifications --min-idle-days 3 --resling-cap 10 --supersede-cap 25"
 timeout = "5m"
 idempotent = false

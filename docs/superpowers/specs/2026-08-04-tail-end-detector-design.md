@@ -39,6 +39,16 @@ stuck-bead-watch's event-bead creation + `bd dep relate` + `escalated/` idempote
 markers so re-runs never duplicate an event.
 
 ### Fork 3 — Classification split (load-bearing)
+
+> **UPDATED 2026-08-05 (gsp-beo9sy):** the age-proxy described in this section
+> is SUPERSEDED. `classify_bead` now uses a real supersession detector —
+> parent-epic-closed, subsumed-by-closed relational edge, and title/description
+> near-duplicate (of a closed or strictly-newer bead, guarded by a Jaccard floor
+> and a min-content-token count). Age alone no longer supersedes; no-signal
+> beads fall through to `resling`. The bucket contract below (fingerprints,
+> caps, close-via-brief gate) is unchanged. The text below is retained as the
+> original v1 design record.
+
 Conservative supersession heuristic keyed on idle age:
 - **Superseded-candidate** — idle ≥ `SUPERSEDE_AGE_DAYS` (default 30d):
   `lost_class=stale_or_duplicate`, `recommendation=close_moot`,
