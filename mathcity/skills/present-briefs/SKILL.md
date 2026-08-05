@@ -33,7 +33,12 @@ Examples:
 
 ## Queue Discovery
 
-When no explicit artifact list is given, discover the ripe queue (approved briefs awaiting Taylor's decision):
+When no explicit artifact list is given, discover the ripe queue. The queue is the **union of two brief sources**, both awaiting Taylor's decision:
+
+1. **Artifact briefs** — approved briefs in the brief stack (`~/gt/.beads/briefs/`), produced by `brief-prep`. Found via Method 1 (beads) or Method 2 (dir scan).
+2. **Decision briefs** — filed by `decisions-to-briefs` into the decisions-track (`~/gt/.beads/decisions-track/`). These are **file-only** (they are NOT `brief_status=approved` beads), so Method 1 can never see them; Method 3 **always** scans them and merges them in. Decision-briefs are ripe at `status: ready-for-adjudication` (they carry no runnable artifact, so they never cross the artifact-brief approve gate — `test-evidence N/A by construction`).
+
+Run Method 1 (or 2) **and** Method 3, concatenate, and sort the combined list by `unlock_count` descending.
 
 ### Method 1 — beads query (preferred)
 
@@ -58,9 +63,42 @@ find "$BRIEF_DIR" -maxdepth 1 -name "*.md" \
   | sort -rn | awk '{print $2}'
 ```
 
-Sort order: **unlock_count descending** (highest unblocking value first).
+### Method 3 — decisions-track scan (ALWAYS — do not skip)
 
-If queue is empty: report "No ripe briefs in queue. Run /brief-prep on pending artifacts first." and exit.
+Decision briefs live only as files in the decisions-track; nothing above finds them. Always run this and merge its output into the queue.
+
+**The manifest is authoritative for lifecycle status — NOT the file frontmatter.** Adjudication updates `manifest.jsonl` (`status` → `adjudicated`/`rescinded`/`auto-dispatched`) but does NOT rewrite the brief file's `status:` line, so a file can read `ready-for-adjudication` long after it was decided. Filtering on file frontmatter re-presents resolved decisions (observed 2026-08-04: 17 of 66 file-ripe briefs were already adjudicated). Select ripe briefs by **manifest `status == "ready"`**:
+
+```bash
+DECISIONS_DIR="${DECISIONS_TRACK_PATH:-$HOME/gt/.beads/decisions-track}"
+python3 - "$DECISIONS_DIR" <<'PY'
+import json, sys, glob, os
+ddir = sys.argv[1]
+for line in open(os.path.join(ddir, "manifest.jsonl")):
+    line = line.strip()
+    if not line: continue
+    try: d = json.loads(line)
+    except: continue
+    if d.get("status") != "ready": continue        # manifest is authoritative
+    n = d.get("n")
+    cands = glob.glob(os.path.join(ddir, f"{n:02d}-*-brief.md")) \
+          + glob.glob(os.path.join(ddir, f"{n}-*-brief.md"))
+    if not cands: continue
+    print(f'{d.get("unlock_count", 0)} {cands[0]}')
+PY
+```
+
+(Follow-up hygiene: `adjudicate-brief` should also rewrite the file's `status:` on verdict so file and manifest never diverge — tracked separately. Until then, manifest wins.)
+
+Then combine Method 1/2 output with Method 3 output and rank together:
+
+```bash
+{ method_1_or_2_paths_with_unlock; method_3_output; } | sort -rn | awk '{print $2}' | awk '!seen[$0]++'
+```
+
+Sort order: **unlock_count descending** (highest unblocking value first). Decision-briefs with no `unlock_count` default to 0; if you need a load-bearing one (e.g. a `stays-out` git-gate decision that unblocks others) surfaced first, pass it explicitly via `--artifacts`.
+
+If queue is empty: report "No ripe briefs in queue (brief stack + decisions-track both empty). Run /brief-prep on pending artifacts, or /decisions-to-briefs to file pending decisions." and exit.
 
 ## Execution
 
@@ -129,7 +167,9 @@ On each decision: `hot` → present immediately; `queue.pop(0)` → fan out to r
 | Situation | Action |
 |-----------|--------|
 | Brief has fewer than 7 sections | Return to prep queue; skip to next |
-| Brief `status` is not `approved` | Skip with note; continue to next |
+| Artifact brief `status` is not `approved` | Skip with note; continue to next |
+| Decision brief (from decisions-track) `status` is `ready-for-adjudication` or `approved` | **Present it** — this is its ripe state; do NOT skip |
+| Decision brief has fewer than 7 §-sections | Present anyway — decision-briefs follow the `decisions-to-briefs` shape (decision-at-top + action-block), not the artifact §1–§7 template; the 7-section gate binds artifact briefs only |
 | Brief source bead has `Status: HELD` | Skip with note; continue to next |
 | Queue empty at startup | "No ripe briefs. Run /brief-prep on pending artifacts first." |
 | Queue drains mid-session | "Queue exhausted — [N] presented, 0 remaining." |
@@ -147,7 +187,8 @@ On each decision: `hot` → present immediately; `queue.pop(0)` → fan out to r
 - **`/adjudicate-brief`** — records Taylor's verdict and closes the brief bead
 - **`/math-city-work`** — dispatches approved artifacts (clerk runs this after approve)
 - **`/brief-prep`** — upstream producer that populates the ripe queue with approved briefs
-- **Brief-pipeline substrate** — the brief-stack (`~/gt/.beads/briefs/`) this skill consumes
+- **`/decisions-to-briefs`** — files decision-briefs into the decisions-track (`~/gt/.beads/decisions-track/`) that Method 3 now drains
+- **Brief-pipeline substrate** — the brief-stack (`~/gt/.beads/briefs/`) + decisions-track (`~/gt/.beads/decisions-track/`) this skill consumes
 
 ## What this skill does NOT do
 
