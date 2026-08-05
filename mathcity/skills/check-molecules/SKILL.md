@@ -84,7 +84,7 @@ re-run the script scoped to one rig dir) and show that view.
 
 ## What this skill does NOT do
 
-- ❌ Dispatch anything — that is `push-the-fleet` / `math-city-work`.
+- ❌ Dispatch anything — that is `push-the-fleet` / `mathcity.work`.
 - ❌ Adjudicate or close beads.
 - ❌ Trust `gc status` counts (`gs-0cy2`) — it reads the bead store directly.
 - ❌ Include in-progress molecules (those are running, not candidates) —

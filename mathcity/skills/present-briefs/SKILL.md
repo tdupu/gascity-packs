@@ -185,7 +185,7 @@ On each decision: `hot` → present immediately; `queue.pop(0)` → fan out to r
 ## Composes with
 
 - **`/adjudicate-brief`** — records Taylor's verdict and closes the brief bead
-- **`/math-city-work`** — dispatches approved artifacts (clerk runs this after approve)
+- **`/mathcity.work`** — dispatches approved artifacts (clerk runs this after approve)
 - **`/brief-prep`** — upstream producer that populates the ripe queue with approved briefs
 - **`/decisions-to-briefs`** — files decision-briefs into the decisions-track (`~/gt/.beads/decisions-track/`) that Method 3 now drains
 - **Brief-pipeline substrate** — the brief-stack (`~/gt/.beads/briefs/`) + decisions-track (`~/gt/.beads/decisions-track/`) this skill consumes

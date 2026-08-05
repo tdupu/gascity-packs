@@ -27,7 +27,7 @@ Agent(
   subagent_type: "fork",
   name: "adj-<BRIEF_BEAD>-<VERDICT>",
   description: "Adjudicate <BRIEF_BEAD> → <VERDICT>",
-  prompt: "You are a fork executing adjudicate-brief. Record Taylor's verdict on brief bead <BRIEF_BEAD> (artifact: <ARTIFACT>): verdict=<VERDICT>, rationale='<RATIONALE>'[, defer_until=<DEFER_UNTIL>], rig=<RIG_DIR>. Execute the FORK BODY section of the adjudicate-brief skill now in your inherited context. Run all bd commands. If verdict=approve, dispatch via math-city-work. Report one summary line when done."
+  prompt: "You are a fork executing adjudicate-brief. Record Taylor's verdict on brief bead <BRIEF_BEAD> (artifact: <ARTIFACT>): verdict=<VERDICT>, rationale='<RATIONALE>'[, defer_until=<DEFER_UNTIL>], rig=<RIG_DIR>. Execute the FORK BODY section of the adjudicate-brief skill now in your inherited context. Run all bd commands. If verdict=approve, dispatch via mathcity.work. Report one summary line when done."
 )
 ```
 
@@ -108,7 +108,7 @@ Invariant: after 2b, the file's `status:` and the manifest `status` for this
 brief are equal. Never leave one `ready`/`ready-for-adjudication` while the
 other is `adjudicated`.
 
-### 3. If verdict = approve → dispatch via math-city-work (MANDATORY)
+### 3. If verdict = approve → dispatch via mathcity.work (MANDATORY)
 
 Scope `artifact_root` per bead — never omit it or pass the bare rig root, or
 concurrent runs on the same rig silently overwrite each other's stage
