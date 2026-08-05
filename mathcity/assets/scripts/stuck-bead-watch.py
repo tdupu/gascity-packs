@@ -83,6 +83,42 @@ def grace_window_seconds(priority: int, windows: dict[int, int]) -> int:
     return windows.get(priority, windows.get(4, 45 * 60))
 
 
+def real_idle_age_seconds(bead: dict, now: datetime) -> float:
+    """The bead's TRUE idle age = seconds since its last real activity.
+
+    gsp-2bowrk: the priority-scaled grace window must measure how long the
+    BEAD has actually been idle, NOT wall-clock since this detector first
+    observed it. A bead already stranded for days, when first seen, has a
+    large real idle age and must escalate immediately -- the grace must not
+    be re-counted from first-observation (that double-counts the grace
+    against wall-clock-since-detection and never escalates old strands).
+
+    `updated_at` is the last time anything touched the bead (creation,
+    routing, claim, note); for a stranded/never-progressed bead it is the
+    moment progress stopped. Fall back to `created_at` when `updated_at`
+    is absent (bd always emits both today; verified 2026-08-04)."""
+    ts = bead.get("updated_at") or bead.get("created_at")
+    if not ts:
+        return 0.0
+    return (now - _parse_ts(ts)).total_seconds()
+
+
+def should_escalate(bead: dict, entry: dict | None, now: datetime, windows: dict[int, int]) -> bool:
+    """Escalate once the bead's REAL idle age (or, as a secondary signal,
+    the wall-clock time since this detector first observed it) crosses the
+    bead's priority grace window. Taking the max of the two means an old
+    strand escalates on the first detection pass (real idle age already
+    over the window), while a genuinely fresh strand still waits out its
+    full window measured against real idle time."""
+    if entry is not None:
+        seconds_since_first_seen = (now - _parse_ts(entry["first_seen_stuck"])).total_seconds()
+    else:
+        seconds_since_first_seen = 0.0
+    age = max(real_idle_age_seconds(bead, now), seconds_since_first_seen)
+    window = grace_window_seconds(bead.get("priority", 4), windows)
+    return age >= window
+
+
 def find_stuck_candidates(
     beads: list[dict],
     sessions: list[dict],
@@ -335,16 +371,17 @@ def main(argv: list[str]) -> int:
 
     for bead in candidates:
         entry = read_cache_entry(args.cache_dir, bead["id"])
-        if entry is None:
-            write_cache_entry(args.cache_dir, bead["id"], observed_at)
-            entered_waiting_room.append(bead["id"])
-            continue
-        first_seen = _parse_ts(entry["first_seen_stuck"])
-        elapsed = (now - first_seen).total_seconds()
-        window = grace_window_seconds(bead.get("priority", 4), windows)
-        if elapsed >= window:
+        # gsp-2bowrk: gate on REAL idle age (updated_at), so a bead already
+        # idle longer than its priority grace window escalates on this FIRST
+        # detection pass -- not first-detection + a fresh grace window.
+        if should_escalate(bead, entry, now, windows):
             event_id = classify_and_escalate(bead, args.cache_dir, args.classification_root, observed_at)
             escalated.append((bead["id"], event_id))
+        elif entry is None:
+            # Genuinely fresh strand under its window: record first-observation
+            # and let it wait out the remainder of its window.
+            write_cache_entry(args.cache_dir, bead["id"], observed_at)
+            entered_waiting_room.append(bead["id"])
 
     if args.cache_dir.exists():
         for cache_file in args.cache_dir.glob("*.json"):

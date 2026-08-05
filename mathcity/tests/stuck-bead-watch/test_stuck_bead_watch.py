@@ -351,6 +351,89 @@ def test_watchdog_output_passes_the_real_lost_bead_filter_validator():
 # -- it must fail loud with SystemExit(1) and an actionable message, never
 # an unhandled TimeoutExpired traceback and never a silent/partial result.
 
+# --- gsp-2bowrk: escalation must be gated on REAL idle age, not on the ---
+# --- moment the detector first observed the bead. A bead already idle    ---
+# --- longer than its priority grace window must escalate on the FIRST     ---
+# --- detection pass -- not first-detection + a fresh grace window.        ---
+
+def _run_main_with_beads(tmp_path, beads, sessions=None):
+    """Drive main() end-to-end with the network/subprocess boundary stubbed
+    out, returning the list of bead ids that got escalated this run."""
+    import tempfile
+    cache_dir = Path(tmp_path) / "cache"
+    classification_root = Path(tmp_path) / "classifications"
+    escalated_ids = []
+
+    import unittest.mock as _mock
+    patches = [
+        _mock.patch.object(sbw, "_preflight", lambda: None),
+        _mock.patch.object(sbw, "_gc_bd_list_routed", lambda: beads),
+        _mock.patch.object(sbw, "_gc_session_list_active", lambda: (sessions or [])),
+        _mock.patch.object(
+            sbw, "classify_and_escalate",
+            lambda bead, cd, cr, observed_at, **kw: (escalated_ids.append(bead["id"]) or f"evt-{bead['id']}"),
+        ),
+    ]
+    for p in patches:
+        p.start()
+    try:
+        sbw.main(["--cache-dir", str(cache_dir), "--classification-root", str(classification_root)])
+    finally:
+        for p in patches:
+            p.stop()
+    return escalated_ids
+
+
+def _iso(dt):
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def test_old_strand_escalates_on_first_detection_pass():
+    # A bead whose REAL idle age (updated_at 200 days ago) already exceeds
+    # its p0 grace window (300s), first observed by the detector RIGHT NOW.
+    # It must escalate on the very first pass -- the grace window measures
+    # the bead's real idle time, not wall-clock since first observation.
+    now = datetime.now(timezone.utc)
+    old = _iso(now - timedelta(days=200))
+    with __import__("tempfile").TemporaryDirectory() as tmp:
+        bead = _bead("gt-old-strand", priority=0, assignee=None,
+                     routed_to="mathcity.brief-operator",
+                     created_at=old)
+        bead["updated_at"] = old
+        escalated = _run_main_with_beads(tmp, [bead])
+    assert escalated == ["gt-old-strand"], (
+        "a 200-day-idle p0 strand must escalate on first detection; "
+        f"got escalated={escalated}"
+    )
+
+
+def test_fresh_strand_does_not_escalate_prematurely():
+    # A genuinely fresh strand: real idle age (200s) is under its p0 grace
+    # window (300s). It must NOT escalate on the first pass -- it enters the
+    # waiting room and only escalates once its real idle age crosses 300s.
+    now = datetime.now(timezone.utc)
+    recent = _iso(now - timedelta(seconds=200))
+    with __import__("tempfile").TemporaryDirectory() as tmp:
+        bead = _bead("gt-fresh-strand", priority=0, assignee=None,
+                     routed_to="mathcity.brief-operator",
+                     created_at=recent)
+        bead["updated_at"] = recent
+        escalated = _run_main_with_beads(tmp, [bead])
+    assert escalated == [], (
+        "a 200s-idle p0 strand (under the 300s window) must not escalate "
+        f"prematurely; got escalated={escalated}"
+    )
+
+
+def test_real_idle_age_seconds_uses_updated_at():
+    now = datetime(2026, 8, 4, 0, 0, 0, tzinfo=timezone.utc)
+    bead = {"id": "gt-x", "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-08-03T00:00:00Z"}
+    # last activity was 1 day before `now` -> real idle age = 86400s,
+    # NOT the ~7-month age since creation.
+    assert sbw.real_idle_age_seconds(bead, now) == 86400.0
+
+
 def test_gc_session_list_active_fails_loud_on_timeout(monkeypatch):
     import subprocess as _subprocess
 
