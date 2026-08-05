@@ -15,10 +15,15 @@ resling/close decision briefs. No parallel pipeline.
 Design (docs/superpowers/specs/2026-08-04-tail-end-detector-design.md):
 - Fork 1 real idle age = max(created_at, updated_at, last_activity); a
   genuinely-3-day-idle bead registers on the FIRST scan (no waiting room).
-- Fork 3 classification split: idle >= SUPERSEDE_AGE_DAYS -> superseded ->
-  close_moot brief; idle in [3d, SUPERSEDE_AGE_DAYS) -> resling. Both buckets
-  batch-capped, oldest-first, so a large tail is drained at a fleet-absorbing
-  cadence and never dumped at once.
+- Fork 3 classification split (real supersession detector, gsp-beo9sy): a
+  never-dispatched idle bead is superseded ONLY when a real signal fires --
+  (1) its parent epic/convoy is closed, (2) it carries a non-blocking
+  relational edge (related/tracks/...) to a closed bead, or (3) its title/
+  description is a near-duplicate of a closed bead or a strictly-newer open
+  one. No signal -> resling ("genuinely wanted, just old"). Age alone never
+  supersedes -- a wrong auto-close silently discards work, so the default is
+  the reversible resling. Both buckets are batch-capped, oldest-first, so a
+  large tail drains at a fleet-absorbing cadence and never dumps at once.
 - Fork 4 fail-loud (P6.1): subprocess timeouts -> nonzero exit; the
   actionable-tail count is a heartbeat -- if it GROWS or the run errors, emit
   a visible event bead; the count is printed every run.
@@ -38,9 +43,34 @@ from pathlib import Path
 # ---- configuration / defaults -------------------------------------------
 
 DEFAULT_MIN_IDLE_DAYS = 3
-DEFAULT_SUPERSEDE_AGE_DAYS = 30
 DEFAULT_RESLING_BATCH_CAP = 10
 DEFAULT_SUPERSEDE_BATCH_CAP = 25
+
+# ---- supersession-detector tuning (gsp-beo9sy) --------------------------
+# Deliberately conservative: a wrong auto-close silently discards real work,
+# a wrong resling is cheap to undo. So the duplicate signal needs a HIGH
+# similarity floor and a minimum count of meaningful tokens -- generic
+# repeated titles ("Finalize build-basic") must never trip an auto-close.
+DEFAULT_SIMILARITY_THRESHOLD = 0.85
+DEFAULT_MIN_SIMILARITY_TOKENS = 4
+
+# Non-blocking relational edges. A closed target on one of these means "the
+# work this bead points at is already done" -> subsumed. `blocks` and
+# `parent-child` are deliberately excluded: a satisfied *blocker* merely
+# unblocks a bead (it does not finish the bead's own work), and parent-child
+# is handled by the dedicated parent-epic-closed signal.
+SUBSUMING_REL_TYPES = ("related", "relates-to", "tracks", "discovered-from")
+
+# Tokens with no discriminating power for duplicate detection: English
+# stopwords + gascity workflow filler. Stripped before similarity scoring so
+# only content words count toward the min-token guard and the Jaccard score.
+STOPWORDS = frozenset({
+    "a", "an", "the", "and", "or", "of", "for", "to", "in", "on", "at", "by",
+    "with", "from", "into", "as", "is", "are", "be", "this", "that", "it",
+    "its", "via", "per", "then", "now", "new", "run", "do", "make", "add",
+    "update", "fix", "finalize", "produce", "generate", "build", "basic",
+    "task", "bead", "work", "step", "review", "until", "approved",
+})
 
 DEFAULT_RIGS = (
     "gascity-packs", "hecke", "agent_skills", "lmfdb",
@@ -82,9 +112,11 @@ BUCKETS = {
         "repair_candidate": False,
         "fingerprint": FINGERPRINT_SUPERSEDED,
         "rationale": (
-            "Ready+unblocked but never dispatched and idle far past the "
-            "supersession age proxy; almost certainly obsolete -- recommend "
-            "close as moot (gated through a close brief, not auto-closed)."
+            "Ready+unblocked but never dispatched, and a supersession signal "
+            "fired (parent epic closed / relational edge to a closed bead / "
+            "near-duplicate of a closed-or-newer bead); the work is almost "
+            "certainly already done or obsolete -- recommend close as moot "
+            "(gated through a close brief, not auto-closed)."
         ),
     },
     "resling": {
@@ -94,8 +126,8 @@ BUCKETS = {
         "repair_candidate": False,
         "fingerprint": FINGERPRINT_RESLING,
         "rationale": (
-            "Ready+unblocked, still within the supersession age proxy, but "
-            "never dispatched -- valid work that was never slung; recommend "
+            "Ready+unblocked and never dispatched, with no supersession "
+            "signal -- valid work that was simply never slung; recommend "
             "resling at a fleet-absorbing cadence."
         ),
     },
@@ -190,24 +222,179 @@ def find_actionable_tail(
     return out
 
 
-def classify_bead(bead: dict, now: datetime, supersede_age_seconds: float) -> str:
-    if real_idle_seconds(bead, now) >= supersede_age_seconds:
-        return "superseded"
-    return "resling"
+# ---- supersession detector (gsp-beo9sy) ---------------------------------
+
+_TOKEN_RE = re.compile(r"[a-z0-9]+")
+
+
+def normalize_tokens(text: str) -> frozenset[str]:
+    """Content-token set for similarity: lowercase, split on non-alnum, drop
+    stopwords / short filler tokens. Order- and duplicate-insensitive."""
+    tokens = _TOKEN_RE.findall((text or "").lower())
+    return frozenset(t for t in tokens if len(t) > 1 and t not in STOPWORDS)
+
+
+def jaccard(a: frozenset, b: frozenset) -> float:
+    if not a and not b:
+        return 0.0
+    union = a | b
+    return len(a & b) / len(union) if union else 0.0
+
+
+def parent_of(bead: dict) -> str | None:
+    """Parent id from the scalar `parent` field, or a parent-child dep edge
+    (issue_id == this bead -> depends_on_id is the parent)."""
+    parent = bead.get("parent")
+    if parent:
+        return parent
+    for edge in bead.get("dependencies") or []:
+        if edge.get("type") == "parent-child" and edge.get("issue_id") == bead.get("id"):
+            return edge.get("depends_on_id")
+    return None
+
+
+def subsuming_refs(bead: dict) -> list[str]:
+    """Ids this bead points at via a non-blocking relational edge (a closed
+    such target means the pointed-at work is done -> this bead is subsumed)."""
+    out = []
+    for edge in bead.get("dependencies") or []:
+        if edge.get("type") in SUBSUMING_REL_TYPES and edge.get("issue_id") == bead.get("id"):
+            out.append(edge.get("depends_on_id"))
+    return out
+
+
+class DedupIndex:
+    """Corpus lookup for the three supersession signals. Built once per run
+    from the full open+closed bead set across all scanned rigs.
+
+    - closed_ids: every closed bead id (parent-closed / subsumed-ref checks).
+    - entries: (id, tokens, is_closed, created_at) for every bead with enough
+      content tokens to be a safe duplicate target.
+    - inverted: token -> [entry index] so a candidate only scores against
+      beads that share at least one content token (keeps it near-linear on a
+      1000+ bead tail instead of O(N*M) full pairwise)."""
+
+    def __init__(self, beads: list[dict], min_tokens: int):
+        self.closed_ids: set[str] = set()
+        self.entries: list[tuple[str, frozenset[str], bool, datetime | None]] = []
+        self.inverted: dict[str, list[int]] = {}
+        for bead in beads:
+            bid = bead.get("id")
+            if not bid:
+                continue
+            is_closed = bead.get("status") == "closed"
+            if is_closed:
+                self.closed_ids.add(bid)
+            tokens = normalize_tokens(
+                f"{bead.get('title') or ''} {bead.get('description') or ''}"
+            )
+            if len(tokens) < min_tokens:
+                continue  # too generic to be a safe duplicate target
+            created = None
+            raw = bead.get("created_at")
+            if raw:
+                try:
+                    created = parse_ts(raw)
+                except ValueError:
+                    created = None
+            idx = len(self.entries)
+            self.entries.append((bid, tokens, is_closed, created))
+            for tok in tokens:
+                self.inverted.setdefault(tok, []).append(idx)
+
+
+def build_dedup_index(beads: list[dict],
+                      min_tokens: int = DEFAULT_MIN_SIMILARITY_TOKENS) -> DedupIndex:
+    return DedupIndex(beads, min_tokens)
+
+
+def find_duplicate(
+    bead: dict,
+    index: DedupIndex,
+    threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
+    min_tokens: int = DEFAULT_MIN_SIMILARITY_TOKENS,
+) -> tuple[str, float] | None:
+    """Best superseding duplicate of `bead`: a CLOSED bead, or a strictly
+    NEWER open bead, whose content-token Jaccard >= threshold. Returns
+    (matched_id, score) or None. Guarded by min_tokens so short/generic
+    titles never match."""
+    tokens = normalize_tokens(f"{bead.get('title') or ''} {bead.get('description') or ''}")
+    if len(tokens) < min_tokens:
+        return None
+    bid = bead.get("id")
+    created = None
+    if bead.get("created_at"):
+        try:
+            created = parse_ts(bead["created_at"])
+        except ValueError:
+            created = None
+    best: tuple[str, float] | None = None
+    seen: set[int] = set()
+    for tok in tokens:
+        for idx in index.inverted.get(tok, ()):
+            if idx in seen:
+                continue
+            seen.add(idx)
+            other_id, other_tokens, is_closed, other_created = index.entries[idx]
+            if other_id == bid:
+                continue
+            # only a closed bead, or a strictly-newer open bead, can supersede
+            if not is_closed:
+                if created is None or other_created is None or other_created <= created:
+                    continue
+            score = jaccard(tokens, other_tokens)
+            if score >= threshold and (best is None or score > best[1]):
+                best = (other_id, score)
+    return best
+
+
+def classify_bead(bead: dict, index: DedupIndex,
+                  threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
+                  min_tokens: int = DEFAULT_MIN_SIMILARITY_TOKENS) -> tuple[str, dict]:
+    """Return (bucket, evidence). bucket in {superseded, resling}. Signals are
+    checked strongest-first; the first to fire wins. No signal -> resling.
+
+    Signal 1  parent_epic_closed          -- parent epic/convoy is closed.
+    Signal 2  subsumed_by_closed_ref      -- relational edge to a closed bead.
+    Signal 3  duplicate_of_closed_or_newer-- near-duplicate title/description.
+    """
+    parent = parent_of(bead)
+    if parent and parent in index.closed_ids:
+        return "superseded", {"signal": "parent_epic_closed", "matched_bead": parent}
+
+    for ref in subsuming_refs(bead):
+        if ref in index.closed_ids:
+            return "superseded", {"signal": "subsumed_by_closed_ref", "matched_bead": ref}
+
+    dup = find_duplicate(bead, index, threshold, min_tokens)
+    if dup is not None:
+        return "superseded", {
+            "signal": "duplicate_of_closed_or_newer",
+            "matched_bead": dup[0],
+            "similarity": round(dup[1], 3),
+        }
+
+    return "resling", {"signal": None}
 
 
 def select_batches(
     candidates: list[dict],
     now: datetime,
-    supersede_age_seconds: float,
+    index: DedupIndex,
     resling_cap: int,
     supersede_cap: int,
+    threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
+    min_tokens: int = DEFAULT_MIN_SIMILARITY_TOKENS,
 ) -> tuple[list[dict], list[dict]]:
     """Split into (superseded, resling), each oldest-first and capped so a
-    large tail drains steadily instead of being dumped (Fork 3)."""
+    large tail drains steadily instead of being dumped (Fork 3). Superseded
+    beads carry their signal evidence under `_supersession` so the downstream
+    close brief is auditable."""
     superseded, resling = [], []
     for bead in sorted(candidates, key=lambda b: real_idle_seconds(b, now), reverse=True):
-        if classify_bead(bead, now, supersede_age_seconds) == "superseded":
+        bucket, evidence = classify_bead(bead, index, threshold, min_tokens)
+        if bucket == "superseded":
+            bead["_supersession"] = evidence
             superseded.append(bead)
         else:
             resling.append(bead)
@@ -224,8 +411,33 @@ def render_record(bead: dict, kind: str, now: datetime, observed_at: str) -> str
         f"idle {idle_days:.1f} days (real max of created/updated/last_activity), "
         "past the >3d tail trigger",
     ]
+    signal = bead.get("_supersession") if kind == "superseded" else None
+    if signal and signal.get("signal"):
+        matched = signal.get("matched_bead", "?")
+        detail = {
+            "parent_epic_closed":
+                f"supersession signal: parent epic/convoy {matched} is closed",
+            "subsumed_by_closed_ref":
+                f"supersession signal: relational edge to closed bead {matched} "
+                "(pointed-at work is done)",
+            "duplicate_of_closed_or_newer":
+                f"supersession signal: near-duplicate (jaccard "
+                f"{signal.get('similarity', '?')}) of closed-or-newer bead {matched}",
+        }.get(signal["signal"], f"supersession signal: {signal['signal']} ({matched})")
+        evidence.append(detail)
     title = (bead.get("title") or "").replace("\\", "/").replace('"', "'")
     title = re.sub(r"\s+", " ", title).strip()  # collapse newlines/tabs -> TOML-safe
+    tail_section = (
+        "[tail_end_detector]\n"
+        f'bucket = "{kind}"\n'
+        f'title = "{title}"\n'
+        f'idle_days = {idle_days:.1f}\n'
+    )
+    if signal and signal.get("signal"):
+        tail_section += f'supersession_signal = "{signal["signal"]}"\n'
+        tail_section += f'matched_bead = "{signal.get("matched_bead", "")}"\n'
+        if signal.get("similarity") is not None:
+            tail_section += f'similarity = {signal["similarity"]}\n'
     return (
         'schema = "lost-bead-classification.v1"\n'
         f'bead_id = "{bead["id"]}"\n'
@@ -247,10 +459,7 @@ def render_record(bead: dict, kind: str, now: datetime, observed_at: str) -> str
         f"repair_candidate = {str(spec['repair_candidate']).lower()}\n"
         f'fingerprint = "{spec["fingerprint"]}"\n'
         "\n"
-        "[tail_end_detector]\n"
-        f'bucket = "{kind}"\n'
-        f'title = "{title}"\n'
-        f'idle_days = {idle_days:.1f}\n'
+        + tail_section
     )
 
 
@@ -267,11 +476,15 @@ def _bd_json(rig_dir: Path, *args: str) -> list[dict]:
     return data if isinstance(data, list) else data.get("issues", [])
 
 
-def gather_rig(base_dir: Path, rig: str) -> tuple[list[dict], set[str]]:
+def gather_rig(base_dir: Path, rig: str) -> tuple[list[dict], set[str], list[dict]]:
+    """Return (open_beads, ready_ids, closed_beads) for a rig. Closed beads
+    feed the supersession index (parent-closed / subsumed-ref / duplicate
+    signals) -- they are never candidates themselves."""
     rig_dir = base_dir / rig
     opens = _bd_json(rig_dir, "list", "--status", "open")
     ready = {b["id"] for b in _bd_json(rig_dir, "ready")}
-    return opens, ready
+    closed = _bd_json(rig_dir, "list", "--status", "closed")
+    return opens, ready, closed
 
 
 def gather_routed_ids(base_dir: Path) -> set[str]:
@@ -373,8 +586,13 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--classification-root", type=Path,
                         default=Path(".beads/lost-bead-classifications"))
     parser.add_argument("--min-idle-days", type=float, default=DEFAULT_MIN_IDLE_DAYS)
-    parser.add_argument("--supersede-age-days", type=float,
-                        default=DEFAULT_SUPERSEDE_AGE_DAYS)
+    parser.add_argument("--similarity-threshold", type=float,
+                        default=DEFAULT_SIMILARITY_THRESHOLD,
+                        help="Jaccard floor for the duplicate supersession signal.")
+    parser.add_argument("--min-similarity-tokens", type=int,
+                        default=DEFAULT_MIN_SIMILARITY_TOKENS,
+                        help="Min content tokens before a title can match as a "
+                             "duplicate (guards generic repeated titles).")
     parser.add_argument("--resling-cap", type=int, default=DEFAULT_RESLING_BATCH_CAP)
     parser.add_argument("--supersede-cap", type=int, default=DEFAULT_SUPERSEDE_BATCH_CAP)
     parser.add_argument("--dry-run", action="store_true",
@@ -383,7 +601,6 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     min_idle = args.min_idle_days * 86400
-    supersede_age = args.supersede_age_days * 86400
 
     if not args.dry_run:
         _preflight()
@@ -392,14 +609,19 @@ def main(argv: list[str]) -> int:
 
     routed_ids = gather_routed_ids(args.base_dir)
     candidates: list[dict] = []
+    corpus: list[dict] = []
     for rig in args.rigs:
-        opens, ready = gather_rig(args.base_dir, rig)
+        opens, ready, closed = gather_rig(args.base_dir, rig)
+        corpus.extend(opens)
+        corpus.extend(closed)
         candidates.extend(
             find_actionable_tail(opens, ready, routed_ids, now, min_idle)
         )
 
+    index = build_dedup_index(corpus, args.min_similarity_tokens)
     superseded, resling = select_batches(
-        candidates, now, supersede_age, args.resling_cap, args.supersede_cap,
+        candidates, now, index, args.resling_cap, args.supersede_cap,
+        args.similarity_threshold, args.min_similarity_tokens,
     )
     actionable = len(candidates)
 
