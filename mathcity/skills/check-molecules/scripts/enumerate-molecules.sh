@@ -24,9 +24,9 @@ gc dolt health >/dev/null 2>&1 || {
   echo "(This skill needs the live bead store.)"; exit 1; }
 
 tmp_dir="$(mktemp -d)"; trap 'rm -rf "$tmp_dir"' EXIT
-LIVE_IDS="$tmp_dir/live_ids"; WORKED="$tmp_dir/worked"
+LIVE_IDS="$tmp_dir/live_ids"; WORKED="$tmp_dir/worked"; WORKED2="$tmp_dir/worked2"
 STRANDED="$tmp_dir/stranded"; READY="$tmp_dir/ready"
-: > "$LIVE_IDS"; : > "$WORKED"; : > "$STRANDED"; : > "$READY"
+: > "$LIVE_IDS"; : > "$WORKED"; : > "$WORKED2"; : > "$STRANDED"; : > "$READY"
 
 # ---------------------------------------------------------------------------
 # [A] BEING WORKED ON: cross-reference live worker sessions -> the molecule/bead
@@ -65,7 +65,12 @@ while IFS= read -r d; do
   [ -d "$d/.beads" ] || continue
   rig="$(basename "$d")"
 
-  # [B] STRANDED: in_progress briefed molecule, empty assignee, id NOT in a live workdir.
+  # [B] STRANDED: in_progress briefed molecule with NO live worker AND no
+  #     in_progress step child. A molecule whose steps are advancing is being
+  #     worked (W✓) even when no run-op workdir names the ROOT and the root has
+  #     no assignee — the root is a container; work lands on the step beads.
+  #     Keying stranded off root-assignee/root-in-workdir alone false-flags
+  #     healthy in-flight molecules (observed 2026-08-05: gsp-w4t354 et al.).
   (cd "$d" && bd list --status in_progress --json --readonly 2>/dev/null) | python3 -c "
 import sys, json
 rig='$rig'
@@ -77,15 +82,24 @@ try:
         L=L.strip()
         if L: live.add(L)
 except Exception: pass
+# roots that have at least one in_progress STEP child (id != root) = being worked
+active=set()
+for x in data:
+    m=x.get('metadata') or {}
+    r=m.get('gc.root_bead_id')
+    if r and r != x.get('id') and x.get('status')=='in_progress':
+        active.add(r)
+w2=open('$WORKED2','a')
 for x in data:
     t=(x.get('title') or '').replace(chr(9),' ')
     if 'briefed' not in t: continue          # molecule roots are '<formula>-briefed'
-    a=(x.get('assignee') or '').strip()
     i=x.get('id','?')
-    if a and i in live: continue              # genuinely being worked
-    if i in live: continue
+    if i in live: continue                    # a run-op workdir names the root
+    if i in active:                           # an in_progress step child = W✓
+        w2.write(i+'\tworker(steps-advancing)\tvia-steps\n'); continue
     upd=(x.get('updated_at') or x.get('updated') or '')[:16].replace('T',' ')
     print(f\"{i}\t{rig}\t{t[:60]}\t{upd or '-'}\")
+w2.close()
 " >> "$STRANDED"
 
   # [C] READY: top-level dispatchable candidates (unchanged feed logic).
@@ -109,7 +123,12 @@ for x in data:
 " >> "$READY"
 done <<< "$RIGDIRS_LIST"
 
+# fold step-active molecules (W✓ via advancing steps, discovered per-rig above)
+# into BEING WORKED ON; dedup by bead so a workdir-match wins over a step-match.
+cat "$WORKED2" >> "$WORKED"
+
 # dedup each by bead id (a store mirrored in >1 workdir yields the same bead twice)
+awk -F'\t' '!seen[$1]++' "$WORKED" > "$WORKED.dd" && mv "$WORKED.dd" "$WORKED"
 awk -F'\t' '!seen[$1]++' "$STRANDED" > "$STRANDED.dd" && mv "$STRANDED.dd" "$STRANDED"
 awk -F'\t' '!seen[$2]++' "$READY" > "$READY.dd" && mv "$READY.dd" "$READY"
 
