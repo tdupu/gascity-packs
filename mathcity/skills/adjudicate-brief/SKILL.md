@@ -61,6 +61,53 @@ bd defer <BRIEF_BEAD> --until=<DEFER_UNTIL> \
   --reason="<RATIONALE>"
 ```
 
+### 2b. Sync the decisions-track file + manifest (decision-briefs — MANDATORY when present)
+
+If this verdict resolves a `decisions-to-briefs` file-brief — a
+`<NN>-<slug>-brief.md` in `~/gt/.beads/decisions-track/` with a
+`manifest.jsonl` entry — you MUST update **both** the file frontmatter
+`status:` line **and** the manifest entry in the same step. Updating only one
+diverges the two records: `present-briefs` Method 3 trusts the manifest, but
+any file-status scan re-surfaces the resolved decision. (Observed 2026-08-04:
+17 briefs marked `adjudicated` in the manifest still read
+`status: ready-for-adjudication` in-file, re-presenting decided decisions —
+this step is the fix.)
+
+`BRIEF_FILE` = the decisions-track path this verdict resolves (the clerk /
+present-briefs passes it; if the brief has no decisions-track file, skip 2b).
+
+```bash
+DTRACK="$HOME/gt/.beads/decisions-track"
+BRIEF_FILE="<path to NN-slug-brief.md, or empty>"
+if [ -n "$BRIEF_FILE" ] && [ -f "$BRIEF_FILE" ]; then
+  N=$(basename "$BRIEF_FILE" | sed -E 's/^0*([0-9]+)-.*/\1/')
+  # defer keeps it ripe (resurfaces after its interval); every other verdict is terminal
+  if [ "$VERDICT" = "defer" ]; then FS="ready-for-adjudication"; MS="ready"; else FS="adjudicated"; MS="adjudicated"; fi
+  # (1) file frontmatter status: line (macOS BSD sed needs the '' arg)
+  sed -i '' -E "s/^status:.*/status: $FS/" "$BRIEF_FILE"
+  # (2) manifest entry: status (+ verdict/rationale/date when terminal), rewritten in place
+  python3 - "$DTRACK/manifest.jsonl" "$N" "$MS" "$VERDICT" "$RATIONALE" "$(date +%Y-%m-%d)" <<'PY'
+import json, sys
+path, n, ms, verdict, rat, today = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6]
+out = []
+for line in open(path):
+    s = line.strip()
+    if not s: continue
+    d = json.loads(s)
+    if d.get("n") == n:
+        d["status"] = ms
+        if ms != "ready":
+            d["verdict"] = verdict; d["verdict_note"] = rat; d["adjudicated_at"] = today
+    out.append(json.dumps(d))
+open(path, "w").write("\n".join(out) + "\n")
+PY
+fi
+```
+
+Invariant: after 2b, the file's `status:` and the manifest `status` for this
+brief are equal. Never leave one `ready`/`ready-for-adjudication` while the
+other is `adjudicated`.
+
 ### 3. If verdict = approve → dispatch via math-city-work (MANDATORY)
 
 Scope `artifact_root` per bead — never omit it or pass the bare rig root, or
