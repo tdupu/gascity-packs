@@ -11,7 +11,7 @@
 
 _Regenerate/verify with `/update-README`._
 
-### Parent pack — `mathcity/skills/`  (49)
+### Parent pack — `mathcity/skills/`  (50)
 
 | Skill | Alias | What it does |
 |---|---|---|
