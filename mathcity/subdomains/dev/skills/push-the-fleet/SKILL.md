@@ -140,24 +140,32 @@ Detect rig from the bead ID prefix (first 2–4 chars before the first `-`).
 4. P1 policy/skill beads
 5. P2+ (fill remaining slots)
 
-## Step 4 — Dispatch the canonical formula
+## Step 4 — Dispatch via `mathcity.work` (do NOT hand-sling)
 
-For each candidate bead (run from the bead's rig dir):
+**Feed the ranked candidates to the `mathcity.work` skill — never call
+`gc sling` directly here.** A raw `gc sling` loop is exactly the
+hand-sling anti-pattern `mathcity.work` exists to replace; it re-implements
+(and drifts from) the canonical dispatch path. `mathcity.work` owns the
+feed-don't-hand-sling doctrine: formula selection (`build-basic-briefed`
+default per `gsp-fhdnu`; `planning-briefed` / `simple-work-briefed` /
+`smoke-test-briefed` when the bead shape calls for it), the standard vars,
+the **mandatory per-bead scoped `artifact_root=<rig-root>/.gc-builds/<bead-id>`**
+guardrail (`gsp-1bmxuz`), and the verify-assignee + slow-build-≠-strand gates.
 
-```bash
-gc sling <rig>/gc.run-operator <bead-id> --on build-basic-briefed \
-  --var interaction_mode=autonomous \
-  --var review_mode=agent \
-  --var drain_policy=separate \
-  --var push=false \
-  --var open_pr=false \
-  --var artifact_root=<rig-root>/.gc-builds/<bead-id>
-```
+`push-the-fleet` is the **batch layer over `mathcity.work`**: it ranks (Steps
+0–3) and hands the ranked candidate set to `mathcity.work`, which does the
+actual dispatch correctly.
 
-Dispatch in parallel batches (multiple `gc sling` calls at once) — the
-dispatcher queues what it can't run immediately; do not serialize.
+- Invoke the **`mathcity.work`** skill with the ranked candidate beads from
+  Step 3 (it accepts a single bead or a set of ready beads). It selects the
+  right formula per bead and slings each with the correct vars + scoped
+  `artifact_root`.
+- Feed in parallel batches — the dispatcher queues what it can't run
+  immediately; do not serialize.
+- Stop feeding when DISPATCHED_COUNT + ACTIVE >= TARGET.
 
-Stop dispatching when DISPATCHED_COUNT + ACTIVE >= TARGET.
+This keeps a single canonical dispatch implementation: fix a dispatch bug once
+in `mathcity.work` and `push-the-fleet` inherits it.
 
 ## Step 5 — Verify assignees (mandatory gate)
 
