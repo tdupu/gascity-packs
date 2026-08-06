@@ -2,7 +2,7 @@
 
 **Single canonical cross-pack index of every skill in the mathcity pack family.**
 
-119 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+120 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
 
 **Maintenance (single source of truth — no competing updater):**
 - `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
@@ -11,7 +11,7 @@
 
 _Regenerate/verify with `/update-README`._
 
-### Parent pack — `mathcity/skills/`  (48)
+### Parent pack — `mathcity/skills/`  (49)
 
 | Skill | Alias | What it does |
 |---|---|---|
@@ -20,6 +20,7 @@ _Regenerate/verify with `/update-README`._
 | `bead-check` | `mathcity.bead-check` | Use when the disposition of a specific bead is in question — stale, possibly superseded, mis-filed, orphaned, or in the wrong rig — and a recommendation is needed before anyone acts on it |
 | `brief-prep` | `mathcity.brief-prep` | Specialized worker that owns the brief-prep pipeline end-to-end |
 | `check-briefs` | `mathcity.check-briefs` | Report the current brief stack — compact table (Rig, Artifact, unlock_count, Age, Epic/linked) sorted by unlock_count descending |
+| `check-mayor-mail` | `mathcity.check-mayor-mail` | Mayor-facing mail triage routine — scan the gc mail inbox, surface [ESCALATE CRITICAL/HIGH] first, and catch escalations the fleet raised into a void |
 | `check-molecules` | `mathcity.check-molecules` | Complete molecule accounting across all rigs, by status and in order — BEING WORKED ON (live worker), STRANDED (in_progress, no worker — reclaim backlog), READY (dispatchable, priority-ranked); writes the full accounting to ~/gt/molecules and prints a capped per-status summary |
 | `check-stack` | `mathcity.check-stack` | Report the current brief stack status — count and table of actionable briefs (approved, bead not yet closed) sorted by unlock_count descending |
 | `check-work` | `mathcity.check-work` | Decide whether the fleet is ACTUALLY doing work — the signal-trust hierarchy and anti-patterns for reading fleet state, plus routing to the right per-purpose checker |
