@@ -2,7 +2,7 @@
 
 **Single canonical cross-pack index of every skill in the mathcity pack family.**
 
-118 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
+119 skills across the parent pack and 7 subdomain child packs (ADR 0002). This file is the ONE complete list; the `## Skills` table in `README.md` and the tables in each `subdomains/*/README.md` are pack-local views of the same skills — do not treat them as competing indexes. When they disagree, **this file wins**.
 
 **Maintenance (single source of truth — no competing updater):**
 - `skill-creator-math` appends the new skill's row here as the last step of creating a skill.
@@ -22,6 +22,7 @@ _Regenerate/verify with `/update-README`._
 | `check-briefs` | `mathcity.check-briefs` | Report the current brief stack — compact table (Rig, Artifact, unlock_count, Age, Epic/linked) sorted by unlock_count descending |
 | `check-molecules` | `mathcity.check-molecules` | Complete molecule accounting across all rigs, by status and in order — BEING WORKED ON (live worker), STRANDED (in_progress, no worker — reclaim backlog), READY (dispatchable, priority-ranked); writes the full accounting to ~/gt/molecules and prints a capped per-status summary |
 | `check-stack` | `mathcity.check-stack` | Report the current brief stack status — count and table of actionable briefs (approved, bead not yet closed) sorted by unlock_count descending |
+| `check-work` | `mathcity.check-work` | Decide whether the fleet is ACTUALLY doing work — the signal-trust hierarchy and anti-patterns for reading fleet state, plus routing to the right per-purpose checker |
 | `catch-no-brainer` | `mathcity.catch-no-brainer` | PRELIMINARY v0.2 — classify a brief against the he-lele 5-criterion no-brainer test, plus recognize the capability-blocker shape (would-be no-brainer stalled by a permission/capability gap) and signal compact-form eligibility to downstre… |
 | `communicate-with-other-agent` | `mathcity.communicate-with-other-agent` | Send and read messages between concurrent Claude Code agents via the shared inbox ~/gt/.claude/.agent-inbox.md |
 | `compare-artifacts` | `mathcity.compare-artifacts` | Semantic-diff between two text artifacts |
