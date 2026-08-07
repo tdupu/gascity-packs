@@ -68,7 +68,7 @@ default = "autonomous"
 
 [vars.review_mode]
 description = "Review authority passed to build-basic-briefed on full-path."
-default = "agent"
+default = "report"
 
 [vars.drain_policy]
 description = "Implementation drain policy passed to build-basic-briefed on full-path."
